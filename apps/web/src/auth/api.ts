@@ -20,9 +20,10 @@ export async function fetchMe() {
     if (!res.ok) throw new Error('Failed to fetch user profile');
     const userData = await res.json();
     // Map snake_case to camelCase for avatarUrl
+    const { avatar_url, ...rest } = userData;
     const mappedUser = {
-      ...userData,
-      avatarUrl: userData.avatar_url || userData.avatarUrl,
+      ...rest,
+      avatarUrl: avatar_url || userData.avatarUrl,
     };
     // API only returns user data, keep existing tokens
     useAuthStore.getState().login(mappedUser, accessToken!, refreshToken!);
