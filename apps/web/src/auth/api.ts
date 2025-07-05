@@ -16,7 +16,9 @@ export async function fetchMe() {
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Failed to fetch user';
     useAuthStore.getState().setError(message);
-    useAuthStore.getState().logout();
+    // Don't auto-logout on fetch errors to preserve persisted state
+    // Only logout if explicitly called by user or on auth-specific errors
+    throw e;
   } finally {
     useAuthStore.getState().setLoading(false);
   }

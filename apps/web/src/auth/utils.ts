@@ -29,15 +29,35 @@ export function setupTokenRefresh() {
 
 // Initialize auth state on app load
 export async function initializeAuth() {
-  const { setLoading } = useAuthStore.getState();
+  const { setLoading, accessToken, refreshToken: refresh } = useAuthStore.getState();
 
   setLoading(true);
   try {
-    // Try to get current user session
-    await fetchMe();
+    // If we have tokens in storage, try to validate them
+    if (accessToken && refresh) {
+      // Try to verify the current session first
+      const response = await fetch('/api/v1/auth/me', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        // Session is valid, update user data
+        const data = await response.json();
+        useAuthStore.getState().login(data.user, data.accessToken, data.refreshToken);
+      } else if (response.status === 401) {
+        // Access token expired, try to refresh
+        await refreshToken();
+      } else {
+        // Other error, but keep persisted state
+        console.log('Session validation failed, keeping persisted state');
+      }
+    } else {
+      // No tokens, try to fetch session from cookies
+      await fetchMe();
+    }
   } catch (e) {
-    // Silent fail - user not authenticated
-    console.log('No active session');
+    // Silent fail - keep any persisted auth state
+    console.log('Auth initialization failed, keeping persisted state:', e);
   } finally {
     setLoading(false);
   }
