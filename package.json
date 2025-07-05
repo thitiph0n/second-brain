@@ -5,7 +5,13 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "test": "turbo run test",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "deploy:frontend": "./scripts/deploy.sh staging",
+    "deploy:frontend:staging": "./scripts/deploy.sh staging",
+    "deploy:frontend:production": "./scripts/deploy.sh production",
+    "deploy:frontend:preview": "wrangler pages deploy apps/web/dist --project-name=second-brain-web-staging --compatibility-date=2025-01-01 --env=preview",
+    "deploy:backend": "./scripts/deploy-backend.sh",
+    "release": "./scripts/release.sh"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
