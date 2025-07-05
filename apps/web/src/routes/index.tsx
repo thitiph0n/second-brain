@@ -9,12 +9,16 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '../auth/hooks';
+import { Link } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/')({
   component: LandingPage,
 });
 
 function LandingPage() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -107,10 +111,25 @@ function LandingPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button size="lg" className="group">
-              Start Your Journey
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Button>
+            {isAuthenticated ? (
+              <Link to="/dashboard">
+                <Button size="lg" className="group">
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                size="lg"
+                className="group"
+                onClick={() =>
+                  (window.location.href = '/api/v1/auth/github/login')
+                }
+              >
+                Start Your Journey
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            )}
           </CardContent>
         </Card>
       </section>
