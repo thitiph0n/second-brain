@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deploy script for Second Brain Frontend to Cloudflare Pages
+# Deploy script for Second Brain Frontend to Cloudflare Workers with Static Assets
 # This script builds and deploys only the web frontend
 # Backend API will be deployed separately
 
@@ -8,16 +8,13 @@ set -e
 
 # Default to staging if no environment specified
 ENVIRONMENT=${1:-staging}
-PROJECT_NAME=""
 
 case $ENVIRONMENT in
   "production" | "prod")
-    PROJECT_NAME="second-brain-web-prod"
-    echo "🚀 Starting PRODUCTION deployment to Cloudflare Pages..."
+    echo "🚀 Starting PRODUCTION deployment to Cloudflare Workers..."
     ;;
   "staging" | "stage")
-    PROJECT_NAME="second-brain-web-staging"
-    echo "🧪 Starting STAGING deployment to Cloudflare Pages..."
+    echo "🧪 Starting STAGING deployment to Cloudflare Workers..."
     ;;
   *)
     echo "❌ Invalid environment: $ENVIRONMENT"
@@ -48,10 +45,16 @@ pnpm install --frozen-lockfile
 echo "🔨 Building the web frontend..."
 pnpm --filter=@second-brain/web build
 
-# Deploy to Cloudflare Pages
-echo "🌐 Deploying frontend to Cloudflare Pages..."
-wrangler pages deploy apps/web/dist --project-name="$PROJECT_NAME" --compatibility-date=2025-01-01
+# Deploy to Cloudflare Workers
+echo "🌐 Deploying frontend to Cloudflare Workers..."
+if [[ "$ENVIRONMENT" == "production" || "$ENVIRONMENT" == "prod" ]]; then
+    wrangler deploy --env production
+    WORKER_NAME="second-brain-web-prod"
+else
+    wrangler deploy
+    WORKER_NAME="second-brain-web-staging"
+fi
 
 echo "✅ Frontend deployment completed successfully!"
-echo "🔗 Your frontend should be available at: https://$PROJECT_NAME.pages.dev"
+echo "🔗 Your frontend should be available at: https://$WORKER_NAME.your-domain.workers.dev"
 echo "📝 Note: This is only the frontend. Backend API will be deployed separately."

@@ -1,0 +1,20 @@
+name = "second-brain-app"
+main = "src/index.ts"
+compatibility_date = "2024-05-29"
+assets = { directory = "../web/dist", binding = "ASSETS" }
+
+# Database
+[[d1_databases]]
+binding = "DB"
+database_name = "second-brain-db"
+database_id = "999f6469-04df-4b79-982e-3351bc20e3dd"
+
+# KV Store
+[[kv_namespaces]]
+binding = "CACHE"
+id = "eec49951f2ce43f199d2f019ac06aea4"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+FRONTEND_URL = "https://2b.thitphon.me"

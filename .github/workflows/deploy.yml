@@ -1,58 +1,18 @@
-name: Deploy Frontend to Cloudflare Pages
+name: Deploy to Cloudflare Workers
 
 on:
-  # Deploy to staging when merging to main, deploy to production when creating a tag
   push:
-    branches:
-      - main
-    tags:
-      - 'v*.*.*' # Matches tags like v1.0.0, v2.1.3, etc.
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/deploy.yml'
-
-  # Preview deployments for pull requests
+    branches: [main]
   pull_request:
-    branches:
-      - main
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
+    branches: [main]
 
 jobs:
-  # Determine deployment environment
-  setup:
+  deploy:
     runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.env.outputs.environment }}
-      project-name: ${{ steps.env.outputs.project-name }}
+    name: Deploy
+    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Determine environment
-        id: env
-        run: |
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "project-name=second-brain-web-prod" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "environment=staging" >> $GITHUB_OUTPUT
-            echo "project-name=second-brain-web-staging" >> $GITHUB_OUTPUT
-          else
-            echo "environment=preview" >> $GITHUB_OUTPUT
-            echo "project-name=second-brain-web-staging" >> $GITHUB_OUTPUT
-          fi
-
-  build-and-deploy-frontend:
-    needs: setup
-    runs-on: ubuntu-latest
-    name: Build and Deploy Frontend
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -60,46 +20,19 @@ jobs:
           node-version: '20'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v2
         with:
-          version: 10.12.4
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          version: 8
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build web application
-        run: pnpm --filter=@second-brain/web build
+      - name: Build frontend
+        run: pnpm --filter @second-brain/web build
 
-      - name: Deploy to Cloudflare Pages (${{ needs.setup.outputs.environment }})
-        uses: cloudflare/pages-action@v1
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ needs.setup.outputs.project-name }}
-          directory: apps/web/dist
-          # Custom domains are configured in Cloudflare Pages dashboard
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Deployment Summary
-        run: |
-          echo "🚀 Deployment completed successfully!"
-          echo "Environment: ${{ needs.setup.outputs.environment }}"
-          echo "Project: ${{ needs.setup.outputs.project-name }}"
-          if [[ "${{ needs.setup.outputs.environment }}" == "production" ]]; then
-            echo "🌐 Production URL: https://second-brain-web-prod.pages.dev"
-          elif [[ "${{ needs.setup.outputs.environment }}" == "staging" ]]; then
-            echo "🧪 Staging URL: https://second-brain-web-staging.pages.dev"
-          fi
+          workingDirectory: 'apps/api'
+          command: deploy

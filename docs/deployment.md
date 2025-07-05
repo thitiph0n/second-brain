@@ -4,28 +4,28 @@ This document outlines how to deploy the Second Brain application. The applicati
 
 ## Architecture Overview
 
-- **Frontend** (`apps/web`): React SPA deployed to Cloudflare Pages
+- **Frontend** (`apps/web`): React SPA deployed to Cloudflare Workers with Static Assets
 - **Backend** (`apps/api`): API server (planned - not yet implemented)
 - **MCP Server** (`apps/mcp-server`): Model Context Protocol server (planned)
 - **Packages**: Shared libraries (`packages/shared`, `packages/database`)
 
-## Frontend Deployment (Cloudflare Pages)
+## Frontend Deployment (Cloudflare Workers)
 
 ### Deployment Environments
 
 The application supports two deployment environments:
 
 - **Staging**: Automatically deployed when merging to `main` branch
-  - URL: `https://second-brain-web-staging.pages.dev`
-  - Project: `second-brain-web-staging`
+  - URL: `https://second-brain-web-staging.your-domain.workers.dev`
+  - Worker: `second-brain-web-staging`
   
 - **Production**: Automatically deployed when creating a git tag (e.g., `v1.0.0`)
-  - URL: `https://second-brain-web-prod.pages.dev`
-  - Project: `second-brain-web-prod`
+  - URL: `https://second-brain-web-prod.your-domain.workers.dev`
+  - Worker: `second-brain-web-prod`
 
 ### Prerequisites
 
-1. **Cloudflare Account**: You need a Cloudflare account with Pages enabled
+1. **Cloudflare Account**: You need a Cloudflare account with Workers enabled
 2. **GitHub Repository**: Your code should be pushed to GitHub (already set up)
 3. **Wrangler CLI**: Install the Cloudflare Wrangler CLI for local deployments
 
@@ -55,26 +55,15 @@ This is the easiest method and provides continuous deployment.
 2. Navigate to **Secrets and variables** → **Actions**
 3. Add the following secrets:
 
-   - `CLOUDFLARE_API_TOKEN`: Get this from Cloudflare Dashboard → My Profile → API Tokens → Create Token (Custom token with Zone:Read, Page:Edit permissions)
+   - `CLOUDFLARE_API_TOKEN`: Get this from Cloudflare Dashboard → My Profile → API Tokens → Create Token (Custom token with Workers:Edit permissions)
    - `CLOUDFLARE_ACCOUNT_ID`: Get this from Cloudflare Dashboard → Right sidebar
 
-#### Create Cloudflare Pages Projects
+#### Workers Configuration
 
-You need to create two separate Cloudflare Pages projects:
+The Workers are configured in the `wrangler.toml` file in the root directory. No additional setup is needed in the Cloudflare Dashboard as Workers will be created automatically during deployment.
 
-1. **Staging Project**:
-   - Go to Cloudflare Dashboard → Pages
-   - Click **Create a project**
-   - Connect to your GitHub repository (`thitiph0n/second-brain`)
-   - Project name: `second-brain-web-staging`
-   - Configure build settings:
-     - **Framework preset**: None
-     - **Build command**: `pnpm --filter=@second-brain/web build`
-     - **Build output directory**: `apps/web/dist`
-     - **Root directory**: `/` (leave empty)
-
-2. **Production Project**:
-   - Repeat the same steps but name it: `second-brain-web-prod`
+- **Staging Worker**: `second-brain-web-staging`
+- **Production Worker**: `second-brain-web-prod`
 
 #### Automatic Deployment Triggers
 
@@ -109,9 +98,6 @@ pnpm deploy:frontend:staging
 
 # Deploy to production
 pnpm deploy:frontend:production
-
-# Deploy to preview environment
-pnpm deploy:frontend:preview
 ```
 
 ### Method 4: Direct Wrangler Deployment
@@ -121,10 +107,10 @@ pnpm deploy:frontend:preview
 pnpm build
 
 # Deploy to staging
-wrangler pages deploy apps/web/dist --project-name=second-brain-web-staging --compatibility-date=2025-01-01
+wrangler deploy
 
 # Deploy to production
-wrangler pages deploy apps/web/dist --project-name=second-brain-web-prod --compatibility-date=2025-01-01
+wrangler deploy --env production
 ```
 
 ## Backend Deployment (Future)
@@ -147,8 +133,9 @@ A placeholder script is available at `scripts/deploy-backend.sh` for future impl
 
 ### Wrangler Configuration (`wrangler.toml`)
 
-- Defines build settings
-- Sets up redirects for SPA routing
+- Defines Workers and static assets settings
+- Configures SPA routing behavior
+- Sets up environment-specific configurations
 - Configures headers for security and performance
 
 ### Cloudflare Pages Files
