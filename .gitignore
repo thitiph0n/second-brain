@@ -35,6 +35,7 @@ coverage/
 
 # Cloudflare
 .wrangler/
+wrangler.*.toml
 
 # Temporary files
 *.tmp

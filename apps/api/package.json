@@ -7,7 +7,9 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "build": "tsc",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "migrate:dev": "node scripts/migrate.js --env development",
+    "migrate:prod": "node scripts/migrate.js --env production"
   },
   "dependencies": {
     "hono": "^4.0.0",

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { serveStatic } from 'hono/cloudflare-workers';
+import authRoutes from './routes/auth';
 
 interface Env {
   ASSETS: Fetcher;
@@ -9,6 +10,9 @@ interface Env {
   CACHE: KVNamespace;
   ENVIRONMENT: string;
   FRONTEND_URL: string;
+  JWT_SECRET: string;
+  GITHUB_CLIENT_ID: string;
+  GITHUB_CLIENT_SECRET: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -46,6 +50,9 @@ app.get('/api/health', (c) => {
 app.get('/api/v1/test', (c) => {
   return c.json({ message: 'Second Brain API is working!' });
 });
+
+// Authentication routes
+app.route('/api/v1/auth', authRoutes);
 
 // Add more API routes here
 // app.route('/api/v1/notes', notesRouter);
