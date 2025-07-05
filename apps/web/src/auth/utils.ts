@@ -29,37 +29,51 @@ export function setupTokenRefresh() {
 
 // Initialize auth state on app load
 export async function initializeAuth() {
-  const { setLoading, accessToken, refreshToken: refresh } = useAuthStore.getState();
-
-  setLoading(true);
-  try {
-    // If we have tokens in storage, try to validate them
-    if (accessToken && refresh) {
-      // Try to verify the current session first
-      const response = await fetch('/api/v1/auth/me', {
-        credentials: 'include',
-      });
-      
-      if (response.ok) {
-        // Session is valid, update user data
-        const data = await response.json();
-        useAuthStore.getState().login(data.user, data.accessToken, data.refreshToken);
-      } else if (response.status === 401) {
-        // Access token expired, try to refresh
-        await refreshToken();
-      } else {
-        // Other error, but keep persisted state
-        console.log('Session validation failed, keeping persisted state');
+  const store = useAuthStore.getState();
+  
+  // Manually hydrate the store from localStorage since we're using skipHydration
+  const persistedState = localStorage.getItem('auth-storage');
+  if (persistedState) {
+    try {
+      const { state } = JSON.parse(persistedState);
+      if (state.user && state.accessToken && state.refreshToken) {
+        // Restore the persisted auth state
+        store.login(state.user, state.accessToken, state.refreshToken);
+        console.log('Restored persisted auth state');
+        
+        // Optional: validate session in background without logging out on failure
+        fetch('/api/v1/auth/me', {
+          credentials: 'include',
+        }).then(async (response) => {
+          if (response.ok) {
+            const data = await response.json();
+            useAuthStore.getState().login(data.user, data.accessToken, data.refreshToken);
+          } else if (response.status === 401) {
+            // Try to refresh token in background
+            refreshToken().catch(() => {
+              console.log('Token refresh failed, keeping persisted state');
+            });
+          }
+        }).catch(() => {
+          console.log('Session validation failed, keeping persisted state');
+        });
+        
+        store.setLoading(false);
+        return;
       }
-    } else {
-      // No tokens, try to fetch session from cookies
-      await fetchMe();
+    } catch (e) {
+      console.log('Failed to restore persisted auth state:', e);
     }
+  }
+  
+  // No persisted state, try to fetch from server
+  store.setLoading(true);
+  try {
+    await fetchMe();
   } catch (e) {
-    // Silent fail - keep any persisted auth state
-    console.log('Auth initialization failed, keeping persisted state:', e);
+    console.log('No active session found');
   } finally {
-    setLoading(false);
+    store.setLoading(false);
   }
 }
 
