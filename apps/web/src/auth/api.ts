@@ -8,22 +8,24 @@ export async function fetchMe() {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
-    
+
     if (accessToken) {
       headers.Authorization = `Bearer ${accessToken}`;
     }
-    
+
     const res = await fetch('/api/v1/auth/me', {
       credentials: 'include',
       headers,
     });
     if (!res.ok) throw new Error('Failed to fetch user profile');
     const userData = await res.json();
-    
+    // Map snake_case to camelCase for avatarUrl
+    const mappedUser = {
+      ...userData,
+      avatarUrl: userData.avatar_url || userData.avatarUrl,
+    };
     // API only returns user data, keep existing tokens
-    useAuthStore
-      .getState()
-      .login(userData, accessToken!, refreshToken!);
+    useAuthStore.getState().login(mappedUser, accessToken!, refreshToken!);
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Failed to fetch user';
     useAuthStore.getState().setError(message);
@@ -56,7 +58,7 @@ export async function refreshToken() {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
-    
+
     if (accessToken) {
       headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -74,7 +76,7 @@ export async function refreshToken() {
 
     const data = await response.json();
     const currentUser = useAuthStore.getState().user;
-    
+
     // API returns access_token and refresh_token, but we need to keep the user
     useAuthStore
       .getState()
