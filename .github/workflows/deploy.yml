@@ -28,7 +28,14 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build frontend
-        run: pnpm --filter @second-brain/web build
+        run: pnpm --workspace-root --filter @second-brain/web build
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "apps/web/dist" ]; then
+            echo "Build output directory does not exist!";
+            exit 1;
+          fi
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
