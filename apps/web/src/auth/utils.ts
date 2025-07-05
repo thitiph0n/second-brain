@@ -42,12 +42,21 @@ export async function initializeAuth() {
         console.log('Restored persisted auth state');
         
         // Optional: validate session in background without logging out on failure
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (state.accessToken) {
+          headers.Authorization = `Bearer ${state.accessToken}`;
+        }
+        
         fetch('/api/v1/auth/me', {
           credentials: 'include',
+          headers,
         }).then(async (response) => {
           if (response.ok) {
-            const data = await response.json();
-            useAuthStore.getState().login(data.user, data.accessToken, data.refreshToken);
+            const userData = await response.json();
+            useAuthStore.getState().login(userData, state.accessToken, state.refreshToken);
           } else if (response.status === 401) {
             // Try to refresh token in background
             refreshToken().catch(() => {

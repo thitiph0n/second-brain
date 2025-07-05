@@ -4,15 +4,26 @@ export async function fetchMe() {
   useAuthStore.getState().setLoading(true);
   useAuthStore.getState().setError(null);
   try {
+    const { accessToken, refreshToken } = useAuthStore.getState();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+    
     const res = await fetch('/api/v1/auth/me', {
       credentials: 'include',
+      headers,
     });
     if (!res.ok) throw new Error('Failed to fetch user profile');
-    const data = await res.json();
-    // Assume API returns { user, accessToken, refreshToken }
+    const userData = await res.json();
+    
+    // API only returns user data, keep existing tokens
     useAuthStore
       .getState()
-      .login(data.user, data.accessToken, data.refreshToken);
+      .login(userData, accessToken!, refreshToken!);
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Failed to fetch user';
     useAuthStore.getState().setError(message);
@@ -27,6 +38,7 @@ export async function fetchMe() {
 export async function refreshToken() {
   const {
     refreshToken: token,
+    accessToken,
     setLoading,
     setError,
     logout,
@@ -41,13 +53,19 @@ export async function refreshToken() {
   setError(null);
 
   try {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+
     const response = await fetch('/api/v1/auth/refresh', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
-      body: JSON.stringify({ refreshToken: token }),
+      body: JSON.stringify({ refresh_token: token }),
     });
 
     if (!response.ok) {
@@ -55,10 +73,13 @@ export async function refreshToken() {
     }
 
     const data = await response.json();
+    const currentUser = useAuthStore.getState().user;
+    
+    // API returns access_token and refresh_token, but we need to keep the user
     useAuthStore
       .getState()
-      .login(data.user, data.accessToken, data.refreshToken);
-    return data.accessToken;
+      .login(currentUser!, data.access_token, data.refresh_token);
+    return data.access_token;
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Token refresh failed';
     setError(message);
