@@ -17,4 +17,4 @@ id = "eec49951f2ce43f199d2f019ac06aea4"
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
-FRONTEND_URL = "https://2b.thitphon.me"
+FRONTEND_URL = "https://2b.thitiphon.me"

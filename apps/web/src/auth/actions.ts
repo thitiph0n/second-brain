@@ -22,12 +22,37 @@ export function logout() {
 }
 
 export async function initiateGitHubLogin() {
+  const { setLoading, setError } = useAuthStore.getState();
+
+  setLoading(true);
+  setError(null);
+
   try {
-    // Redirect to backend OAuth endpoint
-    window.location.href = '/api/v1/auth/github/login';
+    // Make API call to get the OAuth URL
+    const response = await fetch('/api/v1/auth/github/login', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to initiate OAuth login');
+    }
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    // Redirect to GitHub OAuth page
+    window.location.href = data.url;
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Failed to initiate login';
-    useAuthStore.getState().setError(message);
+    setError(message);
+    setLoading(false);
   }
 }
 
