@@ -56,7 +56,13 @@ export async function initializeAuth() {
         }).then(async (response) => {
           if (response.ok) {
             const userData = await response.json();
-            useAuthStore.getState().login(userData, state.accessToken, state.refreshToken);
+            // Map snake_case to camelCase for avatarUrl
+            const { avatar_url, ...rest } = userData;
+            const mappedUser = {
+              ...rest,
+              avatarUrl: avatar_url || userData.avatarUrl,
+            };
+            useAuthStore.getState().login(mappedUser, state.accessToken, state.refreshToken);
           } else if (response.status === 401) {
             // Try to refresh token in background
             refreshToken().catch(() => {
