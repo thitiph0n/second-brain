@@ -1,6 +1,7 @@
 import { useAuth } from '../hooks';
 import { logoutUser } from '../actions';
 import { Button } from '../../components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,19 +23,12 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          {user.avatarUrl ? (
-            <img
-              className="h-8 w-8 rounded-full"
-              src={user.avatarUrl}
-              alt={user.name}
-            />
-          ) : (
-            <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-              <span className="text-sm font-medium text-gray-700">
-                {user.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-          )}
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user.avatarUrl} alt={user.name} />
+            <AvatarFallback>
+              {user.name.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
