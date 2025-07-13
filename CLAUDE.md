@@ -129,3 +129,4 @@ When working in this codebase:
 4. Consider Cloudflare Workers limitations (edge runtime)
 5. Use shadcn/ui components for consistent UI
 6. Check `/docs/prds/` for feature specifications before implementation
+7. **ALWAYS ensure files end with a newline character (EOL)** - this is required for proper git handling and POSIX compliance

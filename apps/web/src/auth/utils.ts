@@ -81,10 +81,22 @@ export async function initializeAuth() {
     }
   }
   
-  // No persisted state, try to fetch from server
+  // No persisted state - check if server has an active session via cookies
+  // Only make the /me call if there might be an active session
   store.setLoading(true);
   try {
-    await fetchMe();
+    // Check if we have any auth-related cookies that might indicate an active session
+    const hasAuthCookies = document.cookie.includes('session') || 
+                          document.cookie.includes('token') || 
+                          document.cookie.includes('auth');
+    
+    if (hasAuthCookies) {
+      // Only call /me if we have potential session cookies
+      await fetchMe();
+    } else {
+      // No cookies, no persisted state - user is definitely not authenticated
+      console.log('No auth cookies found, skipping /me call');
+    }
   } catch (e) {
     console.log('No active session found');
   } finally {
