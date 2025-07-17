@@ -70,8 +70,11 @@ docs/
 - **Framework**: React 19 with TypeScript
 - **Build Tool**: Vite 6.1.0
 - **Routing**: TanStack Router v1.121.2 (file-based routing)
-- **Styling**: Tailwind CSS 4.0.6 with shadcn/ui components
-- **Testing**: Vitest with React Testing Library
+- **Styling**: Tailwind CSS 4.0.6 with shadcn/ui components (New York style)
+- **State Management**: Zustand 5.0.6 for authentication state
+- **Data Fetching**: TanStack Query 5.81.5
+- **Testing**: Vitest 3.0.5 with React Testing Library and jsdom
+- **Icons**: Lucide React 0.476.0
 
 #### Backend (Cloudflare Workers API)
 - **Runtime**: Cloudflare Workers
@@ -109,24 +112,49 @@ docs/
 - **Production**: `https://2b.thitphon.me`
 
 ### Database & Storage
-- **Database**: Cloudflare D1 (SQLite) - schema defined but not implemented
-- **Cache**: Cloudflare KV for session storage
+- **Database**: Cloudflare D1 (SQLite) with comprehensive schema for users, OAuth, and sessions
+- **Cache**: Cloudflare KV for session storage and caching
 - **Deployment**: Automated via scripts in `/scripts/`
+
+### Authentication System
+- **OAuth 2.1**: GitHub integration with secure token handling
+- **State Management**: Zustand store with persistence located in `apps/web/src/auth/store.ts`
+- **Route Protection**: AuthGuard components and RequireAuth wrappers in `apps/web/src/auth/components/`
+- **UI Components**: LoginCard, UserMenu, AuthStatus with modern design
 
 ## Development Notes
 
 This is a well-architected foundation for a personal productivity application with planned features including:
-- Authentication (OAuth 2.1 with GitHub)
+- Authentication (OAuth 2.1 with GitHub) - **IMPLEMENTED**
 - Notes with rich text editor
 - Drawings with tldraw canvas
 - Todos with Eisenhower Matrix
 - AI integration via MCP server
+
+### Component Installation
+For adding new shadcn/ui components, use:
+```bash
+pnpx shadcn@latest add button
+```
+
+### Testing Commands
+```bash
+# Run all tests
+pnpm test
+
+# Run tests for specific app
+pnpm --filter @second-brain/web test
+
+# Run tests in watch mode
+pnpm --filter @second-brain/web test:watch
+```
 
 When working in this codebase:
 1. Use `pnpm` for package management
 2. Leverage Turbo's caching and parallel execution
 3. Follow the monorepo structure when adding new functionality
 4. Consider Cloudflare Workers limitations (edge runtime)
-5. Use shadcn/ui components for consistent UI
+5. Use shadcn/ui components for consistent UI - add via `pnpx shadcn@latest add [component]`
 6. Check `/docs/prds/` for feature specifications before implementation
-7. **ALWAYS ensure files end with a newline character (EOL)** - this is required for proper git handling and POSIX compliance
+7. Authentication patterns are in `apps/web/src/auth/` - follow established patterns
+8. **ALWAYS ensure files end with a newline character (EOL)** - this is required for proper git handling and POSIX compliance
