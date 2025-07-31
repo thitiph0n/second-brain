@@ -36,7 +36,7 @@ export default function Header() {
         </nav>
         <div className="flex items-center space-x-4">
           {!isLoading && (
-            <>{isAuthenticated ? <UserMenu /> : <LoginButton />}</>
+            <>{isAuthenticated ? <UserMenu /> : <LoginButton variant="icon" />}</>
           )}
           <ModeToggle />
         </div>

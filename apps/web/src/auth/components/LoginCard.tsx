@@ -10,7 +10,11 @@ import {
 } from '../../components/ui/card';
 import { useState, useEffect } from 'react';
 
-export function LoginButton() {
+interface LoginButtonProps {
+  variant?: 'full' | 'icon';
+}
+
+export function LoginButton({ variant = 'full' }: LoginButtonProps) {
   const { isLoading } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -34,6 +38,24 @@ export function LoginButton() {
   };
 
   const loading = isLoading || isSigningIn;
+
+  if (variant === 'icon') {
+    return (
+      <Button
+        onClick={handleLogin}
+        disabled={loading}
+        size="icon"
+        variant="ghost"
+        title="Sign in with GitHub"
+      >
+        {loading ? (
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+        ) : (
+          <GitHubIcon />
+        )}
+      </Button>
+    );
+  }
 
   return (
     <Button
