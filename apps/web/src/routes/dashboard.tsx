@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { RequireAuth } from '../auth/components/AuthGuard';
 import {
   Card,
@@ -7,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Ticket, StickyNote, CheckSquare } from 'lucide-react';
 import { useAuth } from '../auth/hooks';
 
 export const Route = createFileRoute('/dashboard')({
@@ -59,6 +61,42 @@ function DashboardContent() {
             <CardContent>
               <div className="text-2xl font-bold">0</div>
               <p className="text-xs text-muted-foreground">Total notes</p>
+              <Button variant="outline" size="sm" className="mt-2" disabled>
+                <StickyNote className="h-4 w-4 mr-2" />
+                Coming Soon
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Coupons</CardTitle>
+              <CardDescription>Manage your coupon codes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">-</div>
+              <p className="text-xs text-muted-foreground">Active coupons</p>
+              <Link to="/coupons">
+                <Button variant="outline" size="sm" className="mt-2">
+                  <Ticket className="h-4 w-4 mr-2" />
+                  Manage Coupons
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Todos</CardTitle>
+              <CardDescription>Track your tasks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">0</div>
+              <p className="text-xs text-muted-foreground">Pending tasks</p>
+              <Button variant="outline" size="sm" className="mt-2" disabled>
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Coming Soon
+              </Button>
             </CardContent>
           </Card>
 
