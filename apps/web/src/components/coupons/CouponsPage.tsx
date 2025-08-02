@@ -152,24 +152,40 @@ export function CouponsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2">
                   <div className="text-red-500 text-lg mt-0.5">⚠️</div>
-                  <div>
+                  <div className="flex-1">
                     <h3 className="font-medium text-red-800 dark:text-red-200 mb-1">
-                      Error
+                      API Error
                     </h3>
                     <p className="text-red-700 dark:text-red-300 text-sm">
                       {error}
                     </p>
+                    <div className="mt-2 text-xs text-red-600 dark:text-red-400 space-y-1">
+                      <p>• Check if you're logged in properly</p>
+                      <p>• Ensure the database is properly initialized</p>
+                      <p>• Check browser console for more details</p>
+                    </div>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 h-8 w-8 p-0 shrink-0"
-                  onClick={() => setError(null)}
-                  title="Dismiss error"
-                >
-                  ✕
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 h-8 px-2"
+                    onClick={loadCoupons}
+                    title="Retry loading coupons"
+                  >
+                    Retry
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 h-8 w-8 p-0 shrink-0"
+                    onClick={() => setError(null)}
+                    title="Dismiss error"
+                  >
+                    ✕
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

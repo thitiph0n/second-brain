@@ -3,6 +3,12 @@ import { CouponService } from '../services/coupon';
 import { requireAuth } from '../middleware/auth';
 import { createCouponSchema, updateCouponSchema } from '../validation/coupon';
 import { User, AuthSession } from '../types/auth';
+import { 
+  createErrorResponse, 
+  createValidationErrorResponse, 
+  createNotFoundErrorResponse,
+  createAuthErrorResponse 
+} from '../utils/errorHandler';
 
 interface Env {
   DB: D1Database;
@@ -25,13 +31,16 @@ couponRoutes.use('*', requireAuth());
 couponRoutes.get('/', async (c) => {
   try {
     const user = c.get('user');
+    if (!user) {
+      return createAuthErrorResponse(c, new Error('User context not found'), 'Authentication middleware did not set user context');
+    }
+
     const couponService = new CouponService(c.env.DB);
     const coupons = await couponService.getCouponsByUser(user.id);
 
     return c.json({ coupons });
   } catch (error) {
-    console.error('Error fetching coupons:', error);
-    return c.json({ error: 'Failed to fetch coupons' }, 500);
+    return createErrorResponse(c, error, 'Failed to fetch coupons');
   }
 });
 
@@ -39,6 +48,10 @@ couponRoutes.get('/', async (c) => {
 couponRoutes.post('/', async (c) => {
   try {
     const user = c.get('user');
+    if (!user) {
+      return createAuthErrorResponse(c, new Error('User context not found'), 'Authentication middleware did not set user context');
+    }
+
     const body = await c.req.json();
     
     // Validate request body
@@ -49,13 +62,11 @@ couponRoutes.post('/', async (c) => {
 
     return c.json({ coupon }, 201);
   } catch (error) {
-    console.error('Error creating coupon:', error);
-    
     if (error instanceof Error && error.message.includes('parse')) {
-      return c.json({ error: 'Invalid request data' }, 400);
+      return createValidationErrorResponse(c, error);
     }
     
-    return c.json({ error: 'Failed to create coupon' }, 500);
+    return createErrorResponse(c, error, 'Failed to create coupon');
   }
 });
 
@@ -63,19 +74,22 @@ couponRoutes.post('/', async (c) => {
 couponRoutes.get('/:id', async (c) => {
   try {
     const user = c.get('user');
+    if (!user) {
+      return createAuthErrorResponse(c, new Error('User context not found'), 'Authentication middleware did not set user context');
+    }
+
     const id = c.req.param('id');
     
     const couponService = new CouponService(c.env.DB);
     const coupon = await couponService.getCouponById(id, user.id);
 
     if (!coupon) {
-      return c.json({ error: 'Coupon not found' }, 404);
+      return createNotFoundErrorResponse(c, 'Coupon', id);
     }
 
     return c.json({ coupon });
   } catch (error) {
-    console.error('Error fetching coupon:', error);
-    return c.json({ error: 'Failed to fetch coupon' }, 500);
+    return createErrorResponse(c, error, 'Failed to fetch coupon', 500, { couponId: c.req.param('id') });
   }
 });
 
@@ -83,6 +97,10 @@ couponRoutes.get('/:id', async (c) => {
 couponRoutes.put('/:id', async (c) => {
   try {
     const user = c.get('user');
+    if (!user) {
+      return createAuthErrorResponse(c, new Error('User context not found'), 'Authentication middleware did not set user context');
+    }
+
     const id = c.req.param('id');
     const body = await c.req.json();
     
@@ -93,18 +111,16 @@ couponRoutes.put('/:id', async (c) => {
     const updatedCoupon = await couponService.updateCoupon(id, user.id, validatedData);
 
     if (!updatedCoupon) {
-      return c.json({ error: 'Coupon not found' }, 404);
+      return createNotFoundErrorResponse(c, 'Coupon', id);
     }
 
     return c.json({ coupon: updatedCoupon });
   } catch (error) {
-    console.error('Error updating coupon:', error);
-    
     if (error instanceof Error && error.message.includes('parse')) {
-      return c.json({ error: 'Invalid request data' }, 400);
+      return createValidationErrorResponse(c, error);
     }
     
-    return c.json({ error: 'Failed to update coupon' }, 500);
+    return createErrorResponse(c, error, 'Failed to update coupon', 500, { couponId: c.req.param('id') });
   }
 });
 
@@ -112,19 +128,22 @@ couponRoutes.put('/:id', async (c) => {
 couponRoutes.delete('/:id', async (c) => {
   try {
     const user = c.get('user');
+    if (!user) {
+      return createAuthErrorResponse(c, new Error('User context not found'), 'Authentication middleware did not set user context');
+    }
+
     const id = c.req.param('id');
     
     const couponService = new CouponService(c.env.DB);
     const deleted = await couponService.deleteCoupon(id, user.id);
 
     if (!deleted) {
-      return c.json({ error: 'Coupon not found' }, 404);
+      return createNotFoundErrorResponse(c, 'Coupon', id);
     }
 
     return c.json({ message: 'Coupon deleted successfully' });
   } catch (error) {
-    console.error('Error deleting coupon:', error);
-    return c.json({ error: 'Failed to delete coupon' }, 500);
+    return createErrorResponse(c, error, 'Failed to delete coupon', 500, { couponId: c.req.param('id') });
   }
 });
 

@@ -43,10 +43,23 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    const errorData = await response
-      .json()
-      .catch(() => ({ error: 'Unknown error' }));
-    throw new ApiError(response.status, errorData.error || 'Request failed');
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      errorData = { error: 'Failed to parse error response' };
+    }
+
+    // Create detailed error message
+    let errorMessage = errorData.error || 'Request failed';
+    if (errorData.details) {
+      errorMessage += ` - ${errorData.details}`;
+    }
+    if (errorData.timestamp) {
+      errorMessage += ` (${errorData.timestamp})`;
+    }
+
+    throw new ApiError(response.status, errorMessage);
   }
 
   return response.json();
