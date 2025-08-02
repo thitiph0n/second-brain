@@ -18,17 +18,25 @@ export default function Header() {
             Second Brain
           </Link>
           {isAuthenticated && (
-            <Link
-              to="/dashboard"
-              className="text-sm font-medium transition-colors hover:text-foreground/80 text-muted-foreground"
-            >
-              Dashboard
-            </Link>
+            <>
+              <Link
+                to="/dashboard"
+                className="text-sm font-medium transition-colors hover:text-foreground/80 text-muted-foreground"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/coupons"
+                className="text-sm font-medium transition-colors hover:text-foreground/80 text-muted-foreground"
+              >
+                Coupons
+              </Link>
+            </>
           )}
         </nav>
         <div className="flex items-center space-x-4">
           {!isLoading && (
-            <>{isAuthenticated ? <UserMenu /> : <LoginButton />}</>
+            <>{isAuthenticated ? <UserMenu /> : <LoginButton variant="icon" />}</>
           )}
           <ModeToggle />
         </div>

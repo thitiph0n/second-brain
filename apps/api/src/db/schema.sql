@@ -35,6 +35,19 @@ CREATE TABLE auth_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- Coupons table
+CREATE TABLE coupons (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    code TEXT NOT NULL,
+    description TEXT,
+    is_used BOOLEAN DEFAULT FALSE,
+    used_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 -- Indexes for better performance
 CREATE INDEX idx_users_github_id ON users(github_id);
 CREATE INDEX idx_users_email ON users(email);
@@ -43,3 +56,5 @@ CREATE INDEX idx_oauth_providers_provider ON oauth_providers(provider, provider_
 CREATE INDEX idx_auth_sessions_user_id ON auth_sessions(user_id);
 CREATE INDEX idx_auth_sessions_expires_at ON auth_sessions(expires_at);
 CREATE INDEX idx_auth_sessions_token_hash ON auth_sessions(token_hash);
+CREATE INDEX idx_coupons_user_id ON coupons(user_id);
+CREATE INDEX idx_coupons_is_used ON coupons(is_used);

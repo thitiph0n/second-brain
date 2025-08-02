@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { serveStatic } from 'hono/cloudflare-workers';
 import authRoutes from './routes/auth';
+import couponRoutes from './routes/coupon';
 
 interface Env {
   ASSETS: Fetcher;
@@ -53,6 +54,9 @@ app.get('/api/v1/test', (c) => {
 
 // Authentication routes
 app.route('/api/v1/auth', authRoutes);
+
+// Coupon routes
+app.route('/api/v1/coupons', couponRoutes);
 
 // Add more API routes here
 // app.route('/api/v1/notes', notesRouter);
