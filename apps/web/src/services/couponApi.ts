@@ -10,7 +10,19 @@ class ApiError extends Error {
 }
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('token');
+  // Get token from Zustand auth store
+  const authData = localStorage.getItem('auth-storage');
+  let token = null;
+  
+  if (authData) {
+    try {
+      const parsed = JSON.parse(authData);
+      token = parsed.state?.accessToken;
+    } catch (e) {
+      // Invalid JSON in storage
+    }
+  }
+  
   if (!token) {
     throw new ApiError(401, 'No authentication token found');
   }
