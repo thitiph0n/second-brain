@@ -91,13 +91,6 @@ export function CouponItem({ coupon, onToggleUsed, onDelete, isUpdating = false 
                 )}
               </div>
               
-              {coupon.description && (
-                <p className={`text-sm mb-2 ${
-                  coupon.is_used ? 'text-muted-foreground' : 'text-gray-600'
-                }`}>
-                  {coupon.description}
-                </p>
-              )}
               
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 <span>Created: {formatDate(coupon.created_at)}</span>

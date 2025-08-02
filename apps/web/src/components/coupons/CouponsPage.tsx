@@ -50,6 +50,27 @@ export function CouponsPage() {
     }
   };
 
+  const handleBulkCreateCoupons = async (codes: string[]) => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      
+      // Create all coupons in parallel
+      const promises = codes.map(code => couponApi.createCoupon({ code }));
+      const responses = await Promise.all(promises);
+      
+      // Add all new coupons to the list
+      const newCoupons = responses.map(response => response.coupon);
+      setCoupons(prev => [...newCoupons, ...prev]);
+    } catch (err) {
+      console.error('Failed to create coupons:', err);
+      setError(err instanceof ApiError ? err.message : 'Failed to create some coupons');
+      throw err; // Re-throw to prevent form from closing
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleToggleUsed = async (id: string, isUsed: boolean) => {
     try {
       setIsUpdating(true);
@@ -128,6 +149,7 @@ export function CouponsPage() {
         <div className="space-y-6">
           <CouponForm
             onSubmit={handleCreateCoupon}
+            onBulkSubmit={handleBulkCreateCoupons}
             isSubmitting={isSubmitting}
             isOpen={showForm}
             onToggle={() => setShowForm(!showForm)}

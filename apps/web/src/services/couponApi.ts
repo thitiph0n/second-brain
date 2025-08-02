@@ -1,6 +1,6 @@
 import type { Coupon, CreateCouponRequest, UpdateCouponRequest } from '@/types/coupon';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://2b.thitphon.me' : 'http://localhost:8787');
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
