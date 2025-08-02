@@ -67,6 +67,7 @@ docs/
 ### Technology Stack
 
 #### Frontend (React Web App)
+
 - **Framework**: React 19 with TypeScript
 - **Build Tool**: Vite 6.1.0
 - **Routing**: TanStack Router v1.121.2 (file-based routing)
@@ -77,6 +78,7 @@ docs/
 - **Icons**: Lucide React 0.476.0
 
 #### Backend (Cloudflare Workers API)
+
 - **Runtime**: Cloudflare Workers
 - **Framework**: Hono 4.0.0
 - **Database**: Cloudflare D1 (SQLite)
@@ -87,18 +89,21 @@ docs/
 ### Key Architecture Patterns
 
 #### API Structure
+
 - Base URL: `/api/v1/` for versioned endpoints
 - Health check at `/api/health`
 - Static asset serving for SPA fallback
 - CORS configured for frontend integration
 
 #### Frontend Structure
+
 - File-based routing with TanStack Router
 - Component library using shadcn/ui (New York style)
 - Theme provider for dark/light mode
 - Responsive design with Tailwind utilities
 
 #### Build Pipeline
+
 - Uses Turbo for efficient builds with dependency management
 - Build outputs: `dist/**`, `.next/**`, `build/**`
 - Tests depend on build completion
@@ -107,16 +112,19 @@ docs/
 ## Development Environment
 
 ### Local Development
+
 - **Frontend**: `http://localhost:3000` (Vite dev server)
 - **API**: `http://localhost:8787` (Wrangler dev server)
-- **Production**: `https://2b.thitphon.me`
+- **Production**: `https://2b.thitiphon.me`
 
 ### Database & Storage
+
 - **Database**: Cloudflare D1 (SQLite) with comprehensive schema for users, OAuth, and sessions
 - **Cache**: Cloudflare KV for session storage and caching
 - **Deployment**: Automated via scripts in `/scripts/`
 
 ### Authentication System
+
 - **OAuth 2.1**: GitHub integration with secure token handling
 - **State Management**: Zustand store with persistence located in `apps/web/src/auth/store.ts`
 - **Route Protection**: AuthGuard components and RequireAuth wrappers in `apps/web/src/auth/components/`
@@ -125,6 +133,7 @@ docs/
 ## Development Notes
 
 This is a well-architected foundation for a personal productivity application with planned features including:
+
 - Authentication (OAuth 2.1 with GitHub) - **IMPLEMENTED**
 - Notes with rich text editor
 - Drawings with tldraw canvas
@@ -132,12 +141,15 @@ This is a well-architected foundation for a personal productivity application wi
 - AI integration via MCP server
 
 ### Component Installation
+
 For adding new shadcn/ui components, use:
+
 ```bash
 pnpx shadcn@latest add button
 ```
 
 ### Testing Commands
+
 ```bash
 # Run all tests
 pnpm test
@@ -150,6 +162,7 @@ pnpm --filter @second-brain/web test:watch
 ```
 
 When working in this codebase:
+
 1. Use `pnpm` for package management
 2. Leverage Turbo's caching and parallel execution
 3. Follow the monorepo structure when adding new functionality

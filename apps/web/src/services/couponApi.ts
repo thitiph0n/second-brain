@@ -1,6 +1,12 @@
-import type { Coupon, CreateCouponRequest, UpdateCouponRequest } from '@/types/coupon';
+import type {
+  Coupon,
+  CreateCouponRequest,
+  UpdateCouponRequest,
+} from '@/types/coupon';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://2b.thitphon.me' : 'http://localhost:8787');
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? 'https://2b.thitiphon.me' : 'http://localhost:8787');
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -13,7 +19,7 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   // Get token from Zustand auth store
   const authData = localStorage.getItem('auth-storage');
   let token = null;
-  
+
   if (authData) {
     try {
       const parsed = JSON.parse(authData);
@@ -22,7 +28,7 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
       // Invalid JSON in storage
     }
   }
-  
+
   if (!token) {
     throw new ApiError(401, 'No authentication token found');
   }
@@ -31,13 +37,15 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       ...options.headers,
     },
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: 'Unknown error' }));
     throw new ApiError(response.status, errorData.error || 'Request failed');
   }
 
@@ -64,7 +72,10 @@ export const couponApi = {
   },
 
   // Update a coupon (e.g., mark as used)
-  async updateCoupon(id: string, data: UpdateCouponRequest): Promise<{ coupon: Coupon }> {
+  async updateCoupon(
+    id: string,
+    data: UpdateCouponRequest
+  ): Promise<{ coupon: Coupon }> {
     return fetchWithAuth(`/coupons/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

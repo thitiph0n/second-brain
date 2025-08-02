@@ -141,7 +141,7 @@ export function createAuthCors() {
     const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:5173',
-      c.env.FRONTEND_URL || 'https://2b.thitphon.me',
+      c.env.FRONTEND_URL || 'https://2b.thitiphon.me',
     ];
 
     if (origin && allowedOrigins.includes(origin)) {

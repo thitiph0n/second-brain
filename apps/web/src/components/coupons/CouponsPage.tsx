@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,7 +35,9 @@ export function CouponsPage() {
       setCoupons(response.coupons);
     } catch (err) {
       console.error('Failed to load coupons:', err);
-      setError(err instanceof ApiError ? err.message : 'Failed to load coupons');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to load coupons'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -40,10 +48,12 @@ export function CouponsPage() {
       setIsSubmitting(true);
       setError(null);
       const response = await couponApi.createCoupon(data);
-      setCoupons(prev => [response.coupon, ...prev]);
+      setCoupons((prev) => [response.coupon, ...prev]);
     } catch (err) {
       console.error('Failed to create coupon:', err);
-      setError(err instanceof ApiError ? err.message : 'Failed to create coupon');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to create coupon'
+      );
       throw err; // Re-throw to prevent form from closing
     } finally {
       setIsSubmitting(false);
@@ -54,17 +64,19 @@ export function CouponsPage() {
     try {
       setIsSubmitting(true);
       setError(null);
-      
+
       // Create all coupons in parallel
-      const promises = codes.map(code => couponApi.createCoupon({ code }));
+      const promises = codes.map((code) => couponApi.createCoupon({ code }));
       const responses = await Promise.all(promises);
-      
+
       // Add all new coupons to the list
-      const newCoupons = responses.map(response => response.coupon);
-      setCoupons(prev => [...newCoupons, ...prev]);
+      const newCoupons = responses.map((response) => response.coupon);
+      setCoupons((prev) => [...newCoupons, ...prev]);
     } catch (err) {
       console.error('Failed to create coupons:', err);
-      setError(err instanceof ApiError ? err.message : 'Failed to create some coupons');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to create some coupons'
+      );
       throw err; // Re-throw to prevent form from closing
     } finally {
       setIsSubmitting(false);
@@ -76,14 +88,14 @@ export function CouponsPage() {
       setIsUpdating(true);
       setError(null);
       const response = await couponApi.updateCoupon(id, { is_used: isUsed });
-      setCoupons(prev => 
-        prev.map(coupon => 
-          coupon.id === id ? response.coupon : coupon
-        )
+      setCoupons((prev) =>
+        prev.map((coupon) => (coupon.id === id ? response.coupon : coupon))
       );
     } catch (err) {
       console.error('Failed to update coupon:', err);
-      setError(err instanceof ApiError ? err.message : 'Failed to update coupon');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to update coupon'
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -94,17 +106,19 @@ export function CouponsPage() {
       setIsUpdating(true);
       setError(null);
       await couponApi.deleteCoupon(id);
-      setCoupons(prev => prev.filter(coupon => coupon.id !== id));
+      setCoupons((prev) => prev.filter((coupon) => coupon.id !== id));
     } catch (err) {
       console.error('Failed to delete coupon:', err);
-      setError(err instanceof ApiError ? err.message : 'Failed to delete coupon');
+      setError(
+        err instanceof ApiError ? err.message : 'Failed to delete coupon'
+      );
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const activeCoupons = coupons.filter(c => !c.is_used);
-  const usedCoupons = coupons.filter(c => c.is_used);
+  const activeCoupons = coupons.filter((c) => !c.is_used);
+  const usedCoupons = coupons.filter((c) => c.is_used);
 
   if (isLoading) {
     return (
@@ -126,22 +140,37 @@ export function CouponsPage() {
           <Ticket className="h-8 w-8" />
           <div>
             <h1 className="text-3xl font-bold">Coupon Book</h1>
-            <p className="text-muted-foreground">Manage your coupon codes and track usage</p>
+            <p className="text-muted-foreground">
+              Manage your coupon codes and track usage
+            </p>
           </div>
         </div>
 
         {error && (
-          <Card className="mb-6 border-red-200 bg-red-50">
+          <Card className="mb-6 border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800">
             <CardContent className="pt-4">
-              <p className="text-red-700">{error}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
-                onClick={() => setError(null)}
-              >
-                Dismiss
-              </Button>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2">
+                  <div className="text-red-500 text-lg mt-0.5">⚠️</div>
+                  <div>
+                    <h3 className="font-medium text-red-800 dark:text-red-200 mb-1">
+                      Error
+                    </h3>
+                    <p className="text-red-700 dark:text-red-300 text-sm">
+                      {error}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 h-8 w-8 p-0 shrink-0"
+                  onClick={() => setError(null)}
+                  title="Dismiss error"
+                >
+                  ✕
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -160,7 +189,9 @@ export function CouponsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Your Coupons</CardTitle>
-                  <CardDescription>Manage and track your coupon codes</CardDescription>
+                  <CardDescription>
+                    Manage and track your coupon codes
+                  </CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Badge variant="outline">{activeCoupons.length} Active</Badge>
@@ -172,10 +203,14 @@ export function CouponsPage() {
               <Tabs defaultValue="all" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="all">All ({coupons.length})</TabsTrigger>
-                  <TabsTrigger value="active">Active ({activeCoupons.length})</TabsTrigger>
-                  <TabsTrigger value="used">Used ({usedCoupons.length})</TabsTrigger>
+                  <TabsTrigger value="active">
+                    Active ({activeCoupons.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="used">
+                    Used ({usedCoupons.length})
+                  </TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="all" className="mt-4">
                   <CouponList
                     coupons={coupons}
@@ -185,7 +220,7 @@ export function CouponsPage() {
                     filter="all"
                   />
                 </TabsContent>
-                
+
                 <TabsContent value="active" className="mt-4">
                   <CouponList
                     coupons={coupons}
@@ -195,7 +230,7 @@ export function CouponsPage() {
                     filter="active"
                   />
                 </TabsContent>
-                
+
                 <TabsContent value="used" className="mt-4">
                   <CouponList
                     coupons={coupons}
