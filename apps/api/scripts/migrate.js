@@ -33,16 +33,35 @@ async function runMigration(environment = 'development') {
     const schema = fs.readFileSync(schemaPath, 'utf8');
 
     // Determine which wrangler config to use
-    const configFile =
-      environment === 'production' ? 'wrangler.toml' : 'wrangler.dev.toml';
+    const configFile = 'wrangler.toml';
 
     console.log(`📋 Using configuration: ${configFile}`);
 
-    // Split schema into individual statements
+    // Split schema into individual statements, filtering out comments and empty lines
     const statements = schema
       .split(';')
       .map((stmt) => stmt.trim())
-      .filter((stmt) => stmt.length > 0);
+      .filter((stmt) => {
+        // Filter out empty statements and comment-only statements
+        if (stmt.length === 0) return false;
+
+        // Remove comments and check if there's any actual SQL left
+        const cleanedStmt = stmt
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0 && !line.startsWith('--'))
+          .join('\n');
+
+        return cleanedStmt.length > 0;
+      })
+      .map((stmt) => {
+        // Clean up the statement by removing comments
+        return stmt
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0 && !line.startsWith('--'))
+          .join('\n');
+      });
 
     console.log(`📊 Found ${statements.length} SQL statements to execute`);
 
@@ -58,13 +77,12 @@ async function runMigration(environment = 'development') {
             'wrangler',
             'd1',
             'execute',
-            environment === 'production'
-              ? 'second-brain-db'
-              : 'second-brain-db-dev',
+            'second-brain-db', // Use same DB for both environments, different env vars control behavior
             '--command',
             statement,
             '--config',
             configFile,
+            ...(environment === 'production' ? [] : ['--local']), // Use --local for development
           ],
           {
             stdio: 'inherit',
@@ -95,13 +113,12 @@ async function runMigration(environment = 'development') {
           'wrangler',
           'd1',
           'execute',
-          environment === 'production'
-            ? 'second-brain-db'
-            : 'second-brain-db-dev',
+          'second-brain-db', // Use same DB for both environments
           '--command',
           "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
           '--config',
           configFile,
+          ...(environment === 'production' ? [] : ['--local']), // Use --local for development
         ],
         {
           stdio: 'inherit',

@@ -2,7 +2,7 @@
 -- Authentication and User Management
 
 -- Users table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     github_id INTEGER UNIQUE NOT NULL,
     email TEXT NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE users (
 );
 
 -- OAuth providers table (for future multi-provider support)
-CREATE TABLE oauth_providers (
+CREATE TABLE IF NOT EXISTS oauth_providers (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     provider TEXT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE oauth_providers (
 );
 
 -- Auth sessions table
-CREATE TABLE auth_sessions (
+CREATE TABLE IF NOT EXISTS auth_sessions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     token_hash TEXT NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE auth_sessions (
 );
 
 -- Coupons table
-CREATE TABLE coupons (
+CREATE TABLE IF NOT EXISTS coupons (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     code TEXT NOT NULL,
@@ -49,12 +49,12 @@ CREATE TABLE coupons (
 );
 
 -- Indexes for better performance
-CREATE INDEX idx_users_github_id ON users(github_id);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_oauth_providers_user_id ON oauth_providers(user_id);
-CREATE INDEX idx_oauth_providers_provider ON oauth_providers(provider, provider_user_id);
-CREATE INDEX idx_auth_sessions_user_id ON auth_sessions(user_id);
-CREATE INDEX idx_auth_sessions_expires_at ON auth_sessions(expires_at);
-CREATE INDEX idx_auth_sessions_token_hash ON auth_sessions(token_hash);
-CREATE INDEX idx_coupons_user_id ON coupons(user_id);
-CREATE INDEX idx_coupons_is_used ON coupons(is_used);
+CREATE INDEX IF NOT EXISTS idx_users_github_id ON users(github_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_oauth_providers_user_id ON oauth_providers(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_providers_provider ON oauth_providers(provider, provider_user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id ON auth_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_token_hash ON auth_sessions(token_hash);
+CREATE INDEX IF NOT EXISTS idx_coupons_user_id ON coupons(user_id);
+CREATE INDEX IF NOT EXISTS idx_coupons_is_used ON coupons(is_used);
