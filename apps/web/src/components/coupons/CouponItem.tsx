@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Copy, CheckCircle, Circle } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Coupon } from '@/types/coupon';
 
 interface CouponItemProps {
@@ -18,9 +19,16 @@ export function CouponItem({ coupon, onToggleUsed, onDelete, isUpdating = false 
   const handleCopyCode = async () => {
     try {
       await navigator.clipboard.writeText(coupon.code);
-      // You could add a toast notification here
+      toast.success('Coupon code copied to clipboard!', {
+        description: `Code: ${coupon.code}`,
+        duration: 2000,
+      });
     } catch (err) {
       console.error('Failed to copy code:', err);
+      toast.error('Failed to copy code', {
+        description: 'Please try again or copy manually',
+        duration: 3000,
+      });
     }
   };
 
