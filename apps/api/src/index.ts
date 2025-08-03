@@ -84,17 +84,7 @@ app.notFound((c) => {
     return c.json({ 
       error: 'API endpoint not found',
       details: `The endpoint ${c.req.method} ${c.req.path} does not exist`,
-      timestamp: new Date().toISOString(),
-      availableEndpoints: [
-        'GET /api/health',
-        'GET /api/v1/test',
-        'GET /api/v1/auth/github/login',
-        'GET /api/v1/coupons',
-        'POST /api/v1/coupons',
-        'GET /api/v1/coupons/:id',
-        'PUT /api/v1/coupons/:id',
-        'DELETE /api/v1/coupons/:id'
-      ]
+      timestamp: new Date().toISOString()
     }, 404);
   }
   // For non-API routes, serve index.html (SPA fallback)
