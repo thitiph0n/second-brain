@@ -4,6 +4,7 @@ import { logger } from 'hono/logger';
 import { serveStatic } from 'hono/cloudflare-workers';
 import authRoutes from './routes/auth';
 import couponRoutes from './routes/coupon';
+import { createErrorResponse } from './utils/errorHandler';
 
 interface Env {
   ASSETS: Fetcher;
@@ -41,15 +42,29 @@ app.use(
 
 // API Routes (before static assets)
 app.get('/api/health', (c) => {
-  return c.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: c.env.ENVIRONMENT,
-  });
+  try {
+    return c.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: c.env.ENVIRONMENT,
+      database: c.env.DB ? 'connected' : 'not configured',
+      cache: c.env.CACHE ? 'connected' : 'not configured',
+    });
+  } catch (error) {
+    return createErrorResponse(c, error, 'Health check failed');
+  }
 });
 
 app.get('/api/v1/test', (c) => {
-  return c.json({ message: 'Second Brain API is working!' });
+  try {
+    return c.json({ 
+      message: 'Second Brain API is working!',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    });
+  } catch (error) {  
+    return createErrorResponse(c, error, 'Test endpoint failed');
+  }
 });
 
 // Authentication routes
@@ -66,10 +81,22 @@ app.route('/api/v1/coupons', couponRoutes);
 // 404 handler for API routes
 app.notFound((c) => {
   if (c.req.path.startsWith('/api/')) {
-    return c.json({ error: 'API endpoint not found' }, 404);
+    return c.json({ 
+      error: 'API endpoint not found',
+      details: `The endpoint ${c.req.method} ${c.req.path} does not exist`,
+      timestamp: new Date().toISOString()
+    }, 404);
   }
   // For non-API routes, serve index.html (SPA fallback)
   return c.env.ASSETS.fetch(new Request('http://localhost/index.html'));
+});
+
+// Global error handler for uncaught errors
+app.onError((error, c) => {
+  console.error('Uncaught API error:', error);
+  return createErrorResponse(c, error, 'Internal server error', 500, {
+    uncaught: true
+  });
 });
 
 export default app;
