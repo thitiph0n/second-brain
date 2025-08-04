@@ -94,7 +94,7 @@ export function CouponItem({
 
   const isValidDate = (dateString: string | null | undefined): boolean => {
     if (!dateString) return false;
-    if (dateString === '' || dateString === 'null') return false;
+    if (dateString === '0' || dateString === '' || dateString === 'null') return false;
     const date = new Date(dateString);
     return !isNaN(date.getTime()) && date.getTime() > 0;
   };
