@@ -10,7 +10,7 @@ import type { CreateCouponRequest, CouponType } from '@/types/coupon';
 
 interface CouponFormProps {
   onSubmit: (data: CreateCouponRequest) => Promise<void>;
-  onBulkSubmit?: (codes: string[], type: CouponType) => Promise<void>;
+  onBulkSubmit?: (codes: string[], type: CouponType, expiresAt?: string) => Promise<void>;
   isSubmitting?: boolean;
   isOpen: boolean;
   onToggle: () => void;
@@ -36,7 +36,8 @@ export function CouponForm({ onSubmit, onBulkSubmit, isSubmitting = false, isOpe
         
       if (codes.length === 0) return;
       
-      await onBulkSubmit(codes, selectedType);
+      const expiresAt = expirationDate ? new Date(expirationDate).toISOString() : undefined;
+      await onBulkSubmit(codes, selectedType, expiresAt);
       setBulkCodes('');
     } else {
       if (!code.trim()) return;
@@ -125,7 +126,7 @@ export function CouponForm({ onSubmit, onBulkSubmit, isSubmitting = false, isOpe
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-full">
               <DropdownMenuItem onClick={() => setSelectedType('food')}>
-                🍕 Food
+                🍜 Food
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setSelectedType('ride')}>
                 🚗 Ride
@@ -134,19 +135,22 @@ export function CouponForm({ onSubmit, onBulkSubmit, isSubmitting = false, isOpe
           </DropdownMenu>
         </div>
 
-        {/* Expiration Date (only for single coupon mode) */}
-        {!isBulkMode && (
-          <div className="space-y-2">
-            <Label htmlFor="expirationDate">Expiration Date (optional)</Label>
-            <Input
-              id="expirationDate"
-              type="datetime-local"
-              value={expirationDate}
-              onChange={(e) => setExpirationDate(e.target.value)}
-              disabled={isSubmitting}
-            />
-          </div>
-        )}
+        {/* Expiration Date */}
+        <div className="space-y-2">
+          <Label htmlFor="expirationDate">Expiration Date (optional)</Label>
+          <Input
+            id="expirationDate"
+            type="datetime-local"
+            value={expirationDate}
+            onChange={(e) => setExpirationDate(e.target.value)}
+            disabled={isSubmitting}
+          />
+          {isBulkMode && (
+            <p className="text-sm text-muted-foreground">
+              This expiration date will be applied to all coupons in the bulk import.
+            </p>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isBulkMode ? (

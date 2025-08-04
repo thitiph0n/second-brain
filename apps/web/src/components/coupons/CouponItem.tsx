@@ -106,12 +106,12 @@ export function CouponItem({
       }`}
     >
       <CardContent className="pt-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3">
           <div className="flex items-start gap-3 flex-1">
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 mt-1"
+              className="h-6 w-6 p-0 mt-1 flex-shrink-0"
               onClick={handleToggleUsed}
               disabled={isUpdating}
             >
@@ -123,7 +123,7 @@ export function CouponItem({
             </Button>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <code
                   className={`text-sm font-mono font-medium break-all ${
                     coupon.is_used ? 'line-through text-muted-foreground' : ''
@@ -134,17 +134,20 @@ export function CouponItem({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 flex-shrink-0"
                   onClick={handleCopyCode}
                   title="Copy code"
                 >
                   <Copy className="h-3 w-3" />
                 </Button>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <Badge 
                   variant={coupon.type === 'food' ? 'default' : 'outline'} 
                   className="text-xs"
                 >
-                  {coupon.type === 'food' ? '🍕' : '🚗'} {coupon.type}
+                  {coupon.type === 'food' ? '🍜' : '🚗'} {coupon.type}
                 </Badge>
                 {isExpired && (
                   <Badge variant="destructive" className="text-xs">
@@ -177,12 +180,12 @@ export function CouponItem({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
             {/* Apply Coupon Button - Primary Action */}
             <Button
               variant="default"
               size="sm"
-              className="h-8 px-3"
+              className="h-8 px-3 w-full sm:w-auto"
               onClick={handleApplyCoupon}
               disabled={isUpdating || isExpired || coupon.is_used}
               title={
