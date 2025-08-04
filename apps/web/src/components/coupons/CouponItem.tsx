@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Copy, CheckCircle, Circle, Trash2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ExternalLink, Copy, CheckCircle, Circle, Trash2, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Coupon } from '@/types/coupon';
 
@@ -174,7 +175,7 @@ export function CouponItem({
                     Expires: {formatDate(coupon.expires_at)}
                   </span>
                 )}
-                {coupon.is_used && coupon.used_at && (
+                {coupon.is_used && coupon.used_at && coupon.used_at !== '0' && coupon.used_at !== '' && (
                   <span>Used: {formatDate(coupon.used_at)}</span>
                 )}
               </div>
@@ -182,12 +183,12 @@ export function CouponItem({
           </div>
 
           {/* Right side: Action buttons */}
-          <div className="flex flex-row sm:flex-col items-start gap-2 sm:gap-1 flex-shrink-0">
+          <div className="flex flex-row sm:flex-col items-start gap-2 sm:gap-1 flex-shrink-0 min-w-0">
             {/* Apply Coupon Button - Primary Action */}
             <Button
               variant="default"
               size="sm"
-              className="h-8 px-3 w-full sm:w-auto"
+              className="h-8 px-3 flex-1 sm:flex-none sm:w-auto"
               onClick={handleApplyCoupon}
               disabled={isUpdating || isExpired || coupon.is_used}
               title={
@@ -200,21 +201,31 @@ export function CouponItem({
               Apply
             </Button>
 
-            {/* Delete Button - Secondary Action */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 w-8 p-0 ${
-                showDeleteConfirm ? 'text-red-500 bg-red-50 dark:bg-red-950 dark:text-red-400' : 'text-gray-400 hover:text-red-500'
-              }`}
-              onClick={handleDelete}
-              disabled={isUpdating}
-              title={
-                showDeleteConfirm ? 'Click again to confirm' : 'Delete coupon'
-              }
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
+            {/* More Actions Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 flex-shrink-0 text-gray-400 hover:text-gray-600"
+                  disabled={isUpdating}
+                  title="More actions"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-32">
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  className={`text-red-600 hover:text-red-700 focus:text-red-700 ${
+                    showDeleteConfirm ? 'bg-red-50 dark:bg-red-950' : ''
+                  }`}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {showDeleteConfirm ? 'Confirm' : 'Delete'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardContent>
