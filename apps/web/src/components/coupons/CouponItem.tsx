@@ -57,7 +57,7 @@ export function CouponItem({
         description: `${coupon.type} coupon: ${coupon.code}`,
         duration: 3000,
       });
-    } catch (error) {
+    } catch {
       // Still show success for opening the app, but mention the marking failed
       toast.success('Opening Lineman app...', {
         description: `Applied ${coupon.type} coupon: ${coupon.code}`,
@@ -100,9 +100,9 @@ export function CouponItem({
       className={`transition-all duration-200 ${
         coupon.is_used ? 'opacity-70' : ''
       } ${
-        isExpired ? 'border-red-200 bg-red-50/30 dark:border-red-800 dark:bg-red-950/10' : ''
+        isExpired ? 'border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20' : ''
       } ${
-        isExpiringSoon ? 'border-orange-200 bg-orange-50/30 dark:border-orange-800 dark:bg-orange-950/10' : ''
+        isExpiringSoon ? 'border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20' : ''
       }`}
     >
       <CardContent className="pt-4">
@@ -150,12 +150,12 @@ export function CouponItem({
                   {coupon.type === 'food' ? '🍜' : '🚗'} {coupon.type}
                 </Badge>
                 {isExpired && (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge className="text-xs bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">
                     Expired
                   </Badge>
                 )}
                 {isExpiringSoon && !isExpired && (
-                  <Badge className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                  <Badge className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
                     Expiring Soon
                   </Badge>
                 )}
@@ -169,7 +169,7 @@ export function CouponItem({
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 <span>Created: {formatDate(coupon.created_at)}</span>
                 {coupon.expires_at && (
-                  <span className={isExpired ? 'text-red-600 dark:text-red-400' : isExpiringSoon ? 'text-orange-600 dark:text-orange-400' : ''}>
+                  <span className={isExpired ? 'text-red-500 dark:text-red-400' : isExpiringSoon ? 'text-amber-600 dark:text-amber-400' : ''}>
                     Expires: {formatDate(coupon.expires_at)}
                   </span>
                 )}
@@ -203,7 +203,7 @@ export function CouponItem({
               variant="ghost"
               size="sm"
               className={`h-8 w-8 p-0 ${
-                showDeleteConfirm ? 'text-red-600 bg-red-50' : 'text-gray-400 hover:text-red-600'
+                showDeleteConfirm ? 'text-red-500 bg-red-50 dark:bg-red-950 dark:text-red-400' : 'text-gray-400 hover:text-red-500'
               }`}
               onClick={handleDelete}
               disabled={isUpdating}
