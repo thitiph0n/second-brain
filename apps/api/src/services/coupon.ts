@@ -22,11 +22,11 @@ export class CouponService {
 
       const result = await this.db
         .prepare(
-          `INSERT INTO coupons (id, user_id, code, created_at, updated_at)
-           VALUES (?1, ?2, ?3, ?4, ?5)
+          `INSERT INTO coupons (id, user_id, code, type, expires_at, created_at, updated_at)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
            RETURNING *`
         )
-        .bind(id, userId, data.code, now, now)
+        .bind(id, userId, data.code, data.type, data.expires_at || null, now, now)
         .first<Coupon>();
 
       if (!result) {
@@ -101,9 +101,11 @@ export class CouponService {
         .prepare(
           `UPDATE coupons 
            SET code = COALESCE(?3, code), 
-               is_used = COALESCE(?4, is_used),
-               used_at = ?5,
-               updated_at = ?6
+               type = COALESCE(?4, type),
+               expires_at = COALESCE(?5, expires_at),
+               is_used = COALESCE(?6, is_used),
+               used_at = ?7,
+               updated_at = ?8
            WHERE id = ?1 AND user_id = ?2
            RETURNING *`
         )
@@ -111,6 +113,8 @@ export class CouponService {
           id,
           userId,
           data.code || null,
+          data.type || null,
+          data.expires_at !== undefined ? data.expires_at : null,
           data.is_used !== undefined ? data.is_used : null,
           usedAt,
           now

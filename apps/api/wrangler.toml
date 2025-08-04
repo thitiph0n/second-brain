@@ -8,6 +8,7 @@ assets = { directory = "../web/dist", binding = "ASSETS" }
 binding = "DB"
 database_name = "second-brain-db"
 database_id = "999f6469-04df-4b79-982e-3351bc20e3dd"
+migrations_dir = "migrations"
 
 # KV Store
 [[kv_namespaces]]

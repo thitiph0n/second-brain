@@ -13,7 +13,7 @@ import { Ticket, Loader2 } from 'lucide-react';
 import { CouponForm } from './CouponForm';
 import { CouponList } from './CouponList';
 import { couponApi, ApiError } from '@/services/couponApi';
-import type { Coupon, CreateCouponRequest } from '@/types/coupon';
+import type { Coupon, CreateCouponRequest, CouponType } from '@/types/coupon';
 
 export function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -60,13 +60,13 @@ export function CouponsPage() {
     }
   };
 
-  const handleBulkCreateCoupons = async (codes: string[]) => {
+  const handleBulkCreateCoupons = async (codes: string[], type: CouponType) => {
     try {
       setIsSubmitting(true);
       setError(null);
 
       // Create all coupons in parallel
-      const promises = codes.map((code) => couponApi.createCoupon({ code }));
+      const promises = codes.map((code) => couponApi.createCoupon({ code, type }));
       const responses = await Promise.all(promises);
 
       // Add all new coupons to the list
@@ -117,8 +117,8 @@ export function CouponsPage() {
     }
   };
 
-  const activeCoupons = coupons.filter((c) => !c.is_used);
-  const usedCoupons = coupons.filter((c) => c.is_used);
+  const activeCoupons = coupons.filter((c) => !c.is_used && (!c.expires_at || new Date(c.expires_at) >= new Date()));
+  const usedExpiredCoupons = coupons.filter((c) => c.is_used || (c.expires_at && new Date(c.expires_at) < new Date()));
 
   if (isLoading) {
     return (
@@ -211,7 +211,7 @@ export function CouponsPage() {
                 </div>
                 <div className="flex gap-2">
                   <Badge variant="outline">{activeCoupons.length} Active</Badge>
-                  <Badge variant="secondary">{usedCoupons.length} Used</Badge>
+                  <Badge variant="secondary">{usedExpiredCoupons.length} Used/Expired</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -223,7 +223,7 @@ export function CouponsPage() {
                     Active ({activeCoupons.length})
                   </TabsTrigger>
                   <TabsTrigger value="used">
-                    Used ({usedCoupons.length})
+                    Used/Expired ({usedExpiredCoupons.length})
                   </TabsTrigger>
                 </TabsList>
 

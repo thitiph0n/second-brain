@@ -40,12 +40,15 @@ CREATE TABLE IF NOT EXISTS coupons (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     code TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'food',
     description TEXT,
+    expires_at DATETIME,
     is_used BOOLEAN DEFAULT FALSE,
     used_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    CHECK (type IN ('food', 'ride'))
 );
 
 -- Indexes for better performance
@@ -58,3 +61,5 @@ CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions(expires
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_token_hash ON auth_sessions(token_hash);
 CREATE INDEX IF NOT EXISTS idx_coupons_user_id ON coupons(user_id);
 CREATE INDEX IF NOT EXISTS idx_coupons_is_used ON coupons(is_used);
+CREATE INDEX IF NOT EXISTS idx_coupons_type ON coupons(type);
+CREATE INDEX IF NOT EXISTS idx_coupons_expires_at ON coupons(expires_at);

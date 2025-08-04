@@ -18,8 +18,8 @@ export function CouponList({
 }: CouponListProps) {
   // Filter coupons based on the filter prop
   const filteredCoupons = coupons.filter(coupon => {
-    if (filter === 'active') return !coupon.is_used;
-    if (filter === 'used') return coupon.is_used;
+    if (filter === 'active') return !coupon.is_used && (!coupon.expires_at || new Date(coupon.expires_at) >= new Date());
+    if (filter === 'used') return coupon.is_used || (coupon.expires_at && new Date(coupon.expires_at) < new Date());
     return true; // 'all'
   });
 
@@ -27,7 +27,7 @@ export function CouponList({
     const message = filter === 'active' 
       ? 'No active coupons found'
       : filter === 'used' 
-        ? 'No used coupons found'
+        ? 'No used or expired coupons found'
         : 'No coupons found';
 
     return (

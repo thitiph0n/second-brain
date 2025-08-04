@@ -4,12 +4,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Clipboard } from 'lucide-react';
-import type { CreateCouponRequest } from '@/types/coupon';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, X, Clipboard, ChevronDown } from 'lucide-react';
+import type { CreateCouponRequest, CouponType } from '@/types/coupon';
 
 interface CouponFormProps {
   onSubmit: (data: CreateCouponRequest) => Promise<void>;
-  onBulkSubmit?: (codes: string[]) => Promise<void>;
+  onBulkSubmit?: (codes: string[], type: CouponType) => Promise<void>;
   isSubmitting?: boolean;
   isOpen: boolean;
   onToggle: () => void;
@@ -19,6 +20,8 @@ export function CouponForm({ onSubmit, onBulkSubmit, isSubmitting = false, isOpe
   const [code, setCode] = useState('');
   const [bulkCodes, setBulkCodes] = useState('');
   const [isBulkMode, setIsBulkMode] = useState(false);
+  const [selectedType, setSelectedType] = useState<CouponType>('food');
+  const [expirationDate, setExpirationDate] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,13 +36,16 @@ export function CouponForm({ onSubmit, onBulkSubmit, isSubmitting = false, isOpe
         
       if (codes.length === 0) return;
       
-      await onBulkSubmit(codes);
+      await onBulkSubmit(codes, selectedType);
       setBulkCodes('');
     } else {
       if (!code.trim()) return;
-      await onSubmit({ code: code.trim() });
+      const expiresAt = expirationDate ? new Date(expirationDate).toISOString() : undefined;
+      await onSubmit({ code: code.trim(), type: selectedType, expires_at: expiresAt });
       setCode('');
     }
+    
+    setExpirationDate('');
     
     onToggle(); // Close the form
   };
@@ -106,6 +112,42 @@ export function CouponForm({ onSubmit, onBulkSubmit, isSubmitting = false, isOpe
             </Button>
           )}
         </div>
+
+        {/* Coupon Type Selector */}
+        <div className="space-y-2">
+          <Label>Coupon Type</Label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <span className="capitalize">{selectedType}</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-full">
+              <DropdownMenuItem onClick={() => setSelectedType('food')}>
+                🍕 Food
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelectedType('ride')}>
+                🚗 Ride
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Expiration Date (only for single coupon mode) */}
+        {!isBulkMode && (
+          <div className="space-y-2">
+            <Label htmlFor="expirationDate">Expiration Date (optional)</Label>
+            <Input
+              id="expirationDate"
+              type="datetime-local"
+              value={expirationDate}
+              onChange={(e) => setExpirationDate(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {isBulkMode ? (
             <div className="space-y-2">
