@@ -106,8 +106,9 @@ export function CouponItem({
       }`}
     >
       <CardContent className="pt-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-start gap-3 flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+          {/* Left side: Checkbox and content */}
+          <div className="flex items-start gap-3 flex-1 min-w-0">
             <Button
               variant="ghost"
               size="sm"
@@ -180,7 +181,8 @@ export function CouponItem({
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
+          {/* Right side: Action buttons */}
+          <div className="flex flex-row sm:flex-col items-start gap-2 sm:gap-1 flex-shrink-0">
             {/* Apply Coupon Button - Primary Action */}
             <Button
               variant="default"
