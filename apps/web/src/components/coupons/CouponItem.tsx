@@ -183,12 +183,12 @@ export function CouponItem({
           </div>
 
           {/* Right side: Action buttons */}
-          <div className="flex flex-row sm:flex-col items-start gap-2 sm:gap-1 flex-shrink-0 min-w-0">
+          <div className="flex flex-row items-start gap-2 flex-shrink-0 min-w-0">
             {/* Apply Coupon Button - Primary Action */}
             <Button
               variant="default"
               size="sm"
-              className="h-8 px-3 flex-1 sm:flex-none sm:w-auto"
+              className="h-8 px-3 sm:w-auto"
               onClick={handleApplyCoupon}
               disabled={isUpdating || isExpired || coupon.is_used}
               title={
