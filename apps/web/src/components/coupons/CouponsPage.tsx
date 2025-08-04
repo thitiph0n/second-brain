@@ -60,13 +60,17 @@ export function CouponsPage() {
     }
   };
 
-  const handleBulkCreateCoupons = async (codes: string[], type: CouponType) => {
+  const handleBulkCreateCoupons = async (codes: string[], type: CouponType, expiresAt?: string) => {
     try {
       setIsSubmitting(true);
       setError(null);
 
       // Create all coupons in parallel
-      const promises = codes.map((code) => couponApi.createCoupon({ code, type }));
+      const promises = codes.map((code) => couponApi.createCoupon({ 
+        code, 
+        type, 
+        expires_at: expiresAt 
+      }));
       const responses = await Promise.all(promises);
 
       // Add all new coupons to the list
@@ -210,20 +214,31 @@ export function CouponsPage() {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Badge variant="outline">{activeCoupons.length} Active</Badge>
-                  <Badge variant="secondary">{usedExpiredCoupons.length} Used/Expired</Badge>
+                  {activeCoupons.length > 0 && (
+                    <Badge variant="outline">{activeCoupons.length} Active</Badge>
+                  )}
+                  {usedExpiredCoupons.length > 0 && (
+                    <Badge variant="secondary">{usedExpiredCoupons.length} Used/Expired</Badge>
+                  )}
+                  {coupons.length === 0 && (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      No coupons yet
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="all" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="all">All ({coupons.length})</TabsTrigger>
+                  <TabsTrigger value="all">
+                    All {coupons.length > 0 ? `(${coupons.length})` : ''}
+                  </TabsTrigger>
                   <TabsTrigger value="active">
-                    Active ({activeCoupons.length})
+                    Active {activeCoupons.length > 0 ? `(${activeCoupons.length})` : ''}
                   </TabsTrigger>
                   <TabsTrigger value="used">
-                    Used/Expired ({usedExpiredCoupons.length})
+                    Used/Expired {usedExpiredCoupons.length > 0 ? `(${usedExpiredCoupons.length})` : ''}
                   </TabsTrigger>
                 </TabsList>
 

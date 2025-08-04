@@ -57,7 +57,7 @@ export function CouponItem({
         description: `${coupon.type} coupon: ${coupon.code}`,
         duration: 3000,
       });
-    } catch (error) {
+    } catch {
       // Still show success for opening the app, but mention the marking failed
       toast.success('Opening Lineman app...', {
         description: `Applied ${coupon.type} coupon: ${coupon.code}`,
@@ -100,18 +100,18 @@ export function CouponItem({
       className={`transition-all duration-200 ${
         coupon.is_used ? 'opacity-70' : ''
       } ${
-        isExpired ? 'border-red-200 bg-red-50/30 dark:border-red-800 dark:bg-red-950/10' : ''
+        isExpired ? 'border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20' : ''
       } ${
-        isExpiringSoon ? 'border-orange-200 bg-orange-50/30 dark:border-orange-800 dark:bg-orange-950/10' : ''
+        isExpiringSoon ? 'border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20' : ''
       }`}
     >
       <CardContent className="pt-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3">
           <div className="flex items-start gap-3 flex-1">
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 mt-1"
+              className="h-6 w-6 p-0 mt-1 flex-shrink-0"
               onClick={handleToggleUsed}
               disabled={isUpdating}
             >
@@ -123,7 +123,7 @@ export function CouponItem({
             </Button>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <code
                   className={`text-sm font-mono font-medium break-all ${
                     coupon.is_used ? 'line-through text-muted-foreground' : ''
@@ -134,25 +134,28 @@ export function CouponItem({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 flex-shrink-0"
                   onClick={handleCopyCode}
                   title="Copy code"
                 >
                   <Copy className="h-3 w-3" />
                 </Button>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 <Badge 
                   variant={coupon.type === 'food' ? 'default' : 'outline'} 
                   className="text-xs"
                 >
-                  {coupon.type === 'food' ? '🍕' : '🚗'} {coupon.type}
+                  {coupon.type === 'food' ? '🍜' : '🚗'} {coupon.type}
                 </Badge>
                 {isExpired && (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge className="text-xs bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300">
                     Expired
                   </Badge>
                 )}
                 {isExpiringSoon && !isExpired && (
-                  <Badge className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                  <Badge className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
                     Expiring Soon
                   </Badge>
                 )}
@@ -166,7 +169,7 @@ export function CouponItem({
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 <span>Created: {formatDate(coupon.created_at)}</span>
                 {coupon.expires_at && (
-                  <span className={isExpired ? 'text-red-600 dark:text-red-400' : isExpiringSoon ? 'text-orange-600 dark:text-orange-400' : ''}>
+                  <span className={isExpired ? 'text-red-500 dark:text-red-400' : isExpiringSoon ? 'text-amber-600 dark:text-amber-400' : ''}>
                     Expires: {formatDate(coupon.expires_at)}
                   </span>
                 )}
@@ -177,12 +180,12 @@ export function CouponItem({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-2">
             {/* Apply Coupon Button - Primary Action */}
             <Button
               variant="default"
               size="sm"
-              className="h-8 px-3"
+              className="h-8 px-3 w-full sm:w-auto"
               onClick={handleApplyCoupon}
               disabled={isUpdating || isExpired || coupon.is_used}
               title={
@@ -200,7 +203,7 @@ export function CouponItem({
               variant="ghost"
               size="sm"
               className={`h-8 w-8 p-0 ${
-                showDeleteConfirm ? 'text-red-600 bg-red-50' : 'text-gray-400 hover:text-red-600'
+                showDeleteConfirm ? 'text-red-500 bg-red-50 dark:bg-red-950 dark:text-red-400' : 'text-gray-400 hover:text-red-500'
               }`}
               onClick={handleDelete}
               disabled={isUpdating}

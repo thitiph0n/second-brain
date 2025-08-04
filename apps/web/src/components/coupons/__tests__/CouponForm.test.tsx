@@ -32,7 +32,7 @@ describe('CouponForm', () => {
     );
 
     expect(screen.getByLabelText(/coupon code/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/coupon type/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add coupon/i })).toBeInTheDocument();
   });
 
@@ -48,17 +48,16 @@ describe('CouponForm', () => {
     );
 
     const codeInput = screen.getByLabelText(/coupon code/i);
-    const descriptionInput = screen.getByLabelText(/description/i);
     const submitButton = screen.getByRole('button', { name: /add coupon/i });
 
     fireEvent.change(codeInput, { target: { value: 'SAVE20' } });
-    fireEvent.change(descriptionInput, { target: { value: '20% off coupon' } });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalledWith({
         code: 'SAVE20',
-        description: '20% off coupon',
+        type: 'food',
+        expires_at: undefined,
       });
     });
   });
