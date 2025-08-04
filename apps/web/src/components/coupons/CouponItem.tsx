@@ -92,6 +92,13 @@ export function CouponItem({
     }).format(new Date(dateString));
   };
 
+  const isValidDate = (dateString: string | null | undefined): boolean => {
+    if (!dateString) return false;
+    if (dateString === '0' || dateString === '' || dateString === 'null') return false;
+    const date = new Date(dateString);
+    return !isNaN(date.getTime()) && date.getTime() > 0;
+  };
+
   const isExpired = Boolean(coupon.expires_at && new Date(coupon.expires_at) < new Date());
   const isExpiringSoon = Boolean(coupon.expires_at && !isExpired && 
     new Date(coupon.expires_at).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000); // 24 hours
@@ -175,8 +182,8 @@ export function CouponItem({
                     Expires: {formatDate(coupon.expires_at)}
                   </span>
                 )}
-                {coupon.is_used && coupon.used_at && coupon.used_at !== '0' && coupon.used_at !== '' && (
-                  <span>Used: {formatDate(coupon.used_at)}</span>
+                {coupon.is_used && isValidDate(coupon.used_at) && (
+                  <span>Used: {formatDate(coupon.used_at!)}</span>
                 )}
               </div>
             </div>
