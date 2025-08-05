@@ -46,7 +46,7 @@ export function CouponForm({ onSubmit, onBulkSubmit, isSubmitting = false, isOpe
     } else {
       if (!code.trim()) return;
       const expiresAt = expirationDate ? expirationDate.toISOString() : undefined;
-      await onSubmit({ code: code.trim(), type: selectedType, expires_at: expiresAt });
+      await onSubmit({ code: code.trim(), type: selectedType, expiresAt: expiresAt });
       setCode('');
     }
     

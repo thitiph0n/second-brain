@@ -3,6 +3,20 @@ import { Coupon, CouponCreateData, CouponUpdateData } from '../types/coupon';
 export class CouponService {
   constructor(private db: D1Database) {}
 
+  private transformCouponFromDb(rawCoupon: any): Coupon {
+    return {
+      id: rawCoupon.id,
+      userId: rawCoupon.user_id,
+      code: rawCoupon.code,
+      type: rawCoupon.type,
+      expiresAt: rawCoupon.expires_at,
+      isUsed: Boolean(rawCoupon.is_used), // Convert SQLite integer to boolean
+      usedAt: rawCoupon.used_at,
+      createdAt: rawCoupon.created_at,
+      updatedAt: rawCoupon.updated_at,
+    };
+  }
+
   private async ensureDatabaseInitialized(): Promise<void> {
     try {
       // Check if coupons table exists by attempting a simple query
@@ -26,14 +40,14 @@ export class CouponService {
            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
            RETURNING *`
         )
-        .bind(id, userId, data.code, data.type, data.expires_at || null, now, now)
+        .bind(id, userId, data.code, data.type, data.expiresAt || null, now, now)
         .first<Coupon>();
 
       if (!result) {
         throw new Error('Database returned empty result when creating coupon');
       }
 
-      return result;
+      return this.transformCouponFromDb(result);
     } catch (error) {
       console.error('Error in createCoupon:', error);
       if (error instanceof Error) {
@@ -56,7 +70,7 @@ export class CouponService {
         throw new Error(`Database query failed: ${result.error || 'Unknown database error'}`);
       }
 
-      return result.results || [];
+      return (result.results || []).map(coupon => this.transformCouponFromDb(coupon));
     } catch (error) {
       console.error('Error in getCouponsByUser:', error);
       if (error instanceof Error) {
@@ -75,7 +89,7 @@ export class CouponService {
         .bind(id, userId)
         .first<Coupon>();
 
-      return result || null;
+      return result ? this.transformCouponFromDb(result) : null;
     } catch (error) {
       console.error('Error in getCouponById:', error);
       if (error instanceof Error) {
@@ -95,7 +109,7 @@ export class CouponService {
       }
 
       const now = new Date().toISOString();
-      const usedAt = data.is_used === true ? now : (data.is_used === false ? null : existingCoupon.used_at);
+      const usedAt = data.isUsed === true ? now : (data.isUsed === false ? null : existingCoupon.usedAt);
 
       const result = await this.db
         .prepare(
@@ -114,14 +128,14 @@ export class CouponService {
           userId,
           data.code || null,
           data.type || null,
-          data.expires_at !== undefined ? data.expires_at : null,
-          data.is_used !== undefined ? data.is_used : null,
+          data.expiresAt !== undefined ? data.expiresAt : null,
+          data.isUsed !== undefined ? data.isUsed : null,
           usedAt,
           now
         )
         .first<Coupon>();
 
-      return result || null;
+      return result ? this.transformCouponFromDb(result) : null;
     } catch (error) {
       console.error('Error in updateCoupon:', error);
       if (error instanceof Error) {

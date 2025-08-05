@@ -40,7 +40,7 @@ export function CouponItem({
   };
 
   const handleToggleUsed = () => {
-    onToggleUsed(coupon.id, !coupon.is_used);
+    onToggleUsed(coupon.id, !coupon.isUsed);
   };
 
   const handleApplyCoupon = async () => {
@@ -103,14 +103,14 @@ export function CouponItem({
     return !isNaN(date.getTime()) && date.getTime() > 0;
   };
 
-  const isExpired = Boolean(coupon.expires_at && new Date(coupon.expires_at) < new Date());
-  const isExpiringSoon = Boolean(coupon.expires_at && !isExpired && 
-    new Date(coupon.expires_at).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000); // 24 hours
+  const isExpired = Boolean(coupon.expiresAt && new Date(coupon.expiresAt) < new Date());
+  const isExpiringSoon = Boolean(coupon.expiresAt && !isExpired && 
+    new Date(coupon.expiresAt).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000); // 24 hours
 
   return (
     <Card
       className={`transition-all duration-200 ${
-        coupon.is_used ? 'opacity-70' : ''
+        coupon.isUsed ? 'opacity-70' : ''
       } ${
         isExpired ? 'border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20' : ''
       } ${
@@ -128,7 +128,7 @@ export function CouponItem({
               onClick={handleToggleUsed}
               disabled={isUpdating}
             >
-              {coupon.is_used ? (
+              {coupon.isUsed ? (
                 <CheckCircle className="h-4 w-4 text-green-600" />
               ) : (
                 <Circle className="h-4 w-4 text-gray-400" />
@@ -139,7 +139,7 @@ export function CouponItem({
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <code
                   className={`text-sm font-mono font-medium break-all ${
-                    coupon.is_used ? 'line-through text-muted-foreground' : ''
+                    coupon.isUsed ? 'line-through text-muted-foreground' : ''
                   }`}
                 >
                   {coupon.code}
@@ -172,7 +172,7 @@ export function CouponItem({
                     Expiring Soon
                   </Badge>
                 )}
-                {coupon.is_used && (
+                {coupon.isUsed && (
                   <Badge variant="secondary" className="text-xs">
                     Used
                   </Badge>
@@ -180,30 +180,30 @@ export function CouponItem({
               </div>
 
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                <span>Created: {formatDate(coupon.created_at)}</span>
-                {coupon.expires_at && (
+                <span>Created: {formatDate(coupon.createdAt)}</span>
+                {coupon.expiresAt && (
                   <span className={isExpired ? 'text-red-500 dark:text-red-400' : isExpiringSoon ? 'text-amber-600 dark:text-amber-400' : ''}>
-                    Expires: {formatDate(coupon.expires_at)}
+                    Expires: {formatDate(coupon.expiresAt)}
                   </span>
                 )}
-                {coupon.is_used && isValidDate(coupon.used_at) && (
-                  <span>Used: {formatDate(coupon.used_at!)}</span>
+                {coupon.isUsed && isValidDate(coupon.usedAt) && (
+                  <span>Used: {formatDate(coupon.usedAt!)}</span>
                 )}
               </div>
             </div>
           </div>
 
           {/* Right side: Action buttons */}
-          <div className="flex flex-row items-start gap-2 flex-shrink-0">
+          <div className="flex flex-row items-start gap-2 flex-shrink-0 w-full sm:w-auto">
             {/* Apply Coupon Button - Primary Action */}
             <Button
               variant="default"
               size="sm"
-              className="h-8 px-3 w-full sm:w-auto"
+              className="h-8 px-3 flex-1 sm:flex-none sm:w-auto"
               onClick={handleApplyCoupon}
-              disabled={isApplying || isUpdating || isExpired || coupon.is_used}
+              disabled={isApplying || isUpdating || isExpired || coupon.isUsed}
               title={
-                coupon.is_used ? 'Coupon already used' :
+                coupon.isUsed ? 'Coupon already used' :
                 isExpired ? 'Cannot apply expired coupon' : 
                 `Apply ${coupon.type} coupon in Lineman`
               }

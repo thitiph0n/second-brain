@@ -104,12 +104,12 @@ export const couponApi = {
 
   // Mark a coupon as used
   async markAsUsed(id: string): Promise<{ coupon: Coupon }> {
-    return this.updateCoupon(id, { is_used: true });
+    return this.updateCoupon(id, { isUsed: true });
   },
 
   // Mark a coupon as unused
   async markAsUnused(id: string): Promise<{ coupon: Coupon }> {
-    return this.updateCoupon(id, { is_used: false });
+    return this.updateCoupon(id, { isUsed: false });
   },
 };
 
