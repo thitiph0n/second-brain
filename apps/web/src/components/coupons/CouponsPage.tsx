@@ -69,7 +69,7 @@ export function CouponsPage() {
       const promises = codes.map((code) => couponApi.createCoupon({ 
         code, 
         type, 
-        expires_at: expiresAt 
+        expiresAt: expiresAt 
       }));
       const responses = await Promise.all(promises);
 
@@ -91,7 +91,7 @@ export function CouponsPage() {
     try {
       setIsUpdating(true);
       setError(null);
-      const response = await couponApi.updateCoupon(id, { is_used: isUsed });
+      const response = await couponApi.updateCoupon(id, { isUsed: isUsed });
       setCoupons((prev) =>
         prev.map((coupon) => (coupon.id === id ? response.coupon : coupon))
       );
@@ -121,8 +121,8 @@ export function CouponsPage() {
     }
   };
 
-  const activeCoupons = coupons.filter((c) => !c.is_used && (!c.expires_at || new Date(c.expires_at) >= new Date()));
-  const usedExpiredCoupons = coupons.filter((c) => c.is_used || (c.expires_at && new Date(c.expires_at) < new Date()));
+  const activeCoupons = coupons.filter((c) => !c.isUsed && (!c.expiresAt || new Date(c.expiresAt) >= new Date()));
+  const usedExpiredCoupons = coupons.filter((c) => c.isUsed || (c.expiresAt && new Date(c.expiresAt) < new Date()));
 
   if (isLoading) {
     return (

@@ -6,42 +6,42 @@ import type { Coupon } from '@/types/coupon';
 const mockCoupons: Coupon[] = [
   {
     id: '1',
-    user_id: 'demo',
+    userId: 'demo',
     code: 'NOODLE50',
     type: 'food',
-    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-    is_used: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+    isUsed: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: '2',
-    user_id: 'demo',
+    userId: 'demo',
     code: 'RIDE20',
     type: 'ride',
-    is_used: false,
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    isUsed: false,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: '3',
-    user_id: 'demo',
+    userId: 'demo',
     code: 'USED123',
     type: 'food',
-    is_used: true,
-    used_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    isUsed: true,
+    usedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: '4',
-    user_id: 'demo',
+    userId: 'demo',
     code: 'EXPIRED',
     type: 'food',
-    expires_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago (expired)
-    is_used: false,
-    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    expiresAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago (expired)
+    isUsed: false,
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -52,7 +52,7 @@ export function CouponDemo() {
   const handleToggleUsed = async (id: string, isUsed: boolean) => {
     setCoupons(prev => prev.map(coupon => 
       coupon.id === id 
-        ? { ...coupon, is_used: isUsed, used_at: isUsed ? new Date().toISOString() : undefined }
+        ? { ...coupon, isUsed: isUsed, usedAt: isUsed ? new Date().toISOString() : undefined }
         : coupon
     ));
   };
@@ -64,13 +64,13 @@ export function CouponDemo() {
   const handleSubmit = async (data: any) => {
     const newCoupon: Coupon = {
       id: Math.random().toString(36).substr(2, 9),
-      user_id: 'demo',
+      userId: 'demo',
       code: data.code,
       type: data.type,
-      expires_at: data.expires_at,
-      is_used: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      expiresAt: data.expiresAt,
+      isUsed: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     setCoupons(prev => [newCoupon, ...prev]);
   };
@@ -78,13 +78,13 @@ export function CouponDemo() {
   const handleBulkSubmit = async (codes: string[], type: any, expiresAt?: string) => {
     const newCoupons: Coupon[] = codes.map(code => ({
       id: Math.random().toString(36).substr(2, 9),
-      user_id: 'demo',
+      userId: 'demo',
       code,
       type,
-      expires_at: expiresAt,
-      is_used: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      expiresAt: expiresAt,
+      isUsed: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }));
     setCoupons(prev => [...newCoupons, ...prev]);
   };
