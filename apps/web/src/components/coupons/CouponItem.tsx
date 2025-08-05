@@ -194,7 +194,7 @@ export function CouponItem({
           </div>
 
           {/* Right side: Action buttons */}
-          <div className="flex flex-row items-start gap-2 flex-shrink-0 min-w-0">
+          <div className="flex flex-row items-start gap-2 flex-shrink-0">
             {/* Apply Coupon Button - Primary Action */}
             <Button
               variant="default"
