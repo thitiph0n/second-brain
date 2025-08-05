@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ExternalLink, Copy, CheckCircle, Circle, Trash2, MoreHorizontal } from 'lucide-react';
+import { ExternalLink, Copy, CheckCircle, Circle, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Coupon } from '@/types/coupon';
 
@@ -21,6 +21,7 @@ export function CouponItem({
   isUpdating = false,
 }: CouponItemProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
 
   const handleCopyCode = async () => {
     try {
@@ -51,8 +52,9 @@ export function CouponItem({
     // Open the deep link
     window.open(deepLink, '_blank');
     
-    // Mark coupon as used
+    // Mark coupon as used with loading state
     try {
+      setIsApplying(true);
       await onToggleUsed(coupon.id, true);
       toast.success('Coupon applied and marked as used!', {
         description: `${coupon.type} coupon: ${coupon.code}`,
@@ -68,6 +70,8 @@ export function CouponItem({
         description: 'You may need to mark it manually',
         duration: 2000,
       });
+    } finally {
+      setIsApplying(false);
     }
   };
 
@@ -190,21 +194,25 @@ export function CouponItem({
           </div>
 
           {/* Right side: Action buttons */}
-          <div className="flex flex-row items-start gap-2 flex-shrink-0 min-w-0">
+          <div className="flex flex-row items-start gap-2 flex-shrink-0">
             {/* Apply Coupon Button - Primary Action */}
             <Button
               variant="default"
               size="sm"
-              className="h-8 px-3 sm:w-auto"
+              className="h-8 px-3 w-full sm:w-auto"
               onClick={handleApplyCoupon}
-              disabled={isUpdating || isExpired || coupon.is_used}
+              disabled={isApplying || isUpdating || isExpired || coupon.is_used}
               title={
                 coupon.is_used ? 'Coupon already used' :
                 isExpired ? 'Cannot apply expired coupon' : 
                 `Apply ${coupon.type} coupon in Lineman`
               }
             >
-              <ExternalLink className="h-3 w-3 mr-1" />
+              {isApplying ? (
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              ) : (
+                <ExternalLink className="h-3 w-3 mr-1" />
+              )}
               Apply
             </Button>
 
