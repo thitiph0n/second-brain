@@ -1,0 +1,36 @@
+name = "second-brain-mcp-server"
+main = "src/index.ts"
+compatibility_date = "2024-11-20"
+compatibility_flags = ["nodejs_compat"]
+
+[env.development]
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "second-brain-db"
+database_id = "999f6469-04df-4b79-982e-3351bc20e3dd"
+
+[[env.development.kv_namespaces]]
+binding = "CACHE"
+id = "eec49951f2ce43f199d2f019ac06aea4"
+
+[env.development.vars]
+ENVIRONMENT = "development"
+MCP_SERVER_NAME = "Second Brain Meal Tracker"
+MCP_SERVER_VERSION = "1.0.0"
+MCP_BASE_URL = "http://localhost:8787"
+
+[env.production]
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "second-brain-db-prod"
+database_id = ""
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = ""
+
+[env.production.vars]
+ENVIRONMENT = "production"
+MCP_SERVER_NAME = "Second Brain Meal Tracker"
+MCP_SERVER_VERSION = "1.0.0"
+MCP_BASE_URL = "https://mcp.thitiphon.me"

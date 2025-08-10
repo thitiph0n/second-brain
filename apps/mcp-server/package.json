@@ -1,5 +1,5 @@
 {
-  "name": "@second-brain/api",
+  "name": "@second-brain/mcp-server",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,19 +7,19 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "build": "tsc",
-    "lint": "eslint .",
-    "migrate:dev": "node scripts/migrate.js --env development",
-    "migrate:prod": "node scripts/migrate.js --env production"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@second-brain/meal-tracker": "workspace:*",
-    "hono": "^4.0.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "agents": "^0.0.111",
     "zod": "^3.22.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240529.0",
     "typescript": "^5.7.2",
     "wrangler": "^4.23.0",
+    "@types/node": "^20.0.0",
     "eslint": "^9.0.0",
     "@eslint/js": "^9.0.0",
     "globals": "^15.0.0",

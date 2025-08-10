@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { serveStatic } from 'hono/cloudflare-workers';
 import authRoutes from './routes/auth';
 import couponRoutes from './routes/coupon';
+import mealRoutes from './routes/meal';
 import { createErrorResponse } from './utils/errorHandler';
 
 interface Env {
@@ -72,6 +72,9 @@ app.route('/api/v1/auth', authRoutes);
 
 // Coupon routes
 app.route('/api/v1/coupons', couponRoutes);
+
+// Meal tracker routes
+app.route('/api/v1/meal', mealRoutes);
 
 // Add more API routes here
 // app.route('/api/v1/notes', notesRouter);
