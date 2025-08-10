@@ -172,11 +172,19 @@ pnpm test
 # Run tests for specific app
 pnpm --filter @second-brain/web test
 
-# Run tests in watch mode
+# Run tests in watch mode (web only, API has no tests yet)
 pnpm --filter @second-brain/web test:watch
+
+# Run specific test file
+pnpm --filter @second-brain/web test src/auth/__tests__/store.test.ts
 
 # Type checking
 pnpm --filter @second-brain/web type-check
+
+# Linting
+pnpm lint                                    # All apps
+pnpm --filter @second-brain/web lint        # Web only  
+pnpm --filter @second-brain/api lint        # API only
 ```
 
 ### Database Commands
@@ -185,6 +193,15 @@ pnpm --filter @second-brain/web type-check
 # API database migrations
 pnpm --filter @second-brain/api migrate:dev    # Development
 pnpm --filter @second-brain/api migrate:prod   # Production
+```
+
+### Deployment Scripts
+
+```bash
+# Available deployment scripts in /scripts/
+./scripts/deploy.sh           # Full deployment
+./scripts/deploy-backend.sh   # Backend only  
+./scripts/release.sh          # Release workflow
 ```
 
 When working in this codebase:
@@ -200,9 +217,11 @@ When working in this codebase:
 9. Database migrations use numbered SQL files in `apps/api/migrations/`
 10. Components should follow responsive design patterns (mobile-first)
 11. Use Zod for validation on both frontend and backend
-12. **ALWAYS ensure files end with a newline character (EOL)** - this is required for proper git handling and POSIX compliance
+12. Test files are located in `__tests__` directories alongside components - follow this pattern
+13. **ALWAYS ensure files end with a newline character (EOL)** - this is required for proper git handling and POSIX compliance
 
 ### important-instruction-reminders
+
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
