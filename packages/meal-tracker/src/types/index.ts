@@ -179,6 +179,30 @@ export interface FoodEntryQuery {
   offset?: number;
 }
 
+// MCP API Key interfaces
+export interface MCPApiKey {
+  id: string;
+  userId: string;
+  keyPrefix: string;
+  name: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  revokedAt: string | null;
+}
+
+// Type for returning a new key, as the full key is only shown once
+export interface NewMCPApiKey extends MCPApiKey {
+  apiKey: string;
+}
+
+export interface MCPApiKeyCreateData {
+  name?: string;
+}
+
+export interface MCPApiKeyUpdateData {
+  name?: string;
+}
+
 export interface ProfileTrackingQuery {
   startDate?: string;
   endDate?: string;

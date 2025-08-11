@@ -843,4 +843,109 @@ export class MealTrackerService {
       throw new Error('Failed to add favorite food to log: Unknown error occurred');
     }
   }
+
+  // ===== MCP API Key Management =====
+
+  // NOTE: These crypto functions are duplicated from apps/api/src/utils/crypto.ts
+  // This is a temporary solution due to the current project structure.
+  // Ideally, these should be in a shared crypto package.
+  private generateApiKey(): string {
+    const array = new Uint8Array(24); // 24 bytes -> 48 hex chars
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  private async hashApiKey(apiKey: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(apiKey);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  private transformMCPApiKeyFromDb(rawKey: any): MCPApiKey {
+    return {
+      id: rawKey.id,
+      userId: rawKey.user_id,
+      keyPrefix: rawKey.key_prefix,
+      name: rawKey.name,
+      lastUsedAt: rawKey.last_used_at,
+      createdAt: rawKey.created_at,
+      revokedAt: rawKey.revoked_at,
+    };
+  }
+
+  async createMCPApiKey(userId: string, data: MCPApiKeyCreateData): Promise<NewMCPApiKey> {
+    await this.ensureDatabaseInitialized();
+    const apiKey = `sb_live_${this.generateApiKey()}`;
+    const keyHash = await this.hashApiKey(apiKey);
+    const keyPrefix = apiKey.substring(0, 8); // e.g., "sb_live_"
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const result = await this.db
+      .prepare(
+        `INSERT INTO mcp_api_keys (id, user_id, key_hash, key_prefix, name, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+         RETURNING *`
+      )
+      .bind(id, userId, keyHash, keyPrefix, data.name || null, now)
+      .first<any>();
+
+    if (!result) {
+      throw new Error('Database returned empty result when creating MCP API key');
+    }
+
+    const newKey = this.transformMCPApiKeyFromDb(result);
+    return { ...newKey, apiKey };
+  }
+
+  async getMCPApiKeys(userId: string): Promise<MCPApiKey[]> {
+    await this.ensureDatabaseInitialized();
+    const result = await this.db
+      .prepare('SELECT * FROM mcp_api_keys WHERE user_id = ?1 AND revoked_at IS NULL ORDER BY created_at DESC')
+      .bind(userId)
+      .all<any>();
+
+    if (!result.success) {
+      throw new Error(`Database query failed: ${result.error || 'Unknown database error'}`);
+    }
+
+    return (result.results || []).map(key => this.transformMCPApiKeyFromDb(key));
+  }
+
+  async updateMCPApiKeyName(keyId: string, userId: string, data: MCPApiKeyUpdateData): Promise<MCPApiKey | null> {
+    await this.ensureDatabaseInitialized();
+    const now = new Date().toISOString();
+    const result = await this.db
+      .prepare(
+        `UPDATE mcp_api_keys
+         SET name = ?3, updated_at = ?4
+         WHERE id = ?1 AND user_id = ?2 AND revoked_at IS NULL
+         RETURNING *`
+      )
+      .bind(keyId, userId, data.name, now)
+      .first<any>();
+
+    return result ? this.transformMCPApiKeyFromDb(result) : null;
+  }
+
+  async revokeMCPApiKey(keyId: string, userId: string): Promise<boolean> {
+    await this.ensureDatabaseInitialized();
+    const now = new Date().toISOString();
+    const result = await this.db
+      .prepare(
+        `UPDATE mcp_api_keys
+         SET revoked_at = ?3
+         WHERE id = ?1 AND user_id = ?2 AND revoked_at IS NULL`
+      )
+      .bind(keyId, userId, now)
+      .run();
+
+    if (!result.success) {
+      throw new Error(`Database delete failed: ${result.error || 'Unknown database error'}`);
+    }
+
+    return result.meta.changes > 0;
+  }
 }
