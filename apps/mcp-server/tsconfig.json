@@ -14,10 +14,13 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types"],
+    "composite": true
   },
   "include": [
     "src/**/*"
+  ],
+  "references": [
+    { "path": "../../packages/meal-tracker" }
   ]
 }

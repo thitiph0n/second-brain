@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "build": "tsc",
+    "build": "tsc --build",
     "lint": "eslint .",
     "migrate:dev": "node scripts/migrate.js --env development",
     "migrate:prod": "node scripts/migrate.js --env production"
