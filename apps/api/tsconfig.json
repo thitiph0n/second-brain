@@ -11,8 +11,12 @@
     "allowSyntheticDefaultImports": true,
     "types": ["@cloudflare/workers-types"],
     "lib": ["ES2022"],
-    "noEmit": true
+    "outDir": "./dist",
+    "composite": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": [
+    { "path": "../../packages/meal-tracker" }
+  ]
 }

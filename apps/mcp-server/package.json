@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "build": "tsc",
+    "build": "tsc --build",
     "lint": "eslint ."
   },
   "dependencies": {

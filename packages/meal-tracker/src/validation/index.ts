@@ -118,6 +118,15 @@ export const idParamSchema = z.object({
   id: z.string().min(1, 'ID is required'),
 });
 
+// MCP API Key validation schemas
+export const createMCPApiKeySchema = z.object({
+  name: z.string().min(1, 'Key name is required').max(100, 'Key name must be less than 100 characters').optional(),
+});
+
+export const updateMCPApiKeySchema = z.object({
+  name: z.string().min(1, 'Key name is required').max(100, 'Key name must be less than 100 characters'),
+});
+
 // Type exports for request validation
 export type CreateFoodEntryRequest = z.infer<typeof createFoodEntrySchema>;
 export type UpdateFoodEntryRequest = z.infer<typeof updateFoodEntrySchema>;
@@ -131,3 +140,5 @@ export type UpdateFavoriteFoodRequest = z.infer<typeof updateFavoriteFoodSchema>
 export type FavoriteFoodQueryRequest = z.infer<typeof favoriteFoodQuerySchema>;
 export type DailyNutritionDateRequest = z.infer<typeof dailyNutritionDateSchema>;
 export type IdParamRequest = z.infer<typeof idParamSchema>;
+export type CreateMCPApiKeyRequest = z.infer<typeof createMCPApiKeySchema>;
+export type UpdateMCPApiKeyRequest = z.infer<typeof updateMCPApiKeySchema>;

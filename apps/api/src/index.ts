@@ -4,6 +4,7 @@ import { logger } from 'hono/logger';
 import authRoutes from './routes/auth';
 import couponRoutes from './routes/coupon';
 import mealRoutes from './routes/meal';
+import mcpKeyRoutes from './routes/mcp-keys';
 import { createErrorResponse } from './utils/errorHandler';
 
 interface Env {
@@ -75,6 +76,7 @@ app.route('/api/v1/coupons', couponRoutes);
 
 // Meal tracker routes
 app.route('/api/v1/meal', mealRoutes);
+app.route('/api/v1/meal/mcp-keys', mcpKeyRoutes);
 
 // Add more API routes here
 // app.route('/api/v1/notes', notesRouter);
