@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { CouponService } from '../services/coupon';
 import { requireAuth } from '../middleware/auth';
-import { createCouponSchema, updateCouponSchema } from '../validation/coupon';
+import { createCouponSchema, updateCouponSchema, bulkDeleteCouponSchema } from '../validation/coupon';
 import { User, AuthSession } from '../types/auth';
 import { 
   createErrorResponse, 
@@ -144,6 +144,36 @@ couponRoutes.delete('/:id', async (c) => {
     return c.json({ message: 'Coupon deleted successfully' });
   } catch (error) {
     return createErrorResponse(c, error, 'Failed to delete coupon', 500, { couponId: c.req.param('id') });
+  }
+});
+
+// POST /api/v1/coupons/bulk-delete - Delete multiple coupons
+couponRoutes.post('/bulk-delete', async (c) => {
+  try {
+    const user = c.get('user');
+    if (!user) {
+      return createAuthErrorResponse(c, new Error('User context not found'), 'Authentication middleware did not set user context');
+    }
+
+    const body = await c.req.json();
+    
+    // Validate request body
+    const validatedData = bulkDeleteCouponSchema.parse(body);
+    
+    const couponService = new CouponService(c.env.DB);
+    const deletedCount = await couponService.bulkDeleteCoupons(validatedData.ids, user.id);
+
+    return c.json({ 
+      message: `Successfully deleted ${deletedCount} coupon(s)`,
+      deletedCount,
+      requestedCount: validatedData.ids.length
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('parse')) {
+      return createValidationErrorResponse(c, error);
+    }
+    
+    return createErrorResponse(c, error, 'Failed to bulk delete coupons');
   }
 });
 

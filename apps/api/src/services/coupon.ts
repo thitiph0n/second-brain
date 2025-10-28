@@ -167,4 +167,34 @@ export class CouponService {
       throw new Error('Failed to delete coupon: Unknown error occurred');
     }
   }
+
+  async bulkDeleteCoupons(ids: string[], userId: string): Promise<number> {
+    try {
+      await this.ensureDatabaseInitialized();
+      
+      if (ids.length === 0) {
+        return 0;
+      }
+
+      // Create placeholders for the IN clause
+      const placeholders = ids.map((_, index) => `?${index + 2}`).join(', ');
+      
+      const result = await this.db
+        .prepare(`DELETE FROM coupons WHERE user_id = ?1 AND id IN (${placeholders})`)
+        .bind(userId, ...ids)
+        .run();
+
+      if (!result.success) {
+        throw new Error(`Database bulk delete failed: ${result.error || 'Unknown database error'}`);
+      }
+
+      return result.meta.changes;
+    } catch (error) {
+      console.error('Error in bulkDeleteCoupons:', error);
+      if (error instanceof Error) {
+        throw new Error(`Failed to bulk delete coupons: ${error.message}`);
+      }
+      throw new Error('Failed to bulk delete coupons: Unknown error occurred');
+    }
+  }
 }
