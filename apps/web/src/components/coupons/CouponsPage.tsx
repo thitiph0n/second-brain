@@ -333,7 +333,7 @@ export function CouponsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleSelectAll('all')}
-                      disabled={selectedIds.size === coupons.length}
+                      disabled={coupons.length === 0 || selectedIds.size === coupons.length}
                     >
                       Select All
                     </Button>
