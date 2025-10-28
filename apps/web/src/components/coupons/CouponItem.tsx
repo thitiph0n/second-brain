@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ExternalLink, Copy, CheckCircle, Circle, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,6 +13,9 @@ interface CouponItemProps {
   onToggleUsed: (id: string, isUsed: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   isUpdating?: boolean;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (id: string) => void;
 }
 
 export function CouponItem({
@@ -19,6 +23,9 @@ export function CouponItem({
   onToggleUsed,
   onDelete,
   isUpdating = false,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelection,
 }: CouponItemProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
@@ -115,25 +122,36 @@ export function CouponItem({
         isExpired ? 'border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20' : ''
       } ${
         isExpiringSoon ? 'border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20' : ''
+      } ${
+        isSelected ? 'ring-2 ring-primary' : ''
       }`}
     >
       <CardContent className="pt-4">
         <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-          {/* Left side: Checkbox and content */}
+          {/* Left side: Selection checkbox or used checkbox and content */}
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 mt-1 flex-shrink-0"
-              onClick={handleToggleUsed}
-              disabled={isUpdating}
-            >
-              {coupon.isUsed ? (
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              ) : (
-                <Circle className="h-4 w-4 text-gray-400" />
-              )}
-            </Button>
+            {selectionMode ? (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onToggleSelection?.(coupon.id)}
+                className="mt-1 flex-shrink-0"
+                aria-label={`Select coupon ${coupon.code}`}
+              />
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 mt-1 flex-shrink-0"
+                onClick={handleToggleUsed}
+                disabled={isUpdating}
+              >
+                {coupon.isUsed ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Circle className="h-4 w-4 text-gray-400" />
+                )}
+              </Button>
+            )}
 
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">

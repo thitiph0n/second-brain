@@ -9,11 +9,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Ticket, Loader2 } from 'lucide-react';
+import { Ticket, Loader2, Trash2, CheckSquare, Square } from 'lucide-react';
 import { CouponForm } from './CouponForm';
 import { CouponList } from './CouponList';
 import { couponApi, ApiError } from '@/services/couponApi';
 import type { Coupon, CreateCouponRequest, CouponType } from '@/types/coupon';
+import { toast } from 'sonner';
 
 export function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -22,6 +23,8 @@ export function CouponsPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Load coupons on component mount
   useEffect(() => {
@@ -121,6 +124,75 @@ export function CouponsPage() {
     }
   };
 
+  const handleToggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (filter: 'all' | 'active' | 'used') => {
+    const filteredCoupons = filter === 'active' 
+      ? activeCoupons 
+      : filter === 'used' 
+        ? usedExpiredCoupons 
+        : coupons;
+    
+    const allIds = filteredCoupons.map((c) => c.id);
+    setSelectedIds(new Set(allIds));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+
+    try {
+      setIsUpdating(true);
+      setError(null);
+      
+      const idsArray = Array.from(selectedIds);
+      const response = await couponApi.bulkDeleteCoupons(idsArray);
+      
+      // Remove deleted coupons from the list
+      setCoupons((prev) => prev.filter((coupon) => !selectedIds.has(coupon.id)));
+      
+      // Clear selection and exit selection mode
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      
+      toast.success(response.message, {
+        description: `${response.deletedCount} coupon(s) deleted successfully`,
+        duration: 3000,
+      });
+    } catch (err) {
+      console.error('Failed to bulk delete coupons:', err);
+      const errorMsg = err instanceof ApiError ? err.message : 'Failed to delete coupons';
+      setError(errorMsg);
+      toast.error('Bulk delete failed', {
+        description: errorMsg,
+        duration: 3000,
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleToggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    if (selectionMode) {
+      // Exiting selection mode, clear selections
+      setSelectedIds(new Set());
+    }
+  };
+
   const activeCoupons = coupons.filter((c) => !c.isUsed && (!c.expiresAt || new Date(c.expiresAt) >= new Date()));
   const usedExpiredCoupons = coupons.filter((c) => c.isUsed || (c.expiresAt && new Date(c.expiresAt) < new Date()));
 
@@ -213,22 +285,88 @@ export function CouponsPage() {
                     Manage and track your coupon codes
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  {activeCoupons.length > 0 && (
+                <div className="flex items-center gap-2">
+                  {!selectionMode && activeCoupons.length > 0 && (
                     <Badge variant="outline">{activeCoupons.length} Active</Badge>
                   )}
-                  {usedExpiredCoupons.length > 0 && (
+                  {!selectionMode && usedExpiredCoupons.length > 0 && (
                     <Badge variant="secondary">{usedExpiredCoupons.length} Used/Expired</Badge>
                   )}
-                  {coupons.length === 0 && (
+                  {!selectionMode && coupons.length === 0 && (
                     <Badge variant="outline" className="text-muted-foreground">
                       No coupons yet
                     </Badge>
+                  )}
+                  {selectionMode && (
+                    <Badge variant="default" className="bg-primary">
+                      {selectedIds.size} selected
+                    </Badge>
+                  )}
+                  {coupons.length > 0 && (
+                    <Button
+                      variant={selectionMode ? "default" : "outline"}
+                      size="sm"
+                      onClick={handleToggleSelectionMode}
+                      className="ml-2"
+                    >
+                      {selectionMode ? (
+                        <>
+                          <CheckSquare className="h-4 w-4 mr-1" />
+                          Done
+                        </>
+                      ) : (
+                        <>
+                          <Square className="h-4 w-4 mr-1" />
+                          Select
+                        </>
+                      )}
+                    </Button>
                   )}
                 </div>
               </div>
             </CardHeader>
             <CardContent>
+              {selectionMode && (
+                <div className="mb-4 p-3 bg-muted rounded-lg flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSelectAll('all')}
+                      disabled={coupons.length === 0 || selectedIds.size === coupons.length}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDeselectAll}
+                      disabled={selectedIds.size === 0}
+                    >
+                      Deselect All
+                    </Button>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    disabled={selectedIds.size === 0 || isUpdating}
+                  >
+                    {isUpdating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete ({selectedIds.size})
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+              
               <Tabs defaultValue="all" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="all">
@@ -249,6 +387,9 @@ export function CouponsPage() {
                     onDelete={handleDeleteCoupon}
                     isUpdating={isUpdating}
                     filter="all"
+                    selectionMode={selectionMode}
+                    selectedIds={selectedIds}
+                    onToggleSelection={handleToggleSelection}
                   />
                 </TabsContent>
 
@@ -259,6 +400,9 @@ export function CouponsPage() {
                     onDelete={handleDeleteCoupon}
                     isUpdating={isUpdating}
                     filter="active"
+                    selectionMode={selectionMode}
+                    selectedIds={selectedIds}
+                    onToggleSelection={handleToggleSelection}
                   />
                 </TabsContent>
 
@@ -269,6 +413,9 @@ export function CouponsPage() {
                     onDelete={handleDeleteCoupon}
                     isUpdating={isUpdating}
                     filter="used"
+                    selectionMode={selectionMode}
+                    selectedIds={selectedIds}
+                    onToggleSelection={handleToggleSelection}
                   />
                 </TabsContent>
               </Tabs>

@@ -7,6 +7,9 @@ interface CouponListProps {
   onDelete: (id: string) => Promise<void>;
   isUpdating?: boolean;
   filter?: 'all' | 'active' | 'used';
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (id: string) => void;
 }
 
 export function CouponList({ 
@@ -14,7 +17,10 @@ export function CouponList({
   onToggleUsed, 
   onDelete, 
   isUpdating = false,
-  filter = 'all'
+  filter = 'all',
+  selectionMode = false,
+  selectedIds = new Set(),
+  onToggleSelection,
 }: CouponListProps) {
   // Filter coupons based on the filter prop
   const filteredCoupons = coupons.filter(coupon => {
@@ -49,6 +55,9 @@ export function CouponList({
           onToggleUsed={onToggleUsed}
           onDelete={onDelete}
           isUpdating={isUpdating}
+          selectionMode={selectionMode}
+          isSelected={selectedIds.has(coupon.id)}
+          onToggleSelection={onToggleSelection}
         />
       ))}
     </div>

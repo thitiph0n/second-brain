@@ -102,6 +102,14 @@ export const couponApi = {
     });
   },
 
+  // Bulk delete multiple coupons
+  async bulkDeleteCoupons(ids: string[]): Promise<{ message: string; deletedCount: number; requestedCount: number }> {
+    return fetchWithAuth('/coupons/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    });
+  },
+
   // Mark a coupon as used
   async markAsUsed(id: string): Promise<{ coupon: Coupon }> {
     return this.updateCoupon(id, { isUsed: true });

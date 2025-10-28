@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { CouponItem } from '@/components/coupons/CouponItem';
 import { CouponForm } from '@/components/coupons/CouponForm';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { CheckSquare, Square, Trash2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Coupon } from '@/types/coupon';
 
 const mockCoupons: Coupon[] = [
@@ -48,6 +53,9 @@ const mockCoupons: Coupon[] = [
 export function CouponDemo() {
   const [coupons, setCoupons] = useState<Coupon[]>(mockCoupons);
   const [showForm, setShowForm] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleToggleUsed = async (id: string, isUsed: boolean) => {
     setCoupons(prev => prev.map(coupon => 
@@ -89,12 +97,58 @@ export function CouponDemo() {
     setCoupons(prev => [...newCoupons, ...prev]);
   };
 
+  const handleToggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedIds(new Set(coupons.map((c) => c.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+
+    setIsDeleting(true);
+    // Simulate async operation
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    setCoupons(prev => prev.filter(coupon => !selectedIds.has(coupon.id)));
+    
+    toast.success('Coupons deleted successfully', {
+      description: `${selectedIds.size} coupon(s) deleted`,
+      duration: 3000,
+    });
+    
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+    setIsDeleting(false);
+  };
+
+  const handleToggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    if (selectionMode) {
+      setSelectedIds(new Set());
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">🍜 Coupon Book Demo</h1>
         <p className="text-muted-foreground">
-          Demo showing the improved UI for mobile devices, bulk expiration support, and noodle icons
+          Demo showing the improved UI for mobile devices, bulk expiration support, and multi-select deletion
         </p>
         <p className="text-sm text-orange-600 mt-2">
           📱 Resize your browser to see mobile responsiveness improvements
@@ -110,18 +164,95 @@ export function CouponDemo() {
           onToggle={() => setShowForm(!showForm)}
         />
 
-        <div className="space-y-3">
-          <h2 className="text-xl font-semibold">Sample Coupons</h2>
-          {coupons.map((coupon) => (
-            <CouponItem
-              key={coupon.id}
-              coupon={coupon}
-              onToggleUsed={handleToggleUsed}
-              onDelete={handleDelete}
-              isUpdating={false}
-            />
-          ))}
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Sample Coupons</h2>
+              <div className="flex items-center gap-2">
+                {selectionMode && (
+                  <Badge variant="default" className="bg-primary">
+                    {selectedIds.size} selected
+                  </Badge>
+                )}
+                {coupons.length > 0 && (
+                  <Button
+                    variant={selectionMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={handleToggleSelectionMode}
+                  >
+                    {selectionMode ? (
+                      <>
+                        <CheckSquare className="h-4 w-4 mr-1" />
+                        Done
+                      </>
+                    ) : (
+                      <>
+                        <Square className="h-4 w-4 mr-1" />
+                        Select
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {selectionMode && (
+              <div className="mb-4 p-3 bg-muted rounded-lg flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAll}
+                    disabled={coupons.length === 0 || selectedIds.size === coupons.length}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDeselectAll}
+                    disabled={selectedIds.size === 0}
+                  >
+                    Deselect All
+                  </Button>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.size === 0 || isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete ({selectedIds.size})
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {coupons.map((coupon) => (
+                <CouponItem
+                  key={coupon.id}
+                  coupon={coupon}
+                  onToggleUsed={handleToggleUsed}
+                  onDelete={handleDelete}
+                  isUpdating={false}
+                  selectionMode={selectionMode}
+                  isSelected={selectedIds.has(coupon.id)}
+                  onToggleSelection={handleToggleSelection}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

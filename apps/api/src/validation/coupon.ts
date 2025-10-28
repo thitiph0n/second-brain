@@ -15,5 +15,10 @@ export const updateCouponSchema = z.object({
   isUsed: z.boolean().optional(),
 });
 
+export const bulkDeleteCouponSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1, 'At least one coupon ID is required').max(100, 'Cannot delete more than 100 coupons at once'),
+});
+
 export type CreateCouponRequest = z.infer<typeof createCouponSchema>;
 export type UpdateCouponRequest = z.infer<typeof updateCouponSchema>;
+export type BulkDeleteCouponRequest = z.infer<typeof bulkDeleteCouponSchema>;
