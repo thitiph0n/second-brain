@@ -128,8 +128,8 @@ export function CouponItem({
 	const isExpiringSoon = Boolean(
 		coupon.expiresAt &&
 			!isExpired &&
-			new Date(coupon.expiresAt).getTime() - Date.now() < 24 * 60 * 60 * 1000,
-	); // 24 hours
+			new Date(coupon.expiresAt).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000,
+	); // 7 days
 
 	return (
 		<Card

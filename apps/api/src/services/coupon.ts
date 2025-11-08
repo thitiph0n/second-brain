@@ -64,7 +64,26 @@ export class CouponService {
 			await this.ensureDatabaseInitialized();
 
 			const result = await this.db
-				.prepare("SELECT * FROM coupons WHERE user_id = ?1 ORDER BY created_at DESC")
+				.prepare(`
+					SELECT * FROM coupons
+					WHERE user_id = ?1
+					ORDER BY
+						-- Priority 1: Coupons expiring within 7 days (near expired)
+						CASE
+							WHEN expires_at IS NOT NULL
+							AND datetime(expires_at) >= datetime('now')
+							AND (julianday(expires_at) - julianday('now')) <= 7
+							THEN 0
+							ELSE 1
+						END,
+						-- Priority 2: Expiration date (soonest first)
+						CASE
+							WHEN expires_at IS NULL THEN 999999999
+							ELSE julianday(expires_at)
+						END,
+						-- Priority 3: Creation date (newest first)
+						datetime(created_at) DESC
+				`)
 				.bind(userId)
 				.all<Coupon>();
 

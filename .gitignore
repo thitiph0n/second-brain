@@ -40,3 +40,5 @@ wrangler.*.toml
 # Temporary files
 *.tmp
 *.temp
+
+.envrc

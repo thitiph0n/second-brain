@@ -18,7 +18,6 @@ interface Env {
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Middleware
 app.use("*", logger());
 app.use(
 	"*",
@@ -39,7 +38,6 @@ app.use(
 	}),
 );
 
-// API Routes (before static assets)
 app.get("/api/health", (c) => {
 	try {
 		return c.json({
@@ -54,28 +52,8 @@ app.get("/api/health", (c) => {
 	}
 });
 
-app.get("/api/v1/test", (c) => {
-	try {
-		return c.json({
-			message: "Second Brain API is working!",
-			timestamp: new Date().toISOString(),
-			version: "1.0.0",
-		});
-	} catch (error) {
-		return createErrorResponse(c, error, "Test endpoint failed");
-	}
-});
-
-// Authentication routes
 app.route("/api/v1/auth", authRoutes);
-
-// Coupon routes
 app.route("/api/v1/coupons", couponRoutes);
-
-// Add more API routes here
-// app.route('/api/v1/notes', notesRouter);
-// app.route('/api/v1/todos', todosRouter);
-// ... other API routes
 
 // 404 handler for API routes
 app.notFound((c) => {
@@ -89,11 +67,10 @@ app.notFound((c) => {
 			404,
 		);
 	}
-	// For non-API routes, serve index.html (SPA fallback)
+
 	return c.env.ASSETS.fetch(new Request("http://localhost/index.html"));
 });
 
-// Global error handler for uncaught errors
 app.onError((error, c) => {
 	console.error("Uncaught API error:", error);
 	return createErrorResponse(c, error, "Internal server error", 500, {

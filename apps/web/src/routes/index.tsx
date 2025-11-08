@@ -1,17 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Brain, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "../auth/hooks";
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
 });
 
 function LandingPage() {
-	const { isAuthenticated } = useAuth();
-
 	return (
 		<div className="min-h-screen bg-background flex flex-col">
 			<div className="flex-1">
@@ -32,25 +29,16 @@ function LandingPage() {
 							grows with you. Transform information into insights.
 						</p>
 						<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-							{isAuthenticated ? (
-								<Link to="/dashboard">
-									<Button size="lg" className="group">
-										Get Started
-										<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-									</Button>
-								</Link>
-							) : (
-								<Button
-									size="lg"
-									className="group"
-									onClick={() => {
-										window.location.href = "/api/v1/auth/github/login";
-									}}
-								>
-									Get Started
-									<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-								</Button>
-							)}
+							<Button
+								size="lg"
+								className="group"
+								onClick={() => {
+									window.location.href = "/api/v1/auth/github/login";
+								}}
+							>
+								Get Started
+								<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+							</Button>
 						</div>
 					</div>
 				</section>

@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as NotesRouteImport } from './routes/notes'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CouponsRouteImport } from './routes/coupons'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +19,16 @@ import { Route as AuthSuccessRouteImport } from './routes/auth.success'
 import { Route as AuthErrorRouteImport } from './routes/auth.error'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotesRoute = NotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -57,6 +69,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/coupons': typeof CouponsRoute
   '/dashboard': typeof DashboardRoute
+  '/notes': typeof NotesRoute
+  '/profile': typeof ProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/error': typeof AuthErrorRoute
   '/auth/success': typeof AuthSuccessRoute
@@ -66,6 +80,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/coupons': typeof CouponsRoute
   '/dashboard': typeof DashboardRoute
+  '/notes': typeof NotesRoute
+  '/profile': typeof ProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/error': typeof AuthErrorRoute
   '/auth/success': typeof AuthSuccessRoute
@@ -76,6 +92,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/coupons': typeof CouponsRoute
   '/dashboard': typeof DashboardRoute
+  '/notes': typeof NotesRoute
+  '/profile': typeof ProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/error': typeof AuthErrorRoute
   '/auth/success': typeof AuthSuccessRoute
@@ -87,6 +105,8 @@ export interface FileRouteTypes {
     | '/'
     | '/coupons'
     | '/dashboard'
+    | '/notes'
+    | '/profile'
     | '/auth/callback'
     | '/auth/error'
     | '/auth/success'
@@ -96,6 +116,8 @@ export interface FileRouteTypes {
     | '/'
     | '/coupons'
     | '/dashboard'
+    | '/notes'
+    | '/profile'
     | '/auth/callback'
     | '/auth/error'
     | '/auth/success'
@@ -105,6 +127,8 @@ export interface FileRouteTypes {
     | '/'
     | '/coupons'
     | '/dashboard'
+    | '/notes'
+    | '/profile'
     | '/auth/callback'
     | '/auth/error'
     | '/auth/success'
@@ -115,6 +139,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CouponsRoute: typeof CouponsRoute
   DashboardRoute: typeof DashboardRoute
+  NotesRoute: typeof NotesRoute
+  ProfileRoute: typeof ProfileRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthErrorRoute: typeof AuthErrorRoute
   AuthSuccessRoute: typeof AuthSuccessRoute
@@ -123,6 +149,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notes': {
+      id: '/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof NotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -179,6 +219,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CouponsRoute: CouponsRoute,
   DashboardRoute: DashboardRoute,
+  NotesRoute: NotesRoute,
+  ProfileRoute: ProfileRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthErrorRoute: AuthErrorRoute,
   AuthSuccessRoute: AuthSuccessRoute,

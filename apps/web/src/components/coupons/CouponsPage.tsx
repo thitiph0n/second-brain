@@ -3,12 +3,13 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, couponApi } from "@/services/couponApi";
 import type { Coupon, CouponType, CreateCouponRequest } from "@second-brain/types/coupon";
 import { CouponForm } from "./CouponForm";
 import { CouponList } from "./CouponList";
+import { CouponsSkeleton } from "@/components/skeleton/CouponsSkeleton";
 
 export function CouponsPage() {
 	const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -174,6 +175,7 @@ export function CouponsPage() {
 		}
 	};
 
+	// Filter coupons by status (API handles sorting)
 	const activeCoupons = coupons.filter(
 		(c) => !c.isUsed && (!c.expiresAt || new Date(c.expiresAt) >= new Date()),
 	);
@@ -182,16 +184,7 @@ export function CouponsPage() {
 	);
 
 	if (isLoading) {
-		return (
-			<div className="container mx-auto px-4 py-8">
-				<div className="max-w-4xl mx-auto">
-					<div className="flex items-center justify-center py-12">
-						<Loader2 className="h-6 w-6 animate-spin mr-2" />
-						<span>Loading coupons...</span>
-					</div>
-				</div>
-			</div>
-		);
+		return <CouponsSkeleton />;
 	}
 
 	return (
@@ -255,150 +248,147 @@ export function CouponsPage() {
 						onToggle={() => setShowForm(!showForm)}
 					/>
 
-					<Card>
-						<CardHeader>
-							<div className="flex items-center justify-between">
-								<div>
-									<CardTitle>Your Coupons</CardTitle>
-									<CardDescription>Manage and track your coupon codes</CardDescription>
-								</div>
-								<div className="flex items-center gap-2">
-									{!selectionMode && activeCoupons.length > 0 && (
-										<Badge variant="outline">{activeCoupons.length} Active</Badge>
-									)}
-									{!selectionMode && usedExpiredCoupons.length > 0 && (
-										<Badge variant="secondary">{usedExpiredCoupons.length} Used/Expired</Badge>
-									)}
-									{!selectionMode && coupons.length === 0 && (
-										<Badge variant="outline" className="text-muted-foreground">
-											No coupons yet
-										</Badge>
-									)}
-									{selectionMode && (
-										<Badge variant="default" className="bg-primary">
-											{selectedIds.size} selected
-										</Badge>
-									)}
-									{coupons.length > 0 && (
-										<Button
-											variant={selectionMode ? "default" : "outline"}
-											size="sm"
-											onClick={handleToggleSelectionMode}
-											className="ml-2"
-										>
-											{selectionMode ? (
-												<>
-													<CheckSquare className="h-4 w-4 mr-1" />
-													Done
-												</>
-											) : (
-												<>
-													<Square className="h-4 w-4 mr-1" />
-													Select
-												</>
-											)}
-										</Button>
-									)}
-								</div>
+					{/* Controls section with badges and actions */}
+					<div className="mb-6">
+						<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+							<div className="flex items-center gap-2 flex-wrap">
+								{!selectionMode && usedExpiredCoupons.length > 0 && (
+									<Badge variant="secondary">{usedExpiredCoupons.length} Used/Expired</Badge>
+								)}
+								{!selectionMode && coupons.length === 0 && (
+									<Badge variant="outline" className="text-muted-foreground">
+										No coupons yet
+									</Badge>
+								)}
+								{selectionMode && (
+									<Badge variant="default" className="bg-primary">
+										{selectedIds.size} selected
+									</Badge>
+								)}
 							</div>
-						</CardHeader>
-						<CardContent>
-							{selectionMode && (
-								<div className="mb-4 p-3 bg-muted rounded-lg flex items-center justify-between gap-3">
-									<div className="flex items-center gap-2 flex-wrap">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleSelectAll("all")}
-											disabled={coupons.length === 0 || selectedIds.size === coupons.length}
-										>
-											Select All
-										</Button>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={handleDeselectAll}
-											disabled={selectedIds.size === 0}
-										>
-											Deselect All
-										</Button>
-									</div>
+							<div className="flex items-center gap-2 flex-wrap">
+								{!selectionMode && activeCoupons.length > 0 && (
+									<Badge variant="outline">{activeCoupons.length} Active</Badge>
+								)}
+								{coupons.length > 0 && (
 									<Button
-										variant="destructive"
+										variant={selectionMode ? "default" : "outline"}
 										size="sm"
-										onClick={handleBulkDelete}
-										disabled={selectedIds.size === 0 || isUpdating}
+										onClick={handleToggleSelectionMode}
 									>
-										{isUpdating ? (
+										{selectionMode ? (
 											<>
-												<Loader2 className="h-4 w-4 mr-1 animate-spin" />
-												Deleting...
+												<CheckSquare className="h-4 w-4 mr-1" />
+												Done
 											</>
 										) : (
 											<>
-												<Trash2 className="h-4 w-4 mr-1" />
-												Delete ({selectedIds.size})
+												<Square className="h-4 w-4 mr-1" />
+												Select
 											</>
 										)}
 									</Button>
+								)}
+							</div>
+						</div>
+
+						{/* Selection mode controls */}
+						{selectionMode && (
+							<div className="mt-4 p-3 bg-muted rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+								<div className="flex items-center gap-2 flex-wrap">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => handleSelectAll("all")}
+										disabled={coupons.length === 0 || selectedIds.size === coupons.length}
+									>
+										Select All
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={handleDeselectAll}
+										disabled={selectedIds.size === 0}
+									>
+										Deselect All
+									</Button>
 								</div>
-							)}
+								<Button
+									variant="destructive"
+									size="sm"
+									onClick={handleBulkDelete}
+									disabled={selectedIds.size === 0 || isUpdating}
+								>
+									{isUpdating ? (
+										<>
+											<Loader2 className="h-4 w-4 mr-1 animate-spin" />
+											Deleting...
+										</>
+									) : (
+										<>
+											<Trash2 className="h-4 w-4 mr-1" />
+											Delete ({selectedIds.size})
+										</>
+									)}
+								</Button>
+							</div>
+						)}
+					</div>
 
-							<Tabs defaultValue="all" className="w-full">
-								<TabsList className="grid w-full grid-cols-3">
-									<TabsTrigger value="all">
-										All {coupons.length > 0 ? `(${coupons.length})` : ""}
-									</TabsTrigger>
-									<TabsTrigger value="active">
-										Active {activeCoupons.length > 0 ? `(${activeCoupons.length})` : ""}
-									</TabsTrigger>
-									<TabsTrigger value="used">
-										Used/Expired{" "}
-										{usedExpiredCoupons.length > 0 ? `(${usedExpiredCoupons.length})` : ""}
-									</TabsTrigger>
-								</TabsList>
+					{/* Tabs for coupon filtering */}
+					<Tabs defaultValue="active" className="w-full">
+						<TabsList className="grid w-full grid-cols-3">
+							<TabsTrigger value="all">
+								All {coupons.length > 0 ? `(${coupons.length})` : ""}
+							</TabsTrigger>
+							<TabsTrigger value="active">
+								Active {activeCoupons.length > 0 ? `(${activeCoupons.length})` : ""}
+							</TabsTrigger>
+							<TabsTrigger value="used">
+								Used/Expired{" "}
+								{usedExpiredCoupons.length > 0 ? `(${usedExpiredCoupons.length})` : ""}
+							</TabsTrigger>
+						</TabsList>
 
-								<TabsContent value="all" className="mt-4">
-									<CouponList
-										coupons={coupons}
-										onToggleUsed={handleToggleUsed}
-										onDelete={handleDeleteCoupon}
-										isUpdating={isUpdating}
-										filter="all"
-										selectionMode={selectionMode}
-										selectedIds={selectedIds}
-										onToggleSelection={handleToggleSelection}
-									/>
-								</TabsContent>
+						<TabsContent value="all" className="mt-4">
+							<CouponList
+								coupons={coupons}
+								onToggleUsed={handleToggleUsed}
+								onDelete={handleDeleteCoupon}
+								isUpdating={isUpdating}
+								filter="all"
+								selectionMode={selectionMode}
+								selectedIds={selectedIds}
+								onToggleSelection={handleToggleSelection}
+							/>
+						</TabsContent>
 
-								<TabsContent value="active" className="mt-4">
-									<CouponList
-										coupons={coupons}
-										onToggleUsed={handleToggleUsed}
-										onDelete={handleDeleteCoupon}
-										isUpdating={isUpdating}
-										filter="active"
-										selectionMode={selectionMode}
-										selectedIds={selectedIds}
-										onToggleSelection={handleToggleSelection}
-									/>
-								</TabsContent>
+						<TabsContent value="active" className="mt-4">
+							<CouponList
+								coupons={coupons}
+								onToggleUsed={handleToggleUsed}
+								onDelete={handleDeleteCoupon}
+								isUpdating={isUpdating}
+								filter="active"
+								selectionMode={selectionMode}
+								selectedIds={selectedIds}
+								onToggleSelection={handleToggleSelection}
+							/>
+						</TabsContent>
 
-								<TabsContent value="used" className="mt-4">
-									<CouponList
-										coupons={coupons}
-										onToggleUsed={handleToggleUsed}
-										onDelete={handleDeleteCoupon}
-										isUpdating={isUpdating}
-										filter="used"
-										selectionMode={selectionMode}
-										selectedIds={selectedIds}
-										onToggleSelection={handleToggleSelection}
-									/>
-								</TabsContent>
-							</Tabs>
-						</CardContent>
-					</Card>
+						<TabsContent value="used" className="mt-4">
+							<CouponList
+								coupons={coupons}
+								onToggleUsed={handleToggleUsed}
+								onDelete={handleDeleteCoupon}
+								isUpdating={isUpdating}
+								filter="used"
+								selectionMode={selectionMode}
+								selectedIds={selectedIds}
+								onToggleSelection={handleToggleSelection}
+							/>
+						</TabsContent>
+					</Tabs>
 				</div>
 			</div>
 		</div>
