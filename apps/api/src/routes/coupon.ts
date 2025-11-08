@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { CouponService } from "../services/coupon";
-import type { AuthSession, User } from "../types/auth";
+import type { AuthSession, User } from "@second-brain/types/auth";
 import {
 	createAuthErrorResponse,
 	createErrorResponse,

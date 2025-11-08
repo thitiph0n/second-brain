@@ -1,4 +1,4 @@
-import type { Coupon, CouponCreateData, CouponUpdateData } from "../types/coupon";
+import type { Coupon, CreateCouponRequest, UpdateCouponRequest } from "@second-brain/types/coupon";
 
 export class CouponService {
 	constructor(private db: D1Database) {}
@@ -29,7 +29,7 @@ export class CouponService {
 		}
 	}
 
-	async createCoupon(userId: string, data: CouponCreateData): Promise<Coupon> {
+	async createCoupon(userId: string, data: CreateCouponRequest): Promise<Coupon> {
 		try {
 			await this.ensureDatabaseInitialized();
 
@@ -101,7 +101,7 @@ export class CouponService {
 		}
 	}
 
-	async updateCoupon(id: string, userId: string, data: CouponUpdateData): Promise<Coupon | null> {
+	async updateCoupon(id: string, userId: string, data: UpdateCouponRequest): Promise<Coupon | null> {
 		try {
 			await this.ensureDatabaseInitialized();
 

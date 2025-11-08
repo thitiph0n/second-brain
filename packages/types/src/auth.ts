@@ -1,5 +1,3 @@
-// Authentication types for Second Brain App
-
 export interface User {
 	id: string;
 	github_id: number;
@@ -29,12 +27,12 @@ export interface AuthSession {
 }
 
 export interface JWTPayload {
-	sub: string; // User ID
-	email: string; // User email
-	name: string; // User name
-	iat: number; // Issued at
-	exp: number; // Expires at
-	provider: string; // OAuth provider
+	sub: string;
+	email: string;
+	name: string;
+	iat: number;
+	exp: number;
+	provider: string;
 }
 
 export interface GitHubUser {

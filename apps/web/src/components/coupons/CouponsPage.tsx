@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, couponApi } from "@/services/couponApi";
-import type { Coupon, CouponType, CreateCouponRequest } from "@/types/coupon";
+import type { Coupon, CouponType, CreateCouponRequest } from "@second-brain/types/coupon";
 import { CouponForm } from "./CouponForm";
 import { CouponList } from "./CouponList";
 

@@ -6,7 +6,7 @@ import { CouponItem } from "@/components/coupons/CouponItem";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Coupon } from "@/types/coupon";
+import type { Coupon } from "@second-brain/types/coupon";
 
 const mockCoupons: Coupon[] = [
 	{

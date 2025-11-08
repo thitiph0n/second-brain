@@ -1,6 +1,6 @@
 // Authentication service for user management
 
-import type { AuthSession, GitHubUser, JWTPayload, User } from "../types/auth";
+import type { AuthSession, GitHubUser, JWTPayload, User } from "@second-brain/types/auth";
 import { generateJWT, generateRandomId, hashToken, verifyJWT } from "../utils/crypto";
 
 export class AuthService {

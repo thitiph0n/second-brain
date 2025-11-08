@@ -1,4 +1,4 @@
-import type { Coupon } from "@/types/coupon";
+import type { Coupon } from "@second-brain/types/coupon";
 import { CouponItem } from "./CouponItem";
 
 interface CouponListProps {

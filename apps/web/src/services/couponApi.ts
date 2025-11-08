@@ -1,4 +1,4 @@
-import type { Coupon, CreateCouponRequest, UpdateCouponRequest } from "@/types/coupon";
+import type { Coupon, CreateCouponRequest, UpdateCouponRequest } from "@second-brain/types/coupon";
 
 const API_BASE_URL =
 	import.meta.env.VITE_API_URL ||
@@ -42,7 +42,7 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 	});
 
 	if (!response.ok) {
-		let errorData: { error: string; details?: string };
+		let errorData: { error: string; details?: string; timestamp?: string };
 		try {
 			errorData = await response.json();
 		} catch (_e) {

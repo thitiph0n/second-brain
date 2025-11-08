@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { createRateLimiter, requireAuth } from "../middleware/auth";
 import { AuthService } from "../services/auth";
 import { GitHubOAuthService } from "../services/oauth";
-import type { AuthSession, User } from "../types/auth";
+import type { AuthSession, User } from "@second-brain/types/auth";
 import { validateTokenRefresh, validateUserProfile } from "../validation/auth";
 
 interface Env {

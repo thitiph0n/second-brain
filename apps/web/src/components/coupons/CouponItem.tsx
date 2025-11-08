@@ -19,7 +19,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Coupon } from "@/types/coupon";
+import type { Coupon } from "@second-brain/types/coupon";
 
 interface CouponItemProps {
 	coupon: Coupon;

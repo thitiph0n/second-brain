@@ -2,7 +2,7 @@
 
 import type { Context, Next } from "hono";
 import { AuthService } from "../services/auth";
-import type { AuthSession, User } from "../types/auth";
+import type { AuthSession, User } from "@second-brain/types/auth";
 
 interface Env {
 	DB: D1Database;
