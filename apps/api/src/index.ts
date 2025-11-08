@@ -18,7 +18,6 @@ interface Env {
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use("*", logger());
 app.use(
 	"*",
 	cors({
