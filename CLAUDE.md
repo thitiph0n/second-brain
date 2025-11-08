@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a monorepo project called "second-brain-app" - a personal productivity suite built with modern web technologies. It uses:
 
-- **pnpm** as package manager (version 10.12.4)
+- **Bun** as package manager (latest)
 - **Turbo** for build orchestration and caching
 - **Cloudflare Workers** for serverless API
 - **React + Vite** for the frontend
@@ -17,25 +17,25 @@ This is a monorepo project called "second-brain-app" - a personal productivity s
 ### Development
 
 ```bash
-pnpm dev          # Start development servers for all apps
-pnpm build        # Build all apps and packages
-pnpm test         # Run tests across all packages
-pnpm lint         # Run linting across all packages
-pnpm deploy       # Build and deploy API to Cloudflare
+bun dev          # Start development servers for all apps
+bun build        # Build all apps and packages
+bun test         # Run tests across all packages
+bun lint         # Run linting across all packages
+bun deploy       # Build and deploy API to Cloudflare
 ```
 
 ### Individual App Development
 
 ```bash
 # API development
-pnpm dev:api      # Start API dev server with Wrangler (localhost:8787)
-pnpm --filter @second-brain/api dev
-pnpm --filter @second-brain/api deploy
+bun dev:api      # Start API dev server with Wrangler (localhost:8787)
+bun --filter @second-brain/api dev
+bun --filter @second-brain/api deploy
 
 # Web development
-pnpm dev:web      # Start web dev server (localhost:3000)
-pnpm --filter @second-brain/web dev
-pnpm --filter @second-brain/web build
+bun dev:web      # Start web dev server (localhost:3000)
+bun --filter @second-brain/web dev
+bun --filter @second-brain/web build
 ```
 
 ### Turbo Filtering
@@ -160,40 +160,40 @@ This is a well-architected foundation for a personal productivity application wi
 For adding new shadcn/ui components, use:
 
 ```bash
-pnpx shadcn@latest add button
+bunx shadcn@latest add button
 ```
 
 ### Testing Commands
 
 ```bash
 # Run all tests
-pnpm test
+bun test
 
 # Run tests for specific app
-pnpm --filter @second-brain/web test
+bun --filter @second-brain/web test
 
 # Run tests in watch mode
-pnpm --filter @second-brain/web test:watch
+bun --filter @second-brain/web test:watch
 
 # Type checking
-pnpm --filter @second-brain/web type-check
+bun --filter @second-brain/web type-check
 ```
 
 ### Database Commands
 
 ```bash
 # API database migrations
-pnpm --filter @second-brain/api migrate:dev    # Development
-pnpm --filter @second-brain/api migrate:prod   # Production
+bun --filter @second-brain/api migrate:dev    # Development
+bun --filter @second-brain/api migrate:prod   # Production
 ```
 
 When working in this codebase:
 
-1. Use `pnpm` for package management (version 10.12.4)
+1. Use `bun` for package management (latest)
 2. Leverage Turbo's caching and parallel execution for builds
 3. Follow the monorepo structure when adding new functionality
 4. Consider Cloudflare Workers limitations (edge runtime, no Node.js APIs)
-5. Use shadcn/ui components for consistent UI - add via `pnpx shadcn@latest add [component]`
+5. Use shadcn/ui components for consistent UI - add via `bunx shadcn@latest add [component]`
 6. Check `/docs/prds/` for feature specifications before implementation
 7. Authentication patterns are in `apps/web/src/auth/` - follow established patterns
 8. API routes follow `/api/v1/` prefix with proper error handling and CORS

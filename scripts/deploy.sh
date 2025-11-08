@@ -39,11 +39,11 @@ fi
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-pnpm install --frozen-lockfile
+bun install
 
 # Build the frontend only
 echo "🔨 Building the web frontend..."
-pnpm --filter=@second-brain/web build
+bun --filter=@second-brain/web build
 
 # Deploy to Cloudflare Workers
 echo "🌐 Deploying frontend to Cloudflare Workers..."

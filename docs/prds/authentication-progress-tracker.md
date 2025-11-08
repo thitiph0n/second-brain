@@ -22,7 +22,7 @@
 ### Phase 2: Frontend Integration (3/4 completed) 🚧
 
 - [x] 2.1 Authentication State Management (12/12 tasks) ✅
-  - [x] Set up Zustand store for authentication state (pnpm install zustand)
+  - [x] Set up Zustand store for authentication state (bun install zustand)
   - [x] Implement login action in store
   - [x] Implement logout action in store
   - [x] Implement token refresh logic

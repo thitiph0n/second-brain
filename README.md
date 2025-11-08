@@ -11,13 +11,13 @@ Personal productivity suite with notes, todos, drawings, and health tracking. Bu
 # Clone and install
 git clone <repo-url>
 cd second-brain-app
-pnpm install
+bun install
 
 # Development
-pnpm dev
+bun dev
 
 # Build
-pnpm build
+bun build
 ```
 
 ## Architecture
@@ -35,7 +35,7 @@ pnpm build
 - **Backend**: Cloudflare Workers, Hono framework
 - **Database**: Cloudflare D1 (SQLite)
 - **Cache**: Cloudflare KV
-- **Build**: Turborepo + PNPM workspaces
+- **Build**: Turborepo + Bun workspaces
 
 ## Features
 
@@ -50,8 +50,7 @@ pnpm build
 
 **Prerequisites:**
 
-- Node.js 18+
-- PNPM 8+
+- Bun (latest)
 - Cloudflare account (free tier)
 
 **Environment Setup:**
@@ -81,14 +80,14 @@ wrangler kv:namespace create "CACHE"
 **Staging:**
 
 ```bash
-pnpm build
+bun build
 wrangler deploy --env staging
 ```
 
 **Production:**
 
 ```bash
-pnpm build
+bun build
 wrangler deploy --env production
 ```
 

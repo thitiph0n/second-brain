@@ -1,23 +1,25 @@
 {
-  "name": "@second-brain/api",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "build": "tsc",
-    "lint": "eslint src --ext ts",
-    "migrate:dev": "node scripts/migrate.js --env development",
-    "migrate:prod": "node scripts/migrate.js --env production"
-  },
-  "dependencies": {
-    "hono": "^4.0.0",
-    "zod": "^3.22.0"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240529.0",
-    "typescript": "^5.7.2",
-    "wrangler": "^4.23.0"
-  }
+	"name": "@second-brain/api",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy",
+		"build": "tsc",
+		"lint": "biome lint .",
+		"lint:fix": "biome check --write .",
+		"format": "biome format --write .",
+		"migrate:dev": "node scripts/migrate.js --env development",
+		"migrate:prod": "node scripts/migrate.js --env production"
+	},
+	"dependencies": {
+		"hono": "^4.0.0",
+		"zod": "^3.22.0"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20240529.0",
+		"typescript": "^5.7.2",
+		"wrangler": "^4.23.0"
+	}
 }

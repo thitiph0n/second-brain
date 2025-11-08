@@ -16,7 +16,7 @@ Backend API for the Second Brain application built with Cloudflare Workers, Hono
 
 ### Prerequisites
 
-- Node.js 18+ and pnpm
+- Bun (latest)
 - Cloudflare account with Workers and D1 access
 - GitHub OAuth app credentials
 
@@ -24,10 +24,10 @@ Backend API for the Second Brain application built with Cloudflare Workers, Hono
 
 ```bash
 # Install dependencies
-pnpm install
+bun install
 
 # Start development server
-pnpm dev
+bun dev
 
 # Run with development config
 wrangler dev --config wrangler.dev.toml
@@ -53,10 +53,10 @@ Run the migration to set up the database schema:
 
 ```bash
 # Development database
-pnpm migrate:dev
+bun migrate:dev
 
 # Production database (requires confirmation)
-pnpm migrate:prod
+bun migrate:prod
 ```
 
 ## API Endpoints
@@ -137,13 +137,13 @@ PUT /api/v1/auth/me                 # Update user profile
 
 ### Development
 ```bash
-pnpm dev
+bun dev
 ```
 
 ### Production
 ```bash
-pnpm build
-pnpm deploy
+bun build
+bun deploy
 ```
 
 ### Environment-specific Deployment
@@ -187,7 +187,7 @@ HTTP status codes:
 
 ```bash
 # Run tests
-pnpm test
+bun test
 
 # Test with curl
 curl -X GET http://localhost:8787/api/v1/auth/health
