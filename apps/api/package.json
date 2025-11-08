@@ -10,8 +10,10 @@
 		"lint": "biome lint .",
 		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
-		"migrate:dev": "node scripts/migrate.js --env development",
-		"migrate:prod": "node scripts/migrate.js --env production"
+		"migrate:local": "wrangler d1 migrations apply second-brain-db --local",
+		"migrate:prod": "wrangler d1 migrations apply second-brain-db --remote",
+		"migrate:list": "wrangler d1 migrations list second-brain-db",
+		"migrate:create": "node scripts/create-migration.js"
 	},
 	"dependencies": {
 		"@second-brain/types": "workspace:*",

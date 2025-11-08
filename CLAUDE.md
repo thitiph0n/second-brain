@@ -183,8 +183,10 @@ bun --filter @second-brain/web type-check
 
 ```bash
 # API database migrations
-bun --filter @second-brain/api migrate:dev    # Development
-bun --filter @second-brain/api migrate:prod   # Production
+bun --filter @second-brain/api migrate:local   # Apply migrations to local database
+bun --filter @second-brain/api migrate:prod    # Apply migrations to production database
+bun --filter @second-brain/api migrate:list    # List migration status
+bun --filter @second-brain/api migrate:create  # Create a new migration file
 ```
 
 When working in this codebase:

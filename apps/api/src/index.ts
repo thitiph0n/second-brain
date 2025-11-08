@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { serveStatic } from "hono/cloudflare-workers";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import authRoutes from "./routes/auth";
