@@ -1,36 +1,12 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, Brain, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "../auth/hooks";
 
 export const Route = createFileRoute("/")({
-	component: IndexPage,
+	component: LandingPage,
 });
-
-function IndexPage() {
-	const { isAuthenticated, isLoading } = useAuth();
-
-	// Show loading while checking auth
-	if (isLoading) {
-		return (
-			<div className="min-h-screen bg-background flex items-center justify-center">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-			</div>
-		);
-	}
-
-	// If authenticated, redirect to dashboard
-	if (isAuthenticated) {
-		throw redirect({
-			to: "/dashboard",
-		});
-	}
-
-	// If not authenticated, show landing page
-	return <LandingPage />;
-}
 
 function LandingPage() {
 	return (

@@ -1,5 +1,6 @@
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { createRootRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { useEffect } from "react";
 import Header from "../components/Header";
 import { ThemeProvider } from "../components/theme-provider";
 import { Toaster } from "../components/ui/sonner";
@@ -62,27 +63,40 @@ function LandingLayout() {
 	);
 }
 
-export const Route = createRootRoute({
-	component: () => {
-		const { isAuthenticated, isLoading } = useAuth();
+function RootComponent() {
+	const { isAuthenticated, isLoading } = useAuth();
+	const navigate = useNavigate();
 
-		// Show loading while checking auth
-		if (isLoading) {
-			return (
-				<ThemeProvider defaultTheme="system" storageKey="second-brain-ui-theme">
-					<div className="min-h-screen bg-background flex items-center justify-center">
-						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-					</div>
-				</ThemeProvider>
-			);
-		}
-
-		// If authenticated, show app layout
+	// Handle redirection for authenticated users visiting root
+	useEffect(() => {
 		if (isAuthenticated) {
-			return <AppLayout />;
+			const currentPath = window.location.pathname;
+			if (currentPath === "/") {
+				navigate({ to: "/dashboard" });
+			}
 		}
+	}, [isAuthenticated, navigate]);
 
-		// If not authenticated, show landing layout
-		return <LandingLayout />;
-	},
+	// Show loading while checking auth
+	if (isLoading) {
+		return (
+			<ThemeProvider defaultTheme="system" storageKey="second-brain-ui-theme">
+				<div className="min-h-screen bg-background flex items-center justify-center">
+					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+				</div>
+			</ThemeProvider>
+		);
+	}
+
+	// If authenticated, show app layout
+	if (isAuthenticated) {
+		return <AppLayout />;
+	}
+
+	// If not authenticated, show landing layout
+	return <LandingLayout />;
+}
+
+export const Route = createRootRoute({
+	component: RootComponent,
 });
