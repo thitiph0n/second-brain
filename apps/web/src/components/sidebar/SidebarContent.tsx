@@ -91,7 +91,7 @@ export function SidebarContent({ className }: SidebarContentProps) {
 												item.disabled &&
 													"cursor-not-allowed opacity-50 hover:bg-transparent hover:text-muted-foreground",
 											)}
-											onClick={(e) => item.disabled && e.preventDefault()}
+											onClick={(e: React.MouseEvent) => item.disabled && e.preventDefault()}
 										>
 											<Icon className="h-4 w-4" />
 											{item.title}
