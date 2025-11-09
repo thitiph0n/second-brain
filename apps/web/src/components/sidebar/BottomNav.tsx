@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, StickyNote, Ticket, User } from "lucide-react";
+import { LayoutDashboard, StickyNote, Ticket, User, Utensils } from "lucide-react";
 import { useAuth } from "@/auth/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,11 @@ const bottomNavItems: NavigationItem[] = [
 		title: "Coupons",
 		href: "/coupons",
 		icon: Ticket,
+	},
+	{
+		title: "Meals",
+		href: "/meal-tracker",
+		icon: Utensils,
 	},
 	{
 		title: "Notes",

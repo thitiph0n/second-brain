@@ -6,6 +6,7 @@ import {
 	StickyNote,
 	Ticket,
 	User,
+	Utensils,
 } from "lucide-react";
 import { useAuth } from "@/auth/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -41,6 +42,11 @@ const navigationItems: NavigationSection[] = [
 				title: "Coupons",
 				href: "/coupons",
 				icon: Ticket,
+			},
+			{
+				title: "Meal Tracker",
+				href: "/meal-tracker",
+				icon: Utensils,
 			},
 			{
 				title: "Notes",
