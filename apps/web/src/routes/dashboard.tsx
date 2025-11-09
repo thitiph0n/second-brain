@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ApiError, couponApi } from "@/services/couponApi";
 import { RequireAuth } from "../auth/components/AuthGuard";
 import { useAuth } from "../auth/hooks";
+import { DrawingsPanelCard } from "@/components/dashboard/DrawingsPanelCard";
 
 export const Route = createFileRoute("/dashboard")({
 	component: DashboardPage,
@@ -134,6 +135,8 @@ function DashboardContent() {
 							</Link>
 						</CardContent>
 					</Card>
+
+					<DrawingsPanelCard />
 				</div>
 
 				{/* Upcoming Features Section */}

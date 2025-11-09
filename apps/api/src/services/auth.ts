@@ -1,96 +1,126 @@
 // Authentication service for user management
 
-import type { AuthSession, GitHubUser, JWTPayload, User } from "@second-brain/types/auth";
-import { generateJWT, generateRandomId, hashToken, verifyJWT } from "../utils/crypto";
+import { drizzle } from 'drizzle-orm/d1';
+import { eq, and, gt, lt, desc } from 'drizzle-orm';
+import type { GitHubUser, JWTPayload } from '@second-brain/types/auth';
+import type { User as LegacyUser, AuthSession as LegacyAuthSession } from '@second-brain/types/auth';
+import { users, oauthProviders, authSessions } from '@second-brain/database/schema';
+import { generateJWT, generateRandomId, hashToken, verifyJWT } from '../utils/crypto';
+
+// Adapter function to convert Drizzle User to legacy User type
+function adaptDrizzleUserToLegacy(drizzleUser: any): LegacyUser {
+	return {
+		id: drizzleUser.id,
+		github_id: drizzleUser.githubId,
+		email: drizzleUser.email,
+		name: drizzleUser.name,
+		avatar_url: drizzleUser.avatarUrl || undefined,
+		created_at: drizzleUser.createdAt || '',
+		updated_at: drizzleUser.updatedAt || '',
+	};
+}
+
+// Adapter function to convert Drizzle AuthSession to legacy AuthSession type
+function adaptDrizzleSessionToLegacy(drizzleSession: any): LegacyAuthSession {
+	return {
+		id: drizzleSession.id,
+		user_id: drizzleSession.userId,
+		token_hash: drizzleSession.tokenHash,
+		expires_at: drizzleSession.expiresAt,
+		created_at: drizzleSession.createdAt || '',
+		last_accessed: drizzleSession.lastAccessed || '',
+	};
+}
 
 export class AuthService {
-	private db: D1Database;
+	private db: ReturnType<typeof drizzle>;
 	private kv: KVNamespace;
 	private jwtSecret: string;
 
-	constructor(db: D1Database, kv: KVNamespace, jwtSecret: string) {
-		this.db = db;
+	constructor(d1Database: D1Database, kv: KVNamespace, jwtSecret: string) {
+		this.db = drizzle(d1Database);
 		this.kv = kv;
 		this.jwtSecret = jwtSecret;
 	}
 
-	async createOrUpdateUser(githubUser: GitHubUser): Promise<User> {
+	async createOrUpdateUser(githubUser: GitHubUser): Promise<LegacyUser> {
 		const userId = generateRandomId();
 		const now = new Date().toISOString();
 
 		// Check if user exists
 		const existingUser = await this.db
-			.prepare("SELECT * FROM users WHERE github_id = ?")
-			.bind(githubUser.id)
-			.first<User>();
+			.select()
+			.from(users)
+			.where(eq(users.githubId, githubUser.id))
+			.get();
 
 		if (existingUser) {
 			// Update existing user
 			await this.db
-				.prepare(`
-        UPDATE users 
-        SET email = ?, name = ?, avatar_url = ?, updated_at = ?
-        WHERE id = ?
-      `)
-				.bind(githubUser.email, githubUser.name, githubUser.avatar_url, now, existingUser.id)
-				.run();
+				.update(users)
+				.set({
+					email: githubUser.email,
+					name: githubUser.name,
+					avatarUrl: githubUser.avatar_url,
+					updatedAt: now,
+				})
+				.where(eq(users.id, existingUser.id));
 
-			return {
-				...existingUser,
+				const updatedUser = {
+				id: existingUser.id,
+				githubId: existingUser.githubId,
 				email: githubUser.email,
 				name: githubUser.name,
-				avatar_url: githubUser.avatar_url,
-				updated_at: now,
+				avatarUrl: githubUser.avatar_url,
+				createdAt: existingUser.createdAt,
+				updatedAt: now,
 			};
+			return adaptDrizzleUserToLegacy(updatedUser);
 		} else {
 			// Create new user
-			await this.db
-				.prepare(`
-        INSERT INTO users (id, github_id, email, name, avatar_url, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `)
-				.bind(
-					userId,
-					githubUser.id,
-					githubUser.email,
-					githubUser.name,
-					githubUser.avatar_url,
-					now,
-					now,
-				)
-				.run();
-
-			// Create OAuth provider record
-			await this.db
-				.prepare(`
-        INSERT INTO oauth_providers (id, user_id, provider, provider_user_id, provider_email, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `)
-				.bind(generateRandomId(), userId, "github", githubUser.id.toString(), githubUser.email, now)
-				.run();
-
-			return {
+			await this.db.insert(users).values({
 				id: userId,
-				github_id: githubUser.id,
+				githubId: githubUser.id,
 				email: githubUser.email,
 				name: githubUser.name,
-				avatar_url: githubUser.avatar_url,
-				created_at: now,
-				updated_at: now,
+				avatarUrl: githubUser.avatar_url,
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// Create OAuth provider record
+			await this.db.insert(oauthProviders).values({
+				id: generateRandomId(),
+				userId,
+				provider: 'github',
+				providerUserId: githubUser.id.toString(),
+				providerEmail: githubUser.email,
+				createdAt: now,
+			});
+
+			const newUser = {
+				id: userId,
+				githubId: githubUser.id,
+				email: githubUser.email,
+				name: githubUser.name,
+				avatarUrl: githubUser.avatar_url,
+				createdAt: now,
+				updatedAt: now,
 			};
+			return adaptDrizzleUserToLegacy(newUser);
 		}
 	}
 
 	async createSession(
-		user: User,
-	): Promise<{ accessToken: string; refreshToken: string; session: AuthSession }> {
+		user: LegacyUser,
+	): Promise<{ accessToken: string; refreshToken: string; session: LegacyAuthSession }> {
 		const sessionId = generateRandomId();
 		const accessToken = await generateJWT(
 			{
 				sub: user.id,
 				email: user.email,
 				name: user.name,
-				provider: "github",
+				provider: 'github',
 			} as JWTPayload,
 			this.jwtSecret,
 			3600, // 1 hour
@@ -101,22 +131,18 @@ export class AuthService {
 		const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
 		const now = new Date().toISOString();
 
-		const session: AuthSession = {
+		const sessionData = {
 			id: sessionId,
-			user_id: user.id,
-			token_hash: tokenHash,
-			expires_at: expiresAt,
-			created_at: now,
-			last_accessed: now,
+			userId: user.id,
+			tokenHash: tokenHash,
+			expiresAt: expiresAt,
+			createdAt: now,
+			lastAccessed: now,
 		};
 
-		await this.db
-			.prepare(`
-      INSERT INTO auth_sessions (id, user_id, token_hash, expires_at, created_at, last_accessed)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `)
-			.bind(sessionId, user.id, tokenHash, expiresAt, now, now)
-			.run();
+		await this.db.insert(authSessions).values(sessionData);
+
+		const session = adaptDrizzleSessionToLegacy(sessionData);
 
 		// Store session in KV for fast access
 		await this.kv.put(`session:${sessionId}`, JSON.stringify(session), {
@@ -126,14 +152,15 @@ export class AuthService {
 		return { accessToken, refreshToken, session };
 	}
 
-	async validateToken(token: string): Promise<{ user: User; session: AuthSession } | null> {
+	async validateToken(token: string): Promise<{ user: LegacyUser; session: LegacyAuthSession } | null> {
 		try {
 			const payload = await verifyJWT(token, this.jwtSecret);
 
 			const user = await this.db
-				.prepare("SELECT * FROM users WHERE id = ?")
-				.bind(payload.sub)
-				.first<User>();
+				.select()
+				.from(users)
+				.where(eq(users.id, payload.sub))
+				.get();
 
 			if (!user) {
 				return null;
@@ -141,11 +168,11 @@ export class AuthService {
 
 			// Get active session
 			const session = await this.db
-				.prepare(
-					'SELECT * FROM auth_sessions WHERE user_id = ? AND expires_at > datetime("now") ORDER BY last_accessed DESC LIMIT 1',
-				)
-				.bind(user.id)
-				.first<AuthSession>();
+				.select()
+				.from(authSessions)
+				.where(and(eq(authSessions.userId, user.id), gt(authSessions.expiresAt, new Date().toISOString())))
+				.limit(1)
+				.get();
 
 			if (!session) {
 				return null;
@@ -154,9 +181,12 @@ export class AuthService {
 			// Update last accessed
 			await this.updateSessionAccess(session.id);
 
-			return { user, session };
+			return {
+				user: adaptDrizzleUserToLegacy(user),
+				session: adaptDrizzleSessionToLegacy(session)
+			};
 		} catch (error) {
-			console.error("Token validation error:", error);
+			console.error('Token validation error:', error);
 			return null;
 		}
 	}
@@ -167,18 +197,20 @@ export class AuthService {
 		const tokenHash = await hashToken(refreshToken);
 
 		const session = await this.db
-			.prepare('SELECT * FROM auth_sessions WHERE token_hash = ? AND expires_at > datetime("now")')
-			.bind(tokenHash)
-			.first<AuthSession>();
+			.select()
+			.from(authSessions)
+			.where(and(eq(authSessions.tokenHash, tokenHash), gt(authSessions.expiresAt, new Date().toISOString())))
+			.get();
 
 		if (!session) {
 			return null;
 		}
 
 		const user = await this.db
-			.prepare("SELECT * FROM users WHERE id = ?")
-			.bind(session.user_id)
-			.first<User>();
+			.select()
+			.from(users)
+			.where(eq(users.id, session.userId))
+			.get();
 
 		if (!user) {
 			return null;
@@ -190,7 +222,7 @@ export class AuthService {
 				sub: user.id,
 				email: user.email,
 				name: user.name,
-				provider: "github",
+				provider: 'github',
 			} as JWTPayload,
 			this.jwtSecret,
 			3600, // 1 hour
@@ -202,13 +234,12 @@ export class AuthService {
 
 		// Update session with new refresh token
 		await this.db
-			.prepare(`
-      UPDATE auth_sessions 
-      SET token_hash = ?, last_accessed = ?
-      WHERE id = ?
-    `)
-			.bind(newTokenHash, now, session.id)
-			.run();
+			.update(authSessions)
+			.set({
+				tokenHash: newTokenHash,
+				lastAccessed: now,
+			})
+			.where(eq(authSessions.id, session.id));
 
 		// Update KV cache
 		const updatedSession = { ...session, token_hash: newTokenHash, last_accessed: now };
@@ -220,34 +251,37 @@ export class AuthService {
 	}
 
 	async invalidateSession(sessionId: string): Promise<void> {
-		await this.db.prepare("DELETE FROM auth_sessions WHERE id = ?").bind(sessionId).run();
+		await this.db.delete(authSessions).where(eq(authSessions.id, sessionId));
 
 		await this.kv.delete(`session:${sessionId}`);
 	}
 
 	async invalidateAllUserSessions(userId: string): Promise<void> {
 		const sessions = await this.db
-			.prepare("SELECT id FROM auth_sessions WHERE user_id = ?")
-			.bind(userId)
-			.all<{ id: string }>();
+			.select({ id: authSessions.id })
+			.from(authSessions)
+			.where(eq(authSessions.userId, userId))
+			.all();
 
-		await this.db.prepare("DELETE FROM auth_sessions WHERE user_id = ?").bind(userId).run();
+		await this.db.delete(authSessions).where(eq(authSessions.userId, userId));
 
 		// Clean up KV cache
-		for (const session of sessions.results) {
+		for (const session of sessions) {
 			await this.kv.delete(`session:${session.id}`);
 		}
 	}
 
 	async cleanupExpiredSessions(): Promise<void> {
 		const expiredSessions = await this.db
-			.prepare('SELECT id FROM auth_sessions WHERE expires_at <= datetime("now")')
-			.all<{ id: string }>();
+			.select({ id: authSessions.id })
+			.from(authSessions)
+			.where(lt(authSessions.expiresAt, new Date().toISOString()))
+			.all();
 
-		await this.db.prepare('DELETE FROM auth_sessions WHERE expires_at <= datetime("now")').run();
+		await this.db.delete(authSessions).where(lt(authSessions.expiresAt, new Date().toISOString()));
 
 		// Clean up KV cache
-		for (const session of expiredSessions.results) {
+		for (const session of expiredSessions) {
 			await this.kv.delete(`session:${session.id}`);
 		}
 	}
@@ -255,8 +289,8 @@ export class AuthService {
 	private async updateSessionAccess(sessionId: string): Promise<void> {
 		const now = new Date().toISOString();
 		await this.db
-			.prepare("UPDATE auth_sessions SET last_accessed = ? WHERE id = ?")
-			.bind(now, sessionId)
-			.run();
+			.update(authSessions)
+			.set({ lastAccessed: now })
+			.where(eq(authSessions.id, sessionId));
 	}
 }

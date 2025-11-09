@@ -1,6 +1,6 @@
 // Authentication routes for OAuth 2.1 GitHub integration
 
-import type { AuthSession, User } from "@second-brain/types/auth";
+import type { AuthSession, User as LegacyUser } from "@second-brain/types/auth";
 import { Hono } from "hono";
 import { createRateLimiter, requireAuth } from "../middleware/auth";
 import { AuthService } from "../services/auth";
@@ -17,7 +17,7 @@ interface Env {
 	FRONTEND_URL: string;
 }
 
-const auth = new Hono<{ Bindings: Env; Variables: { user: User; session: AuthSession } }>();
+const auth = new Hono<{ Bindings: Env; Variables: { user: LegacyUser; session: AuthSession } }>();
 
 // Rate limiting for auth endpoints
 const authRateLimit = createRateLimiter(10, 60000); // 10 requests per minute
@@ -159,7 +159,7 @@ auth.post("/logout", requireAuth(), async (c) => {
 // Logout all sessions
 auth.post("/logout-all", requireAuth(), async (c) => {
 	try {
-		const user = c.get("user") as User;
+		const user = c.get("user") as LegacyUser;
 
 		const authService = new AuthService(c.env.DB, c.env.CACHE, c.env.JWT_SECRET);
 		await authService.invalidateAllUserSessions(user.id);
@@ -174,7 +174,7 @@ auth.post("/logout-all", requireAuth(), async (c) => {
 // Get current user profile
 auth.get("/me", requireAuth(), async (c) => {
 	try {
-		const user = c.get("user") as User;
+		const user = c.get("user") as LegacyUser;
 
 		return c.json({
 			id: user.id,
@@ -193,7 +193,7 @@ auth.get("/me", requireAuth(), async (c) => {
 // Update user profile
 auth.put("/me", requireAuth(), async (c) => {
 	try {
-		const user = c.get("user") as User;
+		const user = c.get("user") as LegacyUser;
 		const body = await c.req.json();
 		const { name } = validateUserProfile(body);
 

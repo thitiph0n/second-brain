@@ -6,9 +6,11 @@ import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
 interface ExcalidrawCanvasProps {
 	drawingId: string;
 	className?: string;
+	onManualSaveRequested?: () => void;
+	onContentChanged?: (hasChanges: boolean) => void;
 }
 
-export function ExcalidrawCanvas({ drawingId, className }: ExcalidrawCanvasProps) {
+export function ExcalidrawCanvas({ drawingId, className, onManualSaveRequested, onContentChanged }: ExcalidrawCanvasProps) {
 	const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
 	const { drawing, isLoading, isError, error, saveDrawing } = useDrawingCanvas(drawingId);
 	const [initialData, setInitialData] = useState<{
@@ -16,6 +18,56 @@ export function ExcalidrawCanvas({ drawingId, className }: ExcalidrawCanvasProps
 		appState?: any;
 		files?: any;
 	} | null>(null);
+
+	// Track changes by comparing current content with initial content
+	const checkForChanges = () => {
+		if (!excalidrawAPI || !initialData) return;
+
+		const currentElements = excalidrawAPI.getSceneElements();
+		const currentAppState = excalidrawAPI.getAppState();
+		const currentFiles = excalidrawAPI.getFiles();
+
+		// Simple comparison - check if elements count changed
+		const hasChanges =
+			currentElements.length !== initialData.elements?.length ||
+			JSON.stringify(currentElements) !== JSON.stringify(initialData.elements) ||
+			currentAppState.viewBackgroundColor !== initialData.appState?.viewBackgroundColor;
+
+		if (onContentChanged) {
+			onContentChanged(hasChanges);
+		}
+	};
+
+	const saveCurrentContent = () => {
+		if (!excalidrawAPI) {
+			console.error("No excalidrawAPI available for manual save");
+			return;
+		}
+		const elements = excalidrawAPI.getSceneElements();
+		const appState = excalidrawAPI.getAppState();
+		const files = excalidrawAPI.getFiles();
+
+		const data = {
+			type: "excalidraw",
+			version: 2,
+			source: "https://excalidraw.com",
+			elements,
+			appState: {
+				viewBackgroundColor: appState.viewBackgroundColor,
+				gridSize: appState.gridSize,
+			},
+			files,
+		};
+
+		saveDrawing({ content: JSON.stringify(data) });
+
+		// Update initial data to current state after successful save
+		setInitialData({
+			elements: data.elements,
+			appState: data.appState,
+			files: data.files,
+		});
+	};
 
 	useEffect(() => {
 		if (drawing?.data) {
@@ -38,31 +90,80 @@ export function ExcalidrawCanvas({ drawingId, className }: ExcalidrawCanvasProps
 	}, [drawing?.data]);
 
 	useEffect(() => {
-		if (!excalidrawAPI) return;
+		if (!excalidrawAPI || !initialData) return;
 
-		const handleChange = () => {
-			const elements = excalidrawAPI.getSceneElements();
-			const appState = excalidrawAPI.getAppState();
-			const files = excalidrawAPI.getFiles();
+		const autoSave = () => {
+			if (!excalidrawAPI || !initialData) return;
 
-			const data = {
-				type: "excalidraw",
-				version: 2,
-				source: "https://excalidraw.com",
-				elements,
-				appState: {
-					viewBackgroundColor: appState.viewBackgroundColor,
-					gridSize: appState.gridSize,
-				},
-				files,
-			};
+			// Get current content
+			const currentElements = excalidrawAPI.getSceneElements();
+			const currentAppState = excalidrawAPI.getAppState();
+			const currentFiles = excalidrawAPI.getFiles();
 
-			saveDrawing({ content: JSON.stringify(data) });
+			// Check if there are actual changes
+			const hasChanges =
+				currentElements.length !== initialData.elements?.length ||
+				JSON.stringify(currentElements) !== JSON.stringify(initialData.elements) ||
+				currentAppState.viewBackgroundColor !== initialData.appState?.viewBackgroundColor;
+
+			// Only save if there are changes
+			if (hasChanges) {
+				const data = {
+					type: "excalidraw",
+					version: 2,
+					source: "https://excalidraw.com",
+					elements: currentElements,
+					appState: {
+						viewBackgroundColor: currentAppState.viewBackgroundColor,
+						gridSize: currentAppState.gridSize,
+					},
+					files: currentFiles,
+				};
+
+				saveDrawing({ content: JSON.stringify(data) });
+
+				// Update initial data after successful save
+				setInitialData({
+					elements: data.elements,
+					appState: data.appState,
+					files: data.files,
+				});
+			}
 		};
 
-		const interval = setInterval(handleChange, 30000);
+		const interval = setInterval(autoSave, 5000); // Auto-save every 5 seconds (only if changed)
+
 		return () => clearInterval(interval);
-	}, [excalidrawAPI, saveDrawing]);
+	}, [excalidrawAPI, saveDrawing, initialData, onContentChanged]);
+
+	// Separate useEffect for change detection
+	useEffect(() => {
+		if (!excalidrawAPI || !initialData) return;
+
+		const checkChanges = () => {
+			checkForChanges();
+		};
+
+		// Check for changes more frequently when user interacts
+		const changeInterval = setInterval(checkChanges, 2000);
+
+		return () => clearInterval(changeInterval);
+	}, [excalidrawAPI, initialData, onContentChanged]);
+
+	// Handle manual save requests from parent
+	useEffect(() => {
+		// Listen for manual save requests
+		const handleManualSaveRequest = (event: CustomEvent) => {
+			saveCurrentContent();
+		};
+
+		// Add event listener for manual save
+		window.addEventListener('manualSaveDrawing', handleManualSaveRequest as EventListener);
+
+		return () => {
+			window.removeEventListener('manualSaveDrawing', handleManualSaveRequest as EventListener);
+		};
+	}, [excalidrawAPI]);
 
 	if (isLoading) {
 		return (

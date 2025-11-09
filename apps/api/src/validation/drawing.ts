@@ -20,7 +20,7 @@ export const updateDrawingSchema = z.object({
 		.max(100, "Drawing title must be less than 100 characters")
 		.optional(),
 	description: z.string().max(500, "Description must be less than 500 characters").nullable().optional(),
-	parentId: z.string().uuid().optional(),
+	parentId: z.string().uuid().nullable().optional(),
 	data: z.string().optional(),
 });
 

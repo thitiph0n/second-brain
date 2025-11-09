@@ -69,8 +69,23 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 }
 
 export const drawingApi = {
+	// Get drawing statistics
+	async getDrawingStats(): Promise<{
+		totalDrawings: number;
+		totalFolders: number;
+		recentDrawings: Drawing[];
+	}> {
+		return fetchWithAuth("/drawings/stats");
+	},
+
 	// Get all drawings for the authenticated user
-	async getDrawings(): Promise<{ drawings: Drawing[] }> {
+	async getDrawings(parentId?: string, searchQuery?: string): Promise<{ drawings: Drawing[] }> {
+		if (parentId) {
+			return fetchWithAuth(`/drawings/folder/${parentId}`);
+		}
+		if (searchQuery) {
+			return fetchWithAuth(`/drawings?search=${encodeURIComponent(searchQuery)}`);
+		}
 		return fetchWithAuth("/drawings");
 	},
 
@@ -85,6 +100,11 @@ export const drawingApi = {
 	// Get a specific drawing
 	async getDrawing(id: string): Promise<{ drawing: Drawing }> {
 		return fetchWithAuth(`/drawings/${id}`);
+	},
+
+	// Get the full path (breadcrumb) for a drawing
+	async getDrawingPath(id: string): Promise<{ path: Drawing[] }> {
+		return fetchWithAuth(`/drawings/${id}/path`);
 	},
 
 	// Update a drawing (metadata and/or content)

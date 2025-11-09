@@ -17,6 +17,7 @@ interface CreateDrawingDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	type?: DrawingType;
+	parentId?: string;
 	onSuccess?: (drawing: Drawing) => void;
 }
 
@@ -24,6 +25,7 @@ export function CreateDrawingDialog({
 	open,
 	onOpenChange,
 	type = "drawing",
+	parentId,
 	onSuccess,
 }: CreateDrawingDialogProps) {
 	const { handleCreate, isPending } = useCreateDrawingDialog({
@@ -44,6 +46,7 @@ export function CreateDrawingDialog({
 			handleCreate({
 				title: drawingName,
 				type: type,
+				parentId: parentId,
 				content: isFolder ? undefined : "",
 			});
 		}

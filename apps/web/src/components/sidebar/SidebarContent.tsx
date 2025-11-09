@@ -69,7 +69,6 @@ interface SidebarContentProps {
 
 export function SidebarContent({ className }: SidebarContentProps) {
 	const { user } = useAuth();
-	const { logout } = useAuthActions();
 
 	return (
 		<div className={cn("flex h-full flex-col", className)}>

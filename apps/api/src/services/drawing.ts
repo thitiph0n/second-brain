@@ -1,174 +1,214 @@
+import { drizzle } from 'drizzle-orm/d1';
+import { eq, and, desc, sql, like } from 'drizzle-orm';
 import type {
 	CreateDrawingRequest,
 	Drawing,
 	DrawingAsset,
 	UpdateDrawingRequest,
-} from "@second-brain/types/drawing";
+	DrawingType,
+} from '@second-brain/types/drawing';
+import type { Drawing as DrizzleDrawing, DrawingAsset as DrizzleDrawingAsset } from '@second-brain/database';
+import { drawings, drawingAssets } from '@second-brain/database/schema';
 
 export class DrawingService {
-	constructor(private db: D1Database) {}
+	private db: ReturnType<typeof drizzle>;
 
-	private transformDrawingAssetFromDb(rawAsset: any): DrawingAsset {
+	constructor(d1Database: D1Database) {
+		this.db = drizzle(d1Database);
+	}
+
+	private transformDrawingAssetFromDb(rawAsset: DrizzleDrawingAsset): DrawingAsset {
 		return {
 			id: rawAsset.id,
-			drawingId: rawAsset.drawing_id,
-			userId: rawAsset.user_id,
-			fileName: rawAsset.file_name,
-			fileType: rawAsset.file_type,
-			fileSize: rawAsset.file_size,
+			drawingId: rawAsset.drawingId,
+			userId: rawAsset.userId,
+			fileName: rawAsset.fileName,
+			fileType: rawAsset.fileType,
+			fileSize: parseInt(rawAsset.fileSize, 10),
 			url: rawAsset.url,
-			storageType: rawAsset.storage_type,
-			base64Data: rawAsset.base64_data,
-			createdAt: rawAsset.created_at,
-			updatedAt: rawAsset.updated_at,
+			storageType: 'r2', // Default to R2 storage
+			base64Data: undefined, // Not stored in database
+			createdAt: rawAsset.createdAt || '',
+			updatedAt: rawAsset.createdAt || '', // Use created_at as updated_at
 		};
 	}
 
-	private transformDrawingFromDb(rawDrawing: any): Drawing {
+	private transformDrawingFromDb(rawDrawing: DrizzleDrawing): Drawing {
 		return {
 			id: rawDrawing.id,
 			title: rawDrawing.title,
-			description: rawDrawing.description,
-			userId: rawDrawing.user_id,
-			parentId: rawDrawing.parent_id,
-			type: rawDrawing.type,
-			data: rawDrawing.data,
-			createdAt: rawDrawing.created_at,
-			updatedAt: rawDrawing.updated_at,
+			description: rawDrawing.description || undefined,
+			userId: rawDrawing.userId,
+			parentId: rawDrawing.parentId || undefined,
+			type: rawDrawing.type as DrawingType, // Proper type assertion
+			data: rawDrawing.data || undefined,
+			createdAt: rawDrawing.createdAt || '',
+			updatedAt: rawDrawing.updatedAt || '',
 		};
-	}
-
-	private async ensureDatabaseInitialized(): Promise<void> {
-		try {
-			// Check if drawings table exists by attempting a simple query
-			await this.db.prepare("SELECT COUNT(*) FROM drawings LIMIT 1").first();
-		} catch (error) {
-			console.error("Database error - drawings table may not exist:", error);
-			throw new Error(
-				`Database initialization error: ${error instanceof Error ? error.message : "Unknown database error"}`,
-			);
-		}
 	}
 
 	async createDrawing(userId: string, data: CreateDrawingRequest): Promise<Drawing> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const id = crypto.randomUUID();
 			const now = new Date().toISOString();
-			const type = data.type || "drawing";
+			const type = data.type || 'drawing';
 
 			const result = await this.db
-				.prepare(
-					`INSERT INTO drawings (id, user_id, title, description, parent_id, type, data, created_at, updated_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-           RETURNING *`,
-				)
-				.bind(
+				.insert(drawings)
+				.values({
 					id,
 					userId,
-					data.title,
-					data.description || null,
-					data.parentId || null,
+					title: data.title,
+					description: data.description || null,
+					parentId: data.parentId || null,
 					type,
-					data.data || null,
-					now,
-					now,
-				)
-				.first<Drawing>();
+					data: data.data || null,
+					createdAt: now,
+					updatedAt: now,
+				})
+				.returning()
+				.get();
 
 			if (!result) {
-				throw new Error("Database returned empty result when creating drawing");
+				throw new Error('Database returned empty result when creating drawing');
 			}
 
 			return this.transformDrawingFromDb(result);
 		} catch (error) {
-			console.error("Error in createDrawing:", error);
+			console.error('Error in createDrawing:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to create drawing: ${error.message}`);
 			}
-			throw new Error("Failed to create drawing: Unknown error occurred");
+			throw new Error('Failed to create drawing: Unknown error occurred');
 		}
 	}
 
 	async getDrawingsByUser(userId: string): Promise<Drawing[]> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare(`
-					SELECT * FROM drawings
-					WHERE user_id = ?1
-					ORDER BY
+				.select()
+				.from(drawings)
+				.where(
+					and(
+						eq(drawings.userId, userId),
+						sql`${drawings.parentId} IS NULL`
+					)
+				)
+				.orderBy(
+					sql`
 						-- Priority 1: Folders first (type = 'folder')
-						CASE type WHEN 'folder' THEN 0 ELSE 1 END,
+						CASE ${drawings.type} WHEN 'folder' THEN 0 ELSE 1 END,
 						-- Priority 2: Creation date (newest first)
-						datetime(created_at) DESC
-				`)
-				.bind(userId)
-				.all<Drawing>();
+						${drawings.createdAt} DESC
+					`,
+				)
+				.all();
 
-			if (!result.success) {
-				throw new Error(`Database query failed: ${result.error || "Unknown database error"}`);
-			}
-
-			return (result.results || []).map((drawing) => this.transformDrawingFromDb(drawing));
+			return result.map((drawing) => this.transformDrawingFromDb(drawing));
 		} catch (error) {
-			console.error("Error in getDrawingsByUser:", error);
+			console.error('Error in getDrawingsByUser:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch drawings: ${error.message}`);
 			}
-			throw new Error("Failed to fetch drawings: Unknown error occurred");
+			throw new Error('Failed to fetch drawings: Unknown error occurred');
 		}
 	}
 
 	async getDrawingsByFolder(userId: string, parentId: string): Promise<Drawing[]> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare(`
-					SELECT * FROM drawings
-					WHERE user_id = ?1 AND parent_id = ?2
-					ORDER BY
+				.select()
+				.from(drawings)
+				.where(and(eq(drawings.userId, userId), eq(drawings.parentId, parentId)))
+				.orderBy(
+					sql`
 						-- Priority 1: Folders first (type = 'folder')
-						CASE type WHEN 'folder' THEN 0 ELSE 1 END,
+						CASE ${drawings.type} WHEN 'folder' THEN 0 ELSE 1 END,
 						-- Priority 2: Creation date (newest first)
-						datetime(created_at) DESC
-				`)
-				.bind(userId, parentId)
-				.all<Drawing>();
+						${drawings.createdAt} DESC
+					`,
+				)
+				.all();
 
-			if (!result.success) {
-				throw new Error(`Database query failed: ${result.error || "Unknown database error"}`);
-			}
-
-			return (result.results || []).map((drawing) => this.transformDrawingFromDb(drawing));
+			return result.map((drawing) => this.transformDrawingFromDb(drawing));
 		} catch (error) {
-			console.error("Error in getDrawingsByFolder:", error);
+			console.error('Error in getDrawingsByFolder:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch drawings: ${error.message}`);
 			}
-			throw new Error("Failed to fetch drawings: Unknown error occurred");
+			throw new Error('Failed to fetch drawings: Unknown error occurred');
+		}
+	}
+
+	async searchAllDrawings(userId: string, searchQuery: string): Promise<Drawing[]> {
+		try {
+			const result = await this.db
+				.select()
+				.from(drawings)
+				.where(
+					and(
+						eq(drawings.userId, userId),
+						like(drawings.title, `%${searchQuery}%`)
+					)
+				)
+				.orderBy(
+					sql`
+						-- Priority 1: Folders first (type = 'folder')
+						CASE ${drawings.type} WHEN 'folder' THEN 0 ELSE 1 END,
+						-- Priority 2: Creation date (newest first)
+						${drawings.createdAt} DESC
+					`,
+				)
+				.all();
+
+			return result.map((drawing) => this.transformDrawingFromDb(drawing));
+		} catch (error) {
+			console.error('Error in searchAllDrawings:', error);
+			if (error instanceof Error) {
+				throw new Error(`Failed to search drawings: ${error.message}`);
+			}
+			throw new Error('Failed to search drawings: Unknown error occurred');
 		}
 	}
 
 	async getDrawingById(id: string, userId: string): Promise<Drawing | null> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare("SELECT * FROM drawings WHERE id = ?1 AND user_id = ?2")
-				.bind(id, userId)
-				.first<Drawing>();
+				.select()
+				.from(drawings)
+				.where(and(eq(drawings.id, id), eq(drawings.userId, userId)))
+				.get();
 
 			return result ? this.transformDrawingFromDb(result) : null;
 		} catch (error) {
-			console.error("Error in getDrawingById:", error);
+			console.error('Error in getDrawingById:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch drawing: ${error.message}`);
 			}
-			throw new Error("Failed to fetch drawing: Unknown error occurred");
+			throw new Error('Failed to fetch drawing: Unknown error occurred');
+		}
+	}
+
+	async getDrawingPath(id: string, userId: string): Promise<Drawing[]> {
+		try {
+			const path: Drawing[] = [];
+			let currentId: string | undefined = id;
+
+			while (currentId) {
+				const drawing = await this.getDrawingById(currentId, userId);
+				if (!drawing) break;
+
+				path.unshift(drawing);
+				currentId = drawing.parentId;
+			}
+
+			return path;
+		} catch (error) {
+			console.error('Error in getDrawingPath:', error);
+			if (error instanceof Error) {
+				throw new Error(`Failed to fetch drawing path: ${error.message}`);
+			}
+			throw new Error('Failed to fetch drawing path: Unknown error occurred');
 		}
 	}
 
@@ -178,8 +218,6 @@ export class DrawingService {
 		data: UpdateDrawingRequest,
 	): Promise<Drawing | null> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const existingDrawing = await this.getDrawingById(id, userId);
 			if (!existingDrawing) {
 				return null;
@@ -187,209 +225,217 @@ export class DrawingService {
 
 			const now = new Date().toISOString();
 
+			const updateData: Partial<typeof drawings.$inferInsert> = {
+				updatedAt: now,
+			};
+
+			if (data.title !== undefined) updateData.title = data.title;
+			if (data.description !== undefined) updateData.description = data.description;
+			if (data.parentId !== undefined) updateData.parentId = data.parentId;
+			if (data.data !== undefined) updateData.data = data.data;
+
 			const result = await this.db
-				.prepare(
-					`UPDATE drawings
-           SET title = COALESCE(?3, title),
-               description = COALESCE(?4, description),
-               parent_id = COALESCE(?5, parent_id),
-               data = COALESCE(?6, data),
-               updated_at = ?7
-           WHERE id = ?1 AND user_id = ?2
-           RETURNING *`,
-				)
-				.bind(
-					id,
-					userId,
-					data.title || null,
-					data.description || null,
-					data.parentId || null,
-					data.data || null,
-					now,
-				)
-				.first<Drawing>();
+				.update(drawings)
+				.set(updateData)
+				.where(and(eq(drawings.id, id), eq(drawings.userId, userId)))
+				.returning()
+				.get();
 
 			return result ? this.transformDrawingFromDb(result) : null;
 		} catch (error) {
-			console.error("Error in updateDrawing:", error);
+			console.error('Error in updateDrawing:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to update drawing: ${error.message}`);
 			}
-			throw new Error("Failed to update drawing: Unknown error occurred");
+			throw new Error('Failed to update drawing: Unknown error occurred');
 		}
 	}
 
 	async deleteDrawing(id: string, userId: string): Promise<boolean> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare("DELETE FROM drawings WHERE id = ?1 AND user_id = ?2")
-				.bind(id, userId)
+				.delete(drawings)
+				.where(and(eq(drawings.id, id), eq(drawings.userId, userId)))
 				.run();
-
-			if (!result.success) {
-				throw new Error(`Database delete failed: ${result.error || "Unknown database error"}`);
-			}
 
 			return result.meta.changes > 0;
 		} catch (error) {
-			console.error("Error in deleteDrawing:", error);
+			console.error('Error in deleteDrawing:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to delete drawing: ${error.message}`);
 			}
-			throw new Error("Failed to delete drawing: Unknown error occurred");
+			throw new Error('Failed to delete drawing: Unknown error occurred');
 		}
 	}
 
 	async bulkDeleteDrawings(ids: string[], userId: string): Promise<number> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			if (ids.length === 0) {
 				return 0;
 			}
 
-			// Create placeholders for the IN clause
-			const placeholders = ids.map((_, index) => `?${index + 2}`).join(", ");
+			// For Drizzle with SQLite/D1, we need to use individual deletes
+			let totalChanges = 0;
 
-			const result = await this.db
-				.prepare(`DELETE FROM drawings WHERE user_id = ?1 AND id IN (${placeholders})`)
-				.bind(userId, ...ids)
-				.run();
+			for (const id of ids) {
+				const result = await this.db
+					.delete(drawings)
+					.where(and(eq(drawings.id, id), eq(drawings.userId, userId)))
+					.run();
 
-			if (!result.success) {
-				throw new Error(`Database bulk delete failed: ${result.error || "Unknown database error"}`);
+				totalChanges += result.meta.changes;
 			}
 
-			return result.meta.changes;
+			return totalChanges;
 		} catch (error) {
-			console.error("Error in bulkDeleteDrawings:", error);
+			console.error('Error in bulkDeleteDrawings:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to bulk delete drawings: ${error.message}`);
 			}
-			throw new Error("Failed to bulk delete drawings: Unknown error occurred");
+			throw new Error('Failed to bulk delete drawings: Unknown error occurred');
 		}
 	}
 
 	async createDrawingAsset(assetData: {
 		id: string;
-		drawingId: string | null;
+		drawingId: string;
 		userId: string;
 		fileName: string;
 		fileType: string;
 		fileSize: number;
 		url: string;
-		storageType: string;
-		base64Data: string | null;
 	}): Promise<string> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const now = new Date().toISOString();
 
 			const result = await this.db
-				.prepare(
-					`INSERT INTO drawing_assets (id, drawing_id, user_id, file_name, file_type, file_size, url, storage_type, base64_data, created_at, updated_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
-           RETURNING id`,
-				)
-				.bind(
-					assetData.id,
-					assetData.drawingId,
-					assetData.userId,
-					assetData.fileName,
-					assetData.fileType,
-					assetData.fileSize,
-					assetData.url,
-					assetData.storageType,
-					assetData.base64Data,
-					now,
-					now,
-				)
-				.first<{ id: string }>();
+				.insert(drawingAssets)
+				.values({
+					id: assetData.id,
+					drawingId: assetData.drawingId,
+					userId: assetData.userId,
+					fileName: assetData.fileName,
+					fileType: assetData.fileType,
+					fileSize: assetData.fileSize.toString(),
+					url: assetData.url,
+					createdAt: now,
+				})
+				.returning({ id: drawingAssets.id })
+				.get();
 
 			if (!result) {
-				throw new Error("Database returned empty result when creating drawing asset");
+				throw new Error('Database returned empty result when creating drawing asset');
 			}
 
 			return result.id;
 		} catch (error) {
-			console.error("Error in createDrawingAsset:", error);
+			console.error('Error in createDrawingAsset:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to create drawing asset: ${error.message}`);
 			}
-			throw new Error("Failed to create drawing asset: Unknown error occurred");
+			throw new Error('Failed to create drawing asset: Unknown error occurred');
 		}
 	}
 
 	async getDrawingAsset(id: string, userId: string): Promise<DrawingAsset | null> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare("SELECT * FROM drawing_assets WHERE id = ?1 AND user_id = ?2")
-				.bind(id, userId)
-				.first<DrawingAsset>();
+				.select()
+				.from(drawingAssets)
+				.where(and(eq(drawingAssets.id, id), eq(drawingAssets.userId, userId)))
+				.get();
 
 			return result ? this.transformDrawingAssetFromDb(result) : null;
 		} catch (error) {
-			console.error("Error in getDrawingAsset:", error);
+			console.error('Error in getDrawingAsset:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch drawing asset: ${error.message}`);
 			}
-			throw new Error("Failed to fetch drawing asset: Unknown error occurred");
+			throw new Error('Failed to fetch drawing asset: Unknown error occurred');
 		}
 	}
 
 	async getDrawingAssetsByDrawingId(drawingId: string, userId: string): Promise<DrawingAsset[]> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare(`
-					SELECT * FROM drawing_assets
-					WHERE user_id = ?1 AND drawing_id = ?2
-					ORDER BY created_at DESC
-				`)
-				.bind(userId, drawingId)
-				.all<DrawingAsset>();
+				.select()
+				.from(drawingAssets)
+				.where(and(eq(drawingAssets.userId, userId), eq(drawingAssets.drawingId, drawingId)))
+				.orderBy(desc(drawingAssets.createdAt))
+				.all();
 
-			if (!result.success) {
-				throw new Error(`Database query failed: ${result.error || "Unknown database error"}`);
-			}
-
-			return (result.results || []).map((asset) => this.transformDrawingAssetFromDb(asset));
+			return result.map((asset) => this.transformDrawingAssetFromDb(asset));
 		} catch (error) {
-			console.error("Error in getDrawingAssetsByDrawingId:", error);
+			console.error('Error in getDrawingAssetsByDrawingId:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch drawing assets: ${error.message}`);
 			}
-			throw new Error("Failed to fetch drawing assets: Unknown error occurred");
+			throw new Error('Failed to fetch drawing assets: Unknown error occurred');
 		}
 	}
 
 	async deleteDrawingAsset(id: string, userId: string): Promise<boolean> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare("DELETE FROM drawing_assets WHERE id = ?1 AND user_id = ?2")
-				.bind(id, userId)
+				.delete(drawingAssets)
+				.where(and(eq(drawingAssets.id, id), eq(drawingAssets.userId, userId)))
 				.run();
-
-			if (!result.success) {
-				throw new Error(`Database delete failed: ${result.error || "Unknown database error"}`);
-			}
 
 			return result.meta.changes > 0;
 		} catch (error) {
-			console.error("Error in deleteDrawingAsset:", error);
+			console.error('Error in deleteDrawingAsset:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to delete drawing asset: ${error.message}`);
 			}
-			throw new Error("Failed to delete drawing asset: Unknown error occurred");
+			throw new Error('Failed to delete drawing asset: Unknown error occurred');
 		}
 	}
 
+	async getDrawingStats(userId: string): Promise<{
+		totalDrawings: number;
+		totalFolders: number;
+		recentDrawings: Drawing[];
+	}> {
+		try {
+			const [totalResult, recentResult] = await Promise.all([
+				this.db
+					.select({
+						type: drawings.type,
+						count: sql<number>`cast(count(*) as integer)`,
+					})
+					.from(drawings)
+					.where(eq(drawings.userId, userId))
+					.groupBy(drawings.type)
+					.all(),
+				this.db
+					.select()
+					.from(drawings)
+					.where(
+						and(
+							eq(drawings.userId, userId),
+							eq(drawings.type, 'drawing')
+						)
+					)
+					.orderBy(desc(drawings.updatedAt))
+					.limit(5)
+					.all(),
+			]);
+
+			const totalDrawings = totalResult.find((r) => r.type === 'drawing')?.count || 0;
+			const totalFolders = totalResult.find((r) => r.type === 'folder')?.count || 0;
+			const recentDrawings = recentResult.map((drawing) => this.transformDrawingFromDb(drawing));
+
+			return {
+				totalDrawings,
+				totalFolders,
+				recentDrawings,
+			};
+		} catch (error) {
+			console.error('Error in getDrawingStats:', error);
+			if (error instanceof Error) {
+				throw new Error(`Failed to fetch drawing stats: ${error.message}`);
+			}
+			throw new Error('Failed to fetch drawing stats: Unknown error occurred');
+		}
+	}
 }

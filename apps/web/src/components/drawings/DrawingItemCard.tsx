@@ -1,6 +1,7 @@
 import type { Drawing } from "@second-brain/types/drawing";
 import { Link } from "@tanstack/react-router";
-import { Folder, MoreVertical, Palette, Trash2 } from "lucide-react";
+import { Folder, FolderInput, MoreVertical, Palette, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -10,14 +11,19 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDeleteDrawing } from "@/hooks/drawings/useDeleteDrawing";
+import { MoveDrawingDialog } from "./MoveDrawingDialog";
 
 interface DrawingItemCardProps {
 	drawing: Drawing;
 	onDelete?: (id: string) => void;
+	onMove?: () => void;
+	onFolderClick?: (id: string) => void;
 	isDeleting?: boolean;
 }
 
-export function DrawingItemCard({ drawing, onDelete, isDeleting }: DrawingItemCardProps) {
+export function DrawingItemCard({ drawing, onDelete, onMove, onFolderClick, isDeleting }: DrawingItemCardProps) {
+	const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+
 	const deleteDrawing = useDeleteDrawing({
 		onSuccess: () => {
 			onDelete?.(drawing.id);
@@ -26,6 +32,16 @@ export function DrawingItemCard({ drawing, onDelete, isDeleting }: DrawingItemCa
 
 	const handleDelete = () => {
 		deleteDrawing.deleteDrawing(drawing.id);
+	};
+
+	const handleMove = () => {
+		setIsMoveDialogOpen(true);
+	};
+
+	const handleClick = () => {
+		if (drawing.type === "folder" && onFolderClick) {
+			onFolderClick(drawing.id);
+		}
 	};
 
 	const isFolder = drawing.type === "folder";
@@ -47,18 +63,32 @@ export function DrawingItemCard({ drawing, onDelete, isDeleting }: DrawingItemCa
 						<Icon className="h-8 w-8 text-muted-foreground" />
 					</div>
 
-					<Link
-						to={`/drawings/$id`}
-						params={{ id: drawing.id }}
-						className="flex-1 min-w-0 hover:underline"
-					>
-						<div className="flex flex-col justify-center">
-							<h3 className="font-semibold leading-tight truncate">{drawing.title}</h3>
-							<p className="text-sm text-muted-foreground leading-tight">
-								Created: {formatDate(drawing.createdAt)}
-							</p>
-						</div>
-					</Link>
+					{isFolder && onFolderClick ? (
+						<button
+							onClick={handleClick}
+							className="flex-1 min-w-0 hover:underline text-left"
+						>
+							<div className="flex flex-col justify-center">
+								<h3 className="font-semibold leading-tight truncate">{drawing.title}</h3>
+								<p className="text-sm text-muted-foreground leading-tight">
+									Created: {formatDate(drawing.createdAt)}
+								</p>
+							</div>
+						</button>
+					) : (
+						<Link
+							to={`/drawings/$id`}
+							params={{ id: drawing.id }}
+							className="flex-1 min-w-0 hover:underline"
+						>
+							<div className="flex flex-col justify-center">
+								<h3 className="font-semibold leading-tight truncate">{drawing.title}</h3>
+								<p className="text-sm text-muted-foreground leading-tight">
+									Created: {formatDate(drawing.createdAt)}
+								</p>
+							</div>
+						</Link>
+					)}
 
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
@@ -72,11 +102,15 @@ export function DrawingItemCard({ drawing, onDelete, isDeleting }: DrawingItemCa
 								<span className="sr-only">More options</span>
 							</Button>
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end" className="w-32">
+						<DropdownMenuContent align="end" className="w-48">
 							<DropdownMenuItem asChild>
 								<Link to={`/drawings/$id`} params={{ id: drawing.id }}>
 									{isFolder ? "Open" : "Edit"}
 								</Link>
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={handleMove}>
+								<FolderInput className="mr-2 h-4 w-4" />
+								Move to folder
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								className="text-red-600 hover:text-red-700 focus:text-red-700"
@@ -88,6 +122,15 @@ export function DrawingItemCard({ drawing, onDelete, isDeleting }: DrawingItemCa
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
+
+					<MoveDrawingDialog
+						drawing={drawing}
+						open={isMoveDialogOpen}
+						onOpenChange={setIsMoveDialogOpen}
+						onSuccess={() => {
+							onMove?.();
+						}}
+					/>
 				</div>
 			</CardContent>
 		</Card>

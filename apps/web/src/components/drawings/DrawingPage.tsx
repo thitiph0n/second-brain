@@ -14,17 +14,48 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 	const { data: drawing, isLoading, isError, error } = useDrawing(drawingId);
 	const { updateDrawing } = useUpdateDrawing(drawingId);
 
-	// Debug logging
-	useEffect(() => {
-		console.log("DrawingPage - drawingId:", drawingId);
-		console.log("DrawingPage - isLoading:", isLoading);
-		console.log("DrawingPage - isError:", isError);
-		console.log("DrawingPage - error:", error);
-		console.log("DrawingPage - drawing:", drawing);
-	}, [drawingId, isLoading, isError, error, drawing]);
-
+	
 	const [drawingName, setDrawingName] = useState("");
 	const [hasChanges, setHasChanges] = useState(false);
+
+	const handleContentChanged = (changes: boolean) => {
+		setHasChanges(changes);
+	};
+
+	// Add Cmd+S (Mac) and Ctrl+S (Windows) keyboard shortcuts for saving
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			// Check for Cmd+S (Mac) or Ctrl+S (Windows/Linux)
+			if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+				event.preventDefault();
+				event.stopPropagation();
+				event.stopImmediatePropagation();
+				handleSave();
+				return false;
+			}
+		};
+
+		// Use capture phase to intercept before other handlers
+		window.addEventListener('keydown', handleKeyDown, { capture: true });
+		return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
+	}, [drawing, drawingName, hasChanges]);
+
+	// Prevent closing/refreshing window with unsaved changes
+	useEffect(() => {
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			if (hasChanges) {
+				// Standard way to show browser's confirmation dialog
+				event.preventDefault();
+				// Chrome requires returnValue to be set
+				event.returnValue = '';
+				// Some browsers might use the return value
+				return '';
+			}
+		};
+
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+	}, [hasChanges]);
 
 	// Set drawing name when data loads
 	useEffect(() => {
@@ -36,20 +67,21 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 	const handleSave = async () => {
 		if (!drawing) return;
 
+				
 		try {
 			// Update metadata
-			await updateDrawing({
+						await updateDrawing({
 				id: drawingId,
 				data: {
 					title: drawingName,
 					description: drawing.description,
 				},
 			});
-
+			
 			// Save content (if there are changes)
 			if (hasChanges) {
-				// This would save the actual drawing content
-				// For now, we'll just mark as saved
+				// Trigger manual save via event
+				window.dispatchEvent(new CustomEvent('manualSaveDrawing'));
 				setHasChanges(false);
 			}
 		} catch (error) {
@@ -141,6 +173,12 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 		);
 	}
 
+	// If it's a folder, redirect back to drawings page
+	if (drawing?.type === "folder") {
+		navigate({ to: "/drawings" });
+		return null;
+	}
+
 	return (
 		<div className="fixed inset-0 z-50 bg-background flex flex-col">
 			<Toolbar
@@ -152,7 +190,10 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 				hasChanges={hasChanges}
 			/>
 			<div className="flex-1 overflow-hidden">
-				<ExcalidrawCanvas drawingId={drawingId} />
+				<ExcalidrawCanvas
+					drawingId={drawingId}
+					onContentChanged={handleContentChanged}
+				/>
 			</div>
 		</div>
 	);

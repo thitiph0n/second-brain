@@ -13,18 +13,23 @@
 		"migrate:local": "wrangler d1 migrations apply second-brain-db --local",
 		"migrate:prod": "wrangler d1 migrations apply second-brain-db --remote",
 		"migrate:list": "wrangler d1 migrations list second-brain-db",
-		"migrate:create": "node scripts/create-migration.js"
+		"drizzle:generate": "drizzle-kit generate",
+		"drizzle:migrate": "drizzle-kit migrate",
+		"drizzle:studio": "drizzle-kit studio"
 	},
 	"dependencies": {
 		"@hono/zod-validator": "^0.7.4",
+		"@second-brain/database": "workspace:*",
 		"@second-brain/types": "workspace:*",
-		"hono": "^4.0.0",
-		"nanoid": "^5.1.5",
-		"zod": "^3.25.0"
+		"drizzle-orm": "^0.44.7",
+		"hono": "^4.10.4",
+		"nanoid": "^5.1.6",
+		"zod": "^3.25.76"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20240529.0",
-		"typescript": "^5.7.2",
-		"wrangler": "^4.23.0"
+		"@cloudflare/workers-types": "^4.20251109.0",
+		"drizzle-kit": "^0.31.6",
+		"typescript": "^5.9.3",
+		"wrangler": "^4.46.0"
 	}
 }

@@ -1,122 +1,114 @@
-import type { Coupon, CreateCouponRequest, UpdateCouponRequest } from "@second-brain/types/coupon";
+import { drizzle } from 'drizzle-orm/d1';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import type { Coupon, CreateCouponRequest, UpdateCouponRequest, CouponType } from '@second-brain/types/coupon';
+import { coupons } from '@second-brain/database/schema';
 
 export class CouponService {
-	constructor(private db: D1Database) {}
+	private db: ReturnType<typeof drizzle>;
+
+	constructor(d1Database: D1Database) {
+		this.db = drizzle(d1Database);
+	}
 
 	private transformCouponFromDb(rawCoupon: any): Coupon {
 		return {
 			id: rawCoupon.id,
-			userId: rawCoupon.user_id,
+			userId: rawCoupon.userId,
 			code: rawCoupon.code,
-			type: rawCoupon.type,
-			expiresAt: rawCoupon.expires_at,
-			isUsed: Boolean(rawCoupon.is_used), // Convert SQLite integer to boolean
-			usedAt: rawCoupon.used_at,
-			createdAt: rawCoupon.created_at,
-			updatedAt: rawCoupon.updated_at,
+			type: rawCoupon.type as CouponType, // Type assertion for CouponType
+			expiresAt: rawCoupon.expiresAt || undefined,
+			isUsed: Boolean(rawCoupon.isUsed), // Convert SQLite integer to boolean
+			usedAt: rawCoupon.usedAt || undefined,
+			createdAt: rawCoupon.createdAt || '',
+			updatedAt: rawCoupon.updatedAt || '',
 		};
-	}
-
-	private async ensureDatabaseInitialized(): Promise<void> {
-		try {
-			// Check if coupons table exists by attempting a simple query
-			await this.db.prepare("SELECT COUNT(*) FROM coupons LIMIT 1").first();
-		} catch (error) {
-			console.error("Database error - coupons table may not exist:", error);
-			throw new Error(
-				`Database initialization error: ${error instanceof Error ? error.message : "Unknown database error"}`,
-			);
-		}
 	}
 
 	async createCoupon(userId: string, data: CreateCouponRequest): Promise<Coupon> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const id = crypto.randomUUID();
 			const now = new Date().toISOString();
 
 			const result = await this.db
-				.prepare(
-					`INSERT INTO coupons (id, user_id, code, type, expires_at, created_at, updated_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-           RETURNING *`,
-				)
-				.bind(id, userId, data.code, data.type, data.expiresAt || null, now, now)
-				.first<Coupon>();
+				.insert(coupons)
+				.values({
+					id,
+					userId,
+					code: data.code,
+					type: data.type,
+					expiresAt: data.expiresAt || null,
+					createdAt: now,
+					updatedAt: now,
+				})
+				.returning()
+				.get();
 
 			if (!result) {
-				throw new Error("Database returned empty result when creating coupon");
+				throw new Error('Database returned empty result when creating coupon');
 			}
 
 			return this.transformCouponFromDb(result);
 		} catch (error) {
-			console.error("Error in createCoupon:", error);
+			console.error('Error in createCoupon:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to create coupon: ${error.message}`);
 			}
-			throw new Error("Failed to create coupon: Unknown error occurred");
+			throw new Error('Failed to create coupon: Unknown error occurred');
 		}
 	}
 
 	async getCouponsByUser(userId: string): Promise<Coupon[]> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare(`
-					SELECT * FROM coupons
-					WHERE user_id = ?1
-					ORDER BY
+				.select()
+				.from(coupons)
+				.where(eq(coupons.userId, userId))
+				.orderBy(
+					sql`
 						-- Priority 1: Coupons expiring within 7 days (near expired)
 						CASE
-							WHEN expires_at IS NOT NULL
-							AND datetime(expires_at) >= datetime('now')
-							AND (julianday(expires_at) - julianday('now')) <= 7
+							WHEN ${coupons.expiresAt} IS NOT NULL
+							AND ${coupons.expiresAt} >= ${new Date().toISOString()}
+							AND (julianday(${coupons.expiresAt}) - julianday('now')) <= 7
 							THEN 0
 							ELSE 1
 						END,
 						-- Priority 2: Expiration date (soonest first)
 						CASE
-							WHEN expires_at IS NULL THEN 999999999
-							ELSE julianday(expires_at)
+							WHEN ${coupons.expiresAt} IS NULL THEN 999999999
+							ELSE julianday(${coupons.expiresAt})
 						END,
 						-- Priority 3: Creation date (newest first)
-						datetime(created_at) DESC
-				`)
-				.bind(userId)
-				.all<Coupon>();
+						${coupons.createdAt} DESC
+					`,
+				)
+				.all();
 
-			if (!result.success) {
-				throw new Error(`Database query failed: ${result.error || "Unknown database error"}`);
-			}
-
-			return (result.results || []).map((coupon) => this.transformCouponFromDb(coupon));
+			return result.map((coupon) => this.transformCouponFromDb(coupon));
 		} catch (error) {
-			console.error("Error in getCouponsByUser:", error);
+			console.error('Error in getCouponsByUser:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch coupons: ${error.message}`);
 			}
-			throw new Error("Failed to fetch coupons: Unknown error occurred");
+			throw new Error('Failed to fetch coupons: Unknown error occurred');
 		}
 	}
 
 	async getCouponById(id: string, userId: string): Promise<Coupon | null> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare("SELECT * FROM coupons WHERE id = ?1 AND user_id = ?2")
-				.bind(id, userId)
-				.first<Coupon>();
+				.select()
+				.from(coupons)
+				.where(and(eq(coupons.id, id), eq(coupons.userId, userId)))
+				.get();
 
 			return result ? this.transformCouponFromDb(result) : null;
 		} catch (error) {
-			console.error("Error in getCouponById:", error);
+			console.error('Error in getCouponById:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to fetch coupon: ${error.message}`);
 			}
-			throw new Error("Failed to fetch coupon: Unknown error occurred");
+			throw new Error('Failed to fetch coupon: Unknown error occurred');
 		}
 	}
 
@@ -126,8 +118,6 @@ export class CouponService {
 		data: UpdateCouponRequest,
 	): Promise<Coupon | null> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const existingCoupon = await this.getCouponById(id, userId);
 			if (!existingCoupon) {
 				return null;
@@ -137,90 +127,76 @@ export class CouponService {
 			const usedAt =
 				data.isUsed === true ? now : data.isUsed === false ? null : existingCoupon.usedAt;
 
+			const updateData: Partial<typeof coupons.$inferInsert> = {
+				updatedAt: now,
+			};
+
+			if (data.code !== undefined) updateData.code = data.code;
+			if (data.type !== undefined) updateData.type = data.type;
+			if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt;
+			if (data.isUsed !== undefined) updateData.isUsed = data.isUsed;
+			if (usedAt !== undefined) updateData.usedAt = usedAt;
+
 			const result = await this.db
-				.prepare(
-					`UPDATE coupons 
-           SET code = COALESCE(?3, code), 
-               type = COALESCE(?4, type),
-               expires_at = COALESCE(?5, expires_at),
-               is_used = COALESCE(?6, is_used),
-               used_at = ?7,
-               updated_at = ?8
-           WHERE id = ?1 AND user_id = ?2
-           RETURNING *`,
-				)
-				.bind(
-					id,
-					userId,
-					data.code || null,
-					data.type || null,
-					data.expiresAt !== undefined ? data.expiresAt : null,
-					data.isUsed !== undefined ? data.isUsed : null,
-					usedAt,
-					now,
-				)
-				.first<Coupon>();
+				.update(coupons)
+				.set(updateData)
+				.where(and(eq(coupons.id, id), eq(coupons.userId, userId)))
+				.returning()
+				.get();
 
 			return result ? this.transformCouponFromDb(result) : null;
 		} catch (error) {
-			console.error("Error in updateCoupon:", error);
+			console.error('Error in updateCoupon:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to update coupon: ${error.message}`);
 			}
-			throw new Error("Failed to update coupon: Unknown error occurred");
+			throw new Error('Failed to update coupon: Unknown error occurred');
 		}
 	}
 
 	async deleteCoupon(id: string, userId: string): Promise<boolean> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			const result = await this.db
-				.prepare("DELETE FROM coupons WHERE id = ?1 AND user_id = ?2")
-				.bind(id, userId)
+				.delete(coupons)
+				.where(and(eq(coupons.id, id), eq(coupons.userId, userId)))
 				.run();
-
-			if (!result.success) {
-				throw new Error(`Database delete failed: ${result.error || "Unknown database error"}`);
-			}
 
 			return result.meta.changes > 0;
 		} catch (error) {
-			console.error("Error in deleteCoupon:", error);
+			console.error('Error in deleteCoupon:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to delete coupon: ${error.message}`);
 			}
-			throw new Error("Failed to delete coupon: Unknown error occurred");
+			throw new Error('Failed to delete coupon: Unknown error occurred');
 		}
 	}
 
 	async bulkDeleteCoupons(ids: string[], userId: string): Promise<number> {
 		try {
-			await this.ensureDatabaseInitialized();
-
 			if (ids.length === 0) {
 				return 0;
 			}
 
-			// Create placeholders for the IN clause
-			const placeholders = ids.map((_, index) => `?${index + 2}`).join(", ");
+			// For Drizzle with SQLite/D1, we need to use IN clause with dynamic IDs
+			// This is a limitation we need to work around
+			let totalChanges = 0;
 
-			const result = await this.db
-				.prepare(`DELETE FROM coupons WHERE user_id = ?1 AND id IN (${placeholders})`)
-				.bind(userId, ...ids)
-				.run();
+			for (const id of ids) {
+				const result = await this.db
+					.delete(coupons)
+					.where(and(eq(coupons.id, id), eq(coupons.userId, userId)))
+					.run();
 
-			if (!result.success) {
-				throw new Error(`Database bulk delete failed: ${result.error || "Unknown database error"}`);
+				totalChanges += result.meta.changes;
 			}
 
-			return result.meta.changes;
+			return totalChanges;
 		} catch (error) {
-			console.error("Error in bulkDeleteCoupons:", error);
+			console.error('Error in bulkDeleteCoupons:', error);
 			if (error instanceof Error) {
 				throw new Error(`Failed to bulk delete coupons: ${error.message}`);
 			}
-			throw new Error("Failed to bulk delete coupons: Unknown error occurred");
+			throw new Error('Failed to bulk delete coupons: Unknown error occurred');
 		}
 	}
 }

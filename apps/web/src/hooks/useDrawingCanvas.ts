@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "https://2b.thitiphon.me" : "http://localhost:8787");
+
 function getAuthHeaders() {
 	const authData = localStorage.getItem("auth-storage");
 	let token = null;
@@ -34,7 +36,7 @@ export function useDrawingCanvas(drawingId: string) {
 	} = useQuery<Drawing>({
 		queryKey: ["drawing", drawingId],
 		queryFn: async () => {
-			const response = await fetch(`/api/v1/drawings/${drawingId}`, {
+			const response = await fetch(`${API_BASE_URL}/api/v1/drawings/${drawingId}`, {
 				headers: getAuthHeaders(),
 			});
 			if (!response.ok) {
@@ -49,7 +51,7 @@ export function useDrawingCanvas(drawingId: string) {
 	// Save drawing content mutation
 	const saveMutation = useMutation({
 		mutationFn: async ({ content }: { content: string }) => {
-			const response = await fetch(`/api/v1/drawings/${drawingId}`, {
+			const response = await fetch(`${API_BASE_URL}/api/v1/drawings/${drawingId}`, {
 				method: "PATCH",
 				headers: getAuthHeaders(),
 				body: JSON.stringify({ data: content }),
@@ -68,7 +70,7 @@ export function useDrawingCanvas(drawingId: string) {
 	// Update drawing metadata mutation
 	const updateMutation = useMutation({
 		mutationFn: async ({ title, description }: { title?: string; description?: string }) => {
-			const response = await fetch(`/api/v1/drawings/${drawingId}`, {
+			const response = await fetch(`${API_BASE_URL}/api/v1/drawings/${drawingId}`, {
 				method: "PATCH",
 				headers: getAuthHeaders(),
 				body: JSON.stringify({ title, description }),
@@ -127,7 +129,7 @@ export function useAutoSave({
 				return;
 			}
 
-			const response = await fetch(`/api/v1/drawings/${drawingId}`, {
+			const response = await fetch(`${API_BASE_URL}/api/v1/drawings/${drawingId}`, {
 				method: "PATCH",
 				headers: getAuthHeaders(),
 				body: JSON.stringify({ data: content }),

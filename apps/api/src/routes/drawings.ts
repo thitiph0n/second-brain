@@ -31,6 +31,27 @@ const drawingRoutes = new Hono<{
 // Apply auth middleware to all drawing routes
 drawingRoutes.use("*", requireAuth());
 
+// GET /api/v1/drawings/stats - Get drawing statistics for the authenticated user
+drawingRoutes.get("/stats", async (c) => {
+	try {
+		const user = c.get("user");
+		if (!user) {
+			return createAuthErrorResponse(
+				c,
+				new Error("User context not found"),
+				"Authentication middleware did not set user context",
+			);
+		}
+
+		const drawingService = new DrawingService(c.env.DB);
+		const stats = await drawingService.getDrawingStats(user.id);
+
+		return c.json(stats);
+	} catch (error) {
+		return createErrorResponse(c, error, "Failed to fetch drawing stats");
+	}
+});
+
 // GET /api/v1/drawings - Get all drawings for the authenticated user
 drawingRoutes.get("/", async (c) => {
 	try {
@@ -43,7 +64,14 @@ drawingRoutes.get("/", async (c) => {
 			);
 		}
 
+		const searchQuery = c.req.query("search");
 		const drawingService = new DrawingService(c.env.DB);
+
+		if (searchQuery) {
+			const drawings = await drawingService.searchAllDrawings(user.id, searchQuery);
+			return c.json({ drawings });
+		}
+
 		const drawings = await drawingService.getDrawingsByUser(user.id);
 
 		return c.json({ drawings });
@@ -104,6 +132,35 @@ drawingRoutes.post("/", async (c) => {
 		}
 
 		return createErrorResponse(c, error, "Failed to create drawing");
+	}
+});
+
+// GET /api/v1/drawings/:id/path - Get the full path (breadcrumb) for a drawing
+drawingRoutes.get("/:id/path", async (c) => {
+	try {
+		const user = c.get("user");
+		if (!user) {
+			return createAuthErrorResponse(
+				c,
+				new Error("User context not found"),
+				"Authentication middleware did not set user context",
+			);
+		}
+
+		const id = c.req.param("id");
+
+		const drawingService = new DrawingService(c.env.DB);
+		const path = await drawingService.getDrawingPath(id, user.id);
+
+		if (path.length === 0) {
+			return createNotFoundErrorResponse(c, "Drawing", id);
+		}
+
+		return c.json({ path });
+	} catch (error) {
+		return createErrorResponse(c, error, "Failed to fetch drawing path", 500, {
+			drawingId: c.req.param("id"),
+		});
 	}
 });
 

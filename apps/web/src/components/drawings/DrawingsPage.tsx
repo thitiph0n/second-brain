@@ -1,32 +1,104 @@
-import { FolderPlus, Palette, Plus, Search } from "lucide-react";
-import { useState } from "react";
+import type { Drawing } from "@second-brain/types/drawing";
+import { ChevronRight, FolderPlus, Home, Palette, Plus, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDeleteDrawing } from "@/hooks/drawings/useDeleteDrawing";
 import { useDrawings } from "@/hooks/drawings/useDrawings";
 import { CreateDrawingDialog } from "./CreateDrawingDialog";
 import { DrawingItemCard } from "./DrawingItemCard";
+import { DrawingItemSkeleton } from "./DrawingItemSkeleton";
+
+interface BreadcrumbItem {
+	id: string;
+	title: string;
+}
 
 export function DrawingsPage() {
+	const navigate = useNavigate({ from: "/drawings" });
+	const search = useSearch({ from: "/drawings/" });
+	const currentFolderId = search.folderId || null;
+
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	const [createType, setCreateType] = useState<"drawing" | "folder">("drawing");
+	const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
 
 	const {
-		data: drawings,
+		data: allDrawings,
 		isLoading,
 		isError,
 		error,
 		refetch,
 	} = useDrawings({
 		filters: {
-			searchQuery,
+			searchQuery: searchQuery || undefined,
 		},
+		enabled: !currentFolderId && !searchQuery,
 	});
+
+	const {
+		data: currentFolderDrawings,
+		isLoading: isFolderLoading,
+		refetch: refetchFolder,
+	} = useDrawings({
+		filters: {
+			parentId: currentFolderId || undefined,
+		},
+		enabled: currentFolderId !== null && !searchQuery,
+	});
+
+	const {
+		data: searchResults,
+		isLoading: isSearchLoading,
+		refetch: refetchSearch,
+	} = useDrawings({
+		filters: {
+			searchQuery: searchQuery || undefined,
+		},
+		enabled: !!searchQuery,
+	});
+
+	const drawings = searchQuery ? searchResults : currentFolderId ? currentFolderDrawings : allDrawings;
+	const isLoadingDrawings = searchQuery ? isSearchLoading : currentFolderId ? isFolderLoading : isLoading;
+
+	// Fetch breadcrumb path when folder changes
+	useEffect(() => {
+		if (currentFolderId) {
+			const fetchPath = async () => {
+				try {
+					const response = await fetch(
+						`${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "https://2b.thitiphon.me" : "http://localhost:8787")}/api/v1/drawings/${currentFolderId}/path`,
+						{
+							headers: {
+								Authorization: `Bearer ${JSON.parse(localStorage.getItem("auth-storage") || "{}").state?.accessToken}`,
+							},
+						}
+					);
+					const data = await response.json();
+					if (data.path) {
+						setBreadcrumbs(data.path.map((d: Drawing) => ({ id: d.id, title: d.title })));
+					}
+				} catch (error) {
+					console.error("Failed to fetch breadcrumb path:", error);
+				}
+			};
+			fetchPath();
+		} else {
+			setBreadcrumbs([]);
+		}
+	}, [currentFolderId]);
 
 	const { deleteDrawing } = useDeleteDrawing({
 		onSuccess: () => {
 			refetch();
+			if (currentFolderId) {
+				refetchFolder();
+			}
+			if (searchQuery) {
+				refetchSearch();
+			}
 		},
 	});
 
@@ -39,9 +111,29 @@ export function DrawingsPage() {
 		setIsCreateDialogOpen(true);
 	};
 
-	const filteredDrawings = drawings.filter((drawing) =>
-		drawing.title.toLowerCase().includes(searchQuery.toLowerCase()),
-	);
+	const handleFolderClick = (folderId: string) => {
+		navigate({
+			to: "/drawings",
+			search: { folderId },
+		});
+	};
+
+	const handleBreadcrumbClick = (folderId: string | null) => {
+		navigate({
+			to: "/drawings",
+			search: folderId ? { folderId } : {},
+		});
+	};
+
+	const handleMove = () => {
+		refetch();
+		if (currentFolderId) {
+			refetchFolder();
+		}
+		if (searchQuery) {
+			refetchSearch();
+		}
+	};
 
 	return (
 		<div className="container mx-auto px-4 py-8">
@@ -78,12 +170,45 @@ export function DrawingsPage() {
 					</div>
 				</div>
 
-				{isLoading ? (
-					<div className="flex h-64 items-center justify-center">
-						<div className="text-center">
-							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-							<p className="text-sm text-muted-foreground">Loading drawings...</p>
+				<nav className="flex items-center gap-2 text-sm mb-4 flex-wrap">
+					{breadcrumbs.length === 0 ? (
+						<div className="flex items-center gap-1 text-foreground font-medium">
+							<Home className="h-4 w-4" />
+							<span>Drawings</span>
 						</div>
+					) : (
+						<>
+							<button
+								onClick={() => handleBreadcrumbClick(null)}
+								className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+							>
+								<Home className="h-4 w-4" />
+								<span>Drawings</span>
+							</button>
+							{breadcrumbs.map((crumb, index) => (
+								<div key={crumb.id} className="flex items-center gap-2">
+									<ChevronRight className="h-4 w-4 text-muted-foreground" />
+									{index === breadcrumbs.length - 1 ? (
+										<span className="text-foreground font-medium">{crumb.title}</span>
+									) : (
+										<button
+											onClick={() => handleBreadcrumbClick(crumb.id)}
+											className="text-muted-foreground hover:text-foreground transition-colors"
+										>
+											{crumb.title}
+										</button>
+									)}
+								</div>
+							))}
+						</>
+					)}
+				</nav>
+
+				{isLoadingDrawings ? (
+					<div className="flex flex-col gap-2">
+						{Array.from({ length: 3 }).map((_, index) => (
+							<DrawingItemSkeleton key={index} />
+						))}
 					</div>
 				) : isError ? (
 					<div className="flex h-64 items-center justify-center rounded-lg border border-dashed bg-muted">
@@ -95,7 +220,7 @@ export function DrawingsPage() {
 							<Button onClick={() => refetch()}>Try Again</Button>
 						</div>
 					</div>
-				) : filteredDrawings.length === 0 ? (
+				) : drawings.length === 0 ? (
 					<div className="flex h-64 items-center justify-center rounded-lg border border-dashed bg-muted">
 						<div className="text-center">
 							<h3 className="text-lg font-medium">No drawings found</h3>
@@ -114,11 +239,13 @@ export function DrawingsPage() {
 					</div>
 				) : (
 					<div className="flex flex-col gap-2">
-						{filteredDrawings.map((drawing) => (
+						{drawings.map((drawing) => (
 							<DrawingItemCard
 								key={drawing.id}
 								drawing={drawing}
 								onDelete={handleDeleteDrawing}
+								onMove={handleMove}
+								onFolderClick={handleFolderClick}
 								isDeleting={false}
 							/>
 						))}
@@ -129,8 +256,15 @@ export function DrawingsPage() {
 					open={isCreateDialogOpen}
 					onOpenChange={setIsCreateDialogOpen}
 					type={createType}
+					parentId={currentFolderId || undefined}
 					onSuccess={() => {
 						refetch();
+						if (currentFolderId) {
+							refetchFolder();
+						}
+						if (searchQuery) {
+							refetchSearch();
+						}
 					}}
 				/>
 			</div>

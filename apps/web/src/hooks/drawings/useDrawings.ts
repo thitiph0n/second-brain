@@ -23,6 +23,7 @@ interface UseDrawingsOptions {
 	filters?: {
 		isArchived?: boolean;
 		searchQuery?: string;
+		parentId?: string;
 	};
 	enabled?: boolean;
 	staleTime?: number;
@@ -54,7 +55,7 @@ export function useDrawings(options: UseDrawingsOptions = {}): UseDrawingsReturn
 		queryKey: DRAWING_QUERY_KEYS.list(filters ? JSON.stringify(filters) : undefined),
 		queryFn: async () => {
 			try {
-				const response = await drawingApi.getDrawings();
+				const response = await drawingApi.getDrawings(filters?.parentId, filters?.searchQuery);
 				return response.drawings;
 			} catch (error) {
 				if (error instanceof ApiError) {
