@@ -6,11 +6,10 @@ import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
 interface ExcalidrawCanvasProps {
 	drawingId: string;
 	className?: string;
-	onManualSaveRequested?: () => void;
 	onContentChanged?: (hasChanges: boolean) => void;
 }
 
-export function ExcalidrawCanvas({ drawingId, className, onManualSaveRequested, onContentChanged }: ExcalidrawCanvasProps) {
+export function ExcalidrawCanvas({ drawingId, className, onContentChanged }: ExcalidrawCanvasProps) {
 	const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
 	const { drawing, isLoading, isError, error, saveDrawing } = useDrawingCanvas(drawingId);
 	const [initialData, setInitialData] = useState<{
@@ -25,7 +24,6 @@ export function ExcalidrawCanvas({ drawingId, className, onManualSaveRequested, 
 
 		const currentElements = excalidrawAPI.getSceneElements();
 		const currentAppState = excalidrawAPI.getAppState();
-		const currentFiles = excalidrawAPI.getFiles();
 
 		// Simple comparison - check if elements count changed
 		const hasChanges =
@@ -153,7 +151,7 @@ export function ExcalidrawCanvas({ drawingId, className, onManualSaveRequested, 
 	// Handle manual save requests from parent
 	useEffect(() => {
 		// Listen for manual save requests
-		const handleManualSaveRequest = (event: CustomEvent) => {
+		const handleManualSaveRequest = () => {
 			saveCurrentContent();
 		};
 

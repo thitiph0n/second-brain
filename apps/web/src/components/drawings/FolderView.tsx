@@ -1,7 +1,7 @@
 import type { Drawing } from "@second-brain/types/drawing";
 import { ChevronRight, FolderPlus, Home, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useDrawings } from "@/hooks/drawings/useDrawings";
 import { useDeleteDrawing } from "@/hooks/drawings/useDeleteDrawing";
@@ -20,7 +20,6 @@ interface BreadcrumbItem {
 }
 
 export function FolderView({ folderId, folderName }: FolderViewProps) {
-	const navigate = useNavigate();
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	const [createType, setCreateType] = useState<"drawing" | "folder">("drawing");
 	const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);

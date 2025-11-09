@@ -72,12 +72,11 @@ interface OptimisticUpdateOptions {
 
 interface UpdateDrawingMutationVariables {
 	id: string;
-	data: Partial<{
-		title: string;
+	data: {
+		title?: string;
 		description?: string;
-		isArchived: boolean;
-	}> & {
-		title: string;
+		isArchived?: boolean;
+		parentId?: string;
 	};
 }
 

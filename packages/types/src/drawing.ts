@@ -37,7 +37,7 @@ export interface CreateDrawingRequest {
 export interface UpdateDrawingRequest {
 	title?: string;
 	description?: string | null;
-	parentId?: string;
+	parentId?: string | null;
 	data?: string;
 	isArchived?: boolean;
 }

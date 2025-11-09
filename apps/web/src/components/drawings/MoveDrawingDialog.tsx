@@ -40,7 +40,7 @@ export function MoveDrawingDialog({
 			await updateDrawing({
 				id: drawing.id,
 				data: {
-					parentId: selectedFolderId || undefined,
+					parentId: selectedFolderId === null ? undefined : selectedFolderId,
 				},
 			});
 			onSuccess?.();

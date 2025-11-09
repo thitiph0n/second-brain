@@ -7,7 +7,7 @@ import {
 	Ticket,
 	User,
 } from "lucide-react";
-import { useAuth, useAuthActions } from "@/auth/hooks";
+import { useAuth } from "@/auth/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 

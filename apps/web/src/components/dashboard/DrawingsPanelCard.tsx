@@ -65,8 +65,8 @@ export function DrawingsPanelCard() {
               {recentDrawings.map((drawing) => (
                 <Link
                   key={drawing.id}
-                  to="/drawings/$drawingId"
-                  params={{ drawingId: drawing.id }}
+                  to="/drawings/$id"
+                  params={{ id: drawing.id }}
                   className="flex items-center justify-between p-2 rounded-md hover:bg-accent transition-colors group"
                 >
                   <div className="flex items-center gap-2 min-w-0">
