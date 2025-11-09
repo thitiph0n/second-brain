@@ -8,7 +8,8 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./coupon": "./src/coupon.ts",
-		"./auth": "./src/auth.ts"
+		"./auth": "./src/auth.ts",
+		"./drawing": "./src/drawing.ts"
 	},
 	"scripts": {
 		"lint": "biome lint .",
@@ -17,5 +18,9 @@
 	},
 	"devDependencies": {
 		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"nanoid": "^5.1.5",
+		"tldraw": "^3.15.4"
 	}
 }

@@ -15,6 +15,11 @@ migrations_dir = "migrations"
 binding = "CACHE"
 id = "eec49951f2ce43f199d2f019ac06aea4"
 
+# R2 Bucket for drawing assets
+[[r2_buckets]]
+binding = "DRAWING_ASSETS"
+bucket_name = "second-brain-drawing-assets"
+
 # Environment variables
 [vars]
 ENVIRONMENT = "production"

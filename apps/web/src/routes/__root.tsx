@@ -1,15 +1,14 @@
 import { createRootRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "../auth/hooks";
 import Header from "../components/Header";
+import { BottomNav } from "../components/sidebar/BottomNav";
+import { Sidebar } from "../components/sidebar/Sidebar";
+import { SidebarProvider, useSidebar } from "../components/sidebar/SidebarProvider";
 import { ThemeProvider } from "../components/theme-provider";
 import { Toaster } from "../components/ui/sonner";
-import { SidebarProvider } from "../components/sidebar/SidebarProvider";
-import { Sidebar } from "../components/sidebar/Sidebar";
-import { BottomNav } from "../components/sidebar/BottomNav";
-import { useAuth } from "../auth/hooks";
-import { useSidebar } from "../components/sidebar/SidebarProvider";
-import { cn } from "@/lib/utils";
 
 function AppLayout() {
 	return (
@@ -38,7 +37,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
 			className={cn(
 				"flex-1 transition-[margin-left] duration-300 ease-in-out",
 				"pb-16 md:pb-0",
-				!isMobile && isOpen ? "md:ml-64" : "md:ml-0"
+				!isMobile && isOpen ? "md:ml-64" : "md:ml-0",
 			)}
 		>
 			{children}

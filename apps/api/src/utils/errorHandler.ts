@@ -30,7 +30,7 @@ export function createErrorResponse(
 	};
 
 	// Add user ID if available
-	if (user && user.id) {
+	if (user?.id) {
 		errorDetails.userId = user.id;
 	}
 

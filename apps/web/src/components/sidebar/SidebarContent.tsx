@@ -1,16 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { useAuth, useAuthActions } from "@/auth/hooks";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-	LayoutDashboard,
-	Ticket,
-	StickyNote,
 	CheckSquare,
-	Palette,
+	LayoutDashboard,
 	LogOut,
+	Palette,
+	StickyNote,
+	Ticket,
 	User,
 } from "lucide-react";
+import { useAuth, useAuthActions } from "@/auth/hooks";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type NavigationItem = {
@@ -58,9 +58,8 @@ const navigationItems: NavigationSection[] = [
 			},
 			{
 				title: "Drawings",
-				href: "/dashboard",
+				href: "/drawings",
 				icon: Palette,
-				disabled: true,
 			},
 		],
 	},

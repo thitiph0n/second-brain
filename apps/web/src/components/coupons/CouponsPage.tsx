@@ -1,15 +1,15 @@
+import type { Coupon, CouponType, CreateCouponRequest } from "@second-brain/types/coupon";
 import { CheckSquare, Loader2, Square, Ticket, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { CouponsSkeleton } from "@/components/skeleton/CouponsSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, couponApi } from "@/services/couponApi";
-import type { Coupon, CouponType, CreateCouponRequest } from "@second-brain/types/coupon";
 import { CouponForm } from "./CouponForm";
 import { CouponList } from "./CouponList";
-import { CouponsSkeleton } from "@/components/skeleton/CouponsSkeleton";
 
 export function CouponsPage() {
 	const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -345,8 +345,7 @@ export function CouponsPage() {
 								Active {activeCoupons.length > 0 ? `(${activeCoupons.length})` : ""}
 							</TabsTrigger>
 							<TabsTrigger value="used">
-								Used/Expired{" "}
-								{usedExpiredCoupons.length > 0 ? `(${usedExpiredCoupons.length})` : ""}
+								Used/Expired {usedExpiredCoupons.length > 0 ? `(${usedExpiredCoupons.length})` : ""}
 							</TabsTrigger>
 						</TabsList>
 

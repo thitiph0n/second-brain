@@ -1,3 +1,4 @@
+import type { CouponType, CreateCouponRequest } from "@second-brain/types/coupon";
 import { format } from "date-fns";
 import { CalendarIcon, ChevronDown, Clipboard, Plus, X } from "lucide-react";
 import { useState } from "react";
@@ -15,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { CouponType, CreateCouponRequest } from "@second-brain/types/coupon";
 
 interface CouponFormProps {
 	onSubmit: (data: CreateCouponRequest) => Promise<void>;

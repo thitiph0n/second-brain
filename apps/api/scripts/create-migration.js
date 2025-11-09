@@ -8,10 +8,10 @@
  *   (You will be prompted for a migration name)
  */
 
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import readline from "readline";
+import fs from "node:fs";
+import path from "node:path";
+import readline from "node:readline";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,15 +29,13 @@ function getNextMigrationNumber() {
 		return "0001";
 	}
 
-	const files = fs
-		.readdirSync(migrationsDir)
-		.filter((file) => file.endsWith(".sql"));
+	const files = fs.readdirSync(migrationsDir).filter((file) => file.endsWith(".sql"));
 
 	if (files.length === 0) {
 		return "0001";
 	}
 
-	const numbers = files.map((file) => Number.parseInt(file.split("_")[0]));
+	const numbers = files.map((file) => Number.parseInt(file.split("_")[0], 10));
 	const maxNumber = Math.max(...numbers);
 
 	return String(maxNumber + 1).padStart(4, "0");
@@ -67,9 +65,7 @@ function createMigrationFile(name) {
 	fs.writeFileSync(filepath, template);
 	console.log(`\n✅ Created migration file: ${filename}`);
 	console.log(`   Path: ${filepath}`);
-	console.log(
-		"\n💡 Edit the file to add your migration SQL, then run:",
-	);
+	console.log("\n💡 Edit the file to add your migration SQL, then run:");
 	console.log("   bun --filter @second-brain/api migrate:local");
 }
 

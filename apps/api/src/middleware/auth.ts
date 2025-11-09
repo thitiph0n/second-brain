@@ -1,8 +1,8 @@
 // Authentication middleware for protected routes
 
+import type { AuthSession, User } from "@second-brain/types/auth";
 import type { Context, Next } from "hono";
 import { AuthService } from "../services/auth";
-import type { AuthSession, User } from "@second-brain/types/auth";
 
 interface Env {
 	DB: D1Database;
@@ -74,7 +74,7 @@ export function optionalAuth() {
 	) => {
 		const authHeader = c.req.header("Authorization");
 
-		if (authHeader && authHeader.startsWith("Bearer ")) {
+		if (authHeader?.startsWith("Bearer ")) {
 			const token = authHeader.substring(7);
 			const authService = new AuthService(c.env.DB, c.env.CACHE, c.env.JWT_SECRET);
 
@@ -103,7 +103,7 @@ export function createRateLimiter(maxRequests: number, windowMs: number) {
 		const key = `rate_limit:${clientIP}`;
 
 		const current = await c.env.CACHE.get(key);
-		const requests = current ? parseInt(current) : 0;
+		const requests = current ? parseInt(current, 10) : 0;
 
 		if (requests >= maxRequests) {
 			return c.json(

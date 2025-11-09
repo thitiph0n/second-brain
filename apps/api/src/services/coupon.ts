@@ -120,7 +120,11 @@ export class CouponService {
 		}
 	}
 
-	async updateCoupon(id: string, userId: string, data: UpdateCouponRequest): Promise<Coupon | null> {
+	async updateCoupon(
+		id: string,
+		userId: string,
+		data: UpdateCouponRequest,
+	): Promise<Coupon | null> {
 		try {
 			await this.ensureDatabaseInitialized();
 

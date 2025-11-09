@@ -15,6 +15,10 @@ export default defineConfig({
 		viteReact(),
 		tailwindcss(),
 	],
+	define: {
+		"process.env": {},
+		global: "globalThis",
+	},
 	server: {
 		proxy: {
 			"/api": {

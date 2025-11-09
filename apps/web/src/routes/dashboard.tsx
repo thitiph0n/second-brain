@@ -1,13 +1,13 @@
+import type { Coupon } from "@second-brain/types/coupon";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckSquare, StickyNote, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
+import { DashboardSkeleton } from "@/components/skeleton/DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ApiError, couponApi } from "@/services/couponApi";
 import { RequireAuth } from "../auth/components/AuthGuard";
 import { useAuth } from "../auth/hooks";
-import { couponApi, ApiError } from "@/services/couponApi";
-import type { Coupon } from "@second-brain/types/coupon";
-import { DashboardSkeleton } from "@/components/skeleton/DashboardSkeleton";
 
 export const Route = createFileRoute("/dashboard")({
 	component: DashboardPage,
@@ -77,9 +77,15 @@ function DashboardContent() {
 								className="flex items-center space-x-4 group"
 								title="View Profile"
 							>
-								<img src={user?.avatarUrl} alt={user?.name} className="h-12 w-12 rounded-full ring-2 ring-background group-hover:ring-primary/20 transition-all" />
+								<img
+									src={user?.avatarUrl}
+									alt={user?.name}
+									className="h-12 w-12 rounded-full ring-2 ring-background group-hover:ring-primary/20 transition-all"
+								/>
 								<div className="flex-1 min-w-0">
-									<p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{user?.name}</p>
+									<p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+										{user?.name}
+									</p>
 									<p className="text-xs text-muted-foreground truncate">{user?.email}</p>
 								</div>
 							</Link>
@@ -111,14 +117,10 @@ function DashboardContent() {
 									{(expiredCoupons.length > 0 || usedCoupons.length > 0) && (
 										<div className="flex gap-3 text-xs">
 											{expiredCoupons.length > 0 && (
-												<span className="text-orange-600">
-													{expiredCoupons.length} expired
-												</span>
+												<span className="text-orange-600">{expiredCoupons.length} expired</span>
 											)}
 											{usedCoupons.length > 0 && (
-												<span className="text-green-600">
-													{usedCoupons.length} used
-												</span>
+												<span className="text-green-600">{usedCoupons.length} used</span>
 											)}
 										</div>
 									)}

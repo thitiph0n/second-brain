@@ -1,10 +1,10 @@
 // Authentication routes for OAuth 2.1 GitHub integration
 
+import type { AuthSession, User } from "@second-brain/types/auth";
 import { Hono } from "hono";
 import { createRateLimiter, requireAuth } from "../middleware/auth";
 import { AuthService } from "../services/auth";
 import { GitHubOAuthService } from "../services/oauth";
-import type { AuthSession, User } from "@second-brain/types/auth";
 import { validateTokenRefresh, validateUserProfile } from "../validation/auth";
 
 interface Env {

@@ -1,14 +1,16 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
+import assetsRoutes from "./routes/assets";
 import authRoutes from "./routes/auth";
 import couponRoutes from "./routes/coupon";
+import drawingsRoutes from "./routes/drawings";
 import { createErrorResponse } from "./utils/errorHandler";
 
 interface Env {
 	ASSETS: Fetcher;
 	DB: D1Database;
 	CACHE: KVNamespace;
+	DRAWING_ASSETS: R2Bucket;
 	ENVIRONMENT: string;
 	FRONTEND_URL: string;
 	JWT_SECRET: string;
@@ -31,7 +33,7 @@ app.use(
 			];
 			return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
 		},
-		allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+		allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 		allowHeaders: ["Content-Type", "Authorization"],
 		credentials: true,
 	}),
@@ -45,6 +47,7 @@ app.get("/api/health", (c) => {
 			environment: c.env.ENVIRONMENT,
 			database: c.env.DB ? "connected" : "not configured",
 			cache: c.env.CACHE ? "connected" : "not configured",
+			drawing_assets: c.env.DRAWING_ASSETS ? "connected" : "not configured",
 		});
 	} catch (error) {
 		return createErrorResponse(c, error, "Health check failed");
@@ -53,6 +56,8 @@ app.get("/api/health", (c) => {
 
 app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1/coupons", couponRoutes);
+app.route("/api/v1/drawings", drawingsRoutes);
+app.route("/api/v1/assets", assetsRoutes);
 
 // 404 handler for API routes
 app.notFound((c) => {

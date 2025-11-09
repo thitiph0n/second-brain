@@ -11,9 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotesRouteImport } from './routes/notes'
+import { Route as DrawingsRouteImport } from './routes/drawings'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CouponsRouteImport } from './routes/coupons'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DrawingsIndexRouteImport } from './routes/drawings.index'
+import { Route as DrawingsNewRouteImport } from './routes/drawings.new'
+import { Route as DrawingsIdRouteImport } from './routes/drawings.$id'
 import { Route as DemoCouponsRouteImport } from './routes/demo/coupons'
 import { Route as AuthSuccessRouteImport } from './routes/auth.success'
 import { Route as AuthErrorRouteImport } from './routes/auth.error'
@@ -27,6 +31,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const NotesRoute = NotesRouteImport.update({
   id: '/notes',
   path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DrawingsRoute = DrawingsRouteImport.update({
+  id: '/drawings',
+  path: '/drawings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -43,6 +52,21 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DrawingsIndexRoute = DrawingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DrawingsRoute,
+} as any)
+const DrawingsNewRoute = DrawingsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => DrawingsRoute,
+} as any)
+const DrawingsIdRoute = DrawingsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DrawingsRoute,
 } as any)
 const DemoCouponsRoute = DemoCouponsRouteImport.update({
   id: '/demo/coupons',
@@ -69,12 +93,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/coupons': typeof CouponsRoute
   '/dashboard': typeof DashboardRoute
+  '/drawings': typeof DrawingsRouteWithChildren
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/error': typeof AuthErrorRoute
   '/auth/success': typeof AuthSuccessRoute
   '/demo/coupons': typeof DemoCouponsRoute
+  '/drawings/$id': typeof DrawingsIdRoute
+  '/drawings/new': typeof DrawingsNewRoute
+  '/drawings/': typeof DrawingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,18 +114,25 @@ export interface FileRoutesByTo {
   '/auth/error': typeof AuthErrorRoute
   '/auth/success': typeof AuthSuccessRoute
   '/demo/coupons': typeof DemoCouponsRoute
+  '/drawings/$id': typeof DrawingsIdRoute
+  '/drawings/new': typeof DrawingsNewRoute
+  '/drawings': typeof DrawingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/coupons': typeof CouponsRoute
   '/dashboard': typeof DashboardRoute
+  '/drawings': typeof DrawingsRouteWithChildren
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/error': typeof AuthErrorRoute
   '/auth/success': typeof AuthSuccessRoute
   '/demo/coupons': typeof DemoCouponsRoute
+  '/drawings/$id': typeof DrawingsIdRoute
+  '/drawings/new': typeof DrawingsNewRoute
+  '/drawings/': typeof DrawingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -105,12 +140,16 @@ export interface FileRouteTypes {
     | '/'
     | '/coupons'
     | '/dashboard'
+    | '/drawings'
     | '/notes'
     | '/profile'
     | '/auth/callback'
     | '/auth/error'
     | '/auth/success'
     | '/demo/coupons'
+    | '/drawings/$id'
+    | '/drawings/new'
+    | '/drawings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,23 +161,31 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/auth/success'
     | '/demo/coupons'
+    | '/drawings/$id'
+    | '/drawings/new'
+    | '/drawings'
   id:
     | '__root__'
     | '/'
     | '/coupons'
     | '/dashboard'
+    | '/drawings'
     | '/notes'
     | '/profile'
     | '/auth/callback'
     | '/auth/error'
     | '/auth/success'
     | '/demo/coupons'
+    | '/drawings/$id'
+    | '/drawings/new'
+    | '/drawings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CouponsRoute: typeof CouponsRoute
   DashboardRoute: typeof DashboardRoute
+  DrawingsRoute: typeof DrawingsRouteWithChildren
   NotesRoute: typeof NotesRoute
   ProfileRoute: typeof ProfileRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
@@ -163,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/drawings': {
+      id: '/drawings'
+      path: '/drawings'
+      fullPath: '/drawings'
+      preLoaderRoute: typeof DrawingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -183,6 +237,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/drawings/': {
+      id: '/drawings/'
+      path: '/'
+      fullPath: '/drawings/'
+      preLoaderRoute: typeof DrawingsIndexRouteImport
+      parentRoute: typeof DrawingsRoute
+    }
+    '/drawings/new': {
+      id: '/drawings/new'
+      path: '/new'
+      fullPath: '/drawings/new'
+      preLoaderRoute: typeof DrawingsNewRouteImport
+      parentRoute: typeof DrawingsRoute
+    }
+    '/drawings/$id': {
+      id: '/drawings/$id'
+      path: '/$id'
+      fullPath: '/drawings/$id'
+      preLoaderRoute: typeof DrawingsIdRouteImport
+      parentRoute: typeof DrawingsRoute
     }
     '/demo/coupons': {
       id: '/demo/coupons'
@@ -215,10 +290,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DrawingsRouteChildren {
+  DrawingsIdRoute: typeof DrawingsIdRoute
+  DrawingsNewRoute: typeof DrawingsNewRoute
+  DrawingsIndexRoute: typeof DrawingsIndexRoute
+}
+
+const DrawingsRouteChildren: DrawingsRouteChildren = {
+  DrawingsIdRoute: DrawingsIdRoute,
+  DrawingsNewRoute: DrawingsNewRoute,
+  DrawingsIndexRoute: DrawingsIndexRoute,
+}
+
+const DrawingsRouteWithChildren = DrawingsRoute._addFileChildren(
+  DrawingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CouponsRoute: CouponsRoute,
   DashboardRoute: DashboardRoute,
+  DrawingsRoute: DrawingsRouteWithChildren,
   NotesRoute: NotesRoute,
   ProfileRoute: ProfileRoute,
   AuthCallbackRoute: AuthCallbackRoute,

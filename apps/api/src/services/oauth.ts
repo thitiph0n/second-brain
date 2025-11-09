@@ -1,7 +1,7 @@
 // OAuth service for GitHub authentication
 
 import type { GitHubUser, OAuthState } from "@second-brain/types/auth";
-import { generateRandomId, generateRandomState } from "../utils/crypto";
+import { generateRandomState } from "../utils/crypto";
 
 export class GitHubOAuthService {
 	private clientId: string;
