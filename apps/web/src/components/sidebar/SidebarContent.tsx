@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import {
 	CheckSquare,
 	LayoutDashboard,
-	LogOut,
 	Palette,
 	StickyNote,
 	Ticket,
@@ -10,7 +9,6 @@ import {
 } from "lucide-react";
 import { useAuth, useAuthActions } from "@/auth/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type NavigationItem = {
@@ -131,10 +129,6 @@ export function SidebarContent({ className }: SidebarContentProps) {
 								<p className="text-xs text-muted-foreground truncate">{user.email}</p>
 							</div>
 						</Link>
-						<Button variant="ghost" size="sm" onClick={logout} className="h-8 w-8 p-0">
-							<LogOut className="h-4 w-4" />
-							<span className="sr-only">Log out</span>
-						</Button>
 					</div>
 				</div>
 			)}
