@@ -2,100 +2,92 @@
   <defs>
     <!-- Gradient definitions -->
     <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1e3c72"/>
-      <stop offset="50%" style="stop-color:#2a5298"/>
-      <stop offset="100%" style="stop-color:#3b82f6"/>
+      <stop offset="0%" style="stop-color:#000000"/>
+      <stop offset="50%" style="stop-color:#1a1a1a"/>
+      <stop offset="100%" style="stop-color:#2a2a2a"/>
     </linearGradient>
-    
+
     <linearGradient id="titleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#ffffff"/>
-      <stop offset="100%" style="stop-color:#e0e7ff"/>
+      <stop offset="100%" style="stop-color:#e5e5e5"/>
     </linearGradient>
-    
-    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#60a5fa"/>
-      <stop offset="100%" style="stop-color:#3b82f6"/>
-    </linearGradient>
-    
+
     <!-- Pattern for background -->
     <pattern id="dots" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
-      <circle cx="15" cy="15" r="2" fill="rgba(255,255,255,0.1)"/>
-      <circle cx="45" cy="45" r="1" fill="rgba(255,255,255,0.05)"/>
+      <circle cx="15" cy="15" r="2" fill="rgba(255,255,255,0.05)"/>
+      <circle cx="45" cy="45" r="1" fill="rgba(255,255,255,0.02)"/>
     </pattern>
   </defs>
-  
+
   <!-- Background -->
   <rect width="1200" height="630" fill="url(#bgGradient)" rx="20"/>
-  
+
   <!-- Background pattern -->
-  <rect width="1200" height="630" fill="url(#dots)" opacity="0.3"/>
-  
+  <rect width="1200" height="630" fill="url(#dots)" opacity="0.5"/>
+
   <!-- Geometric shapes for visual interest -->
-  <circle cx="100" cy="100" r="80" fill="rgba(255,255,255,0.05)" opacity="0.5"/>
-  <circle cx="1100" cy="530" r="60" fill="rgba(255,255,255,0.03)" opacity="0.7"/>
-  <polygon points="1050,50 1150,50 1100,120" fill="rgba(255,255,255,0.04)"/>
-  
-  <!-- Centered brain emoji closer to title -->
-  <g transform="translate(600, 200)">
-    <!-- Brain emoji centered -->
-    <text x="0" y="15" text-anchor="middle" 
-          font-size="100" 
-          font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji">🧠</text>
-  </g>
-  
+  <circle cx="100" cy="100" r="80" fill="rgba(255,255,255,0.02)" opacity="0.5"/>
+  <circle cx="1100" cy="530" r="60" fill="rgba(255,255,255,0.01)" opacity="0.7"/>
+  <polygon points="1050,50 1150,50 1100,120" fill="rgba(255,255,255,0.02)"/>
+
+  <!-- Centered brain emoji -->
+  <text x="600" y="220" text-anchor="middle"
+        font-size="120"
+        font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif">🧠</text>
+
   <!-- Main title positioned lower -->
-  <text x="600" y="290" text-anchor="middle" 
-        font-family="Arial, sans-serif" 
-        font-size="64" 
-        font-weight="800" 
-        fill="url(#titleGradient)" 
+  <text x="600" y="300" text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="64"
+        font-weight="800"
+        fill="url(#titleGradient)"
         letter-spacing="-2px">Second Brain</text>
-  
+
   <!-- Subtitle -->
-  <text x="600" y="320" text-anchor="middle" 
-        font-family="Arial, sans-serif" 
-        font-size="24" 
-        fill="rgba(255,255,255,0.9)">Personal Productivity Suite</text>
-  
+  <text x="600" y="330" text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="24"
+        fill="rgba(255,255,255,0.8)">Personal Productivity Suite</text>
+
   <!-- Description -->
-  <text x="600" y="350" text-anchor="middle" 
-        font-family="Arial, sans-serif" 
-        font-size="18" 
-        fill="rgba(255,255,255,0.7)">Notes • Drawings • Todos • Health Tracking • AI Integration</text>
-  
+  <text x="600" y="360" text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="18"
+        fill="rgba(255,255,255,0.6)">Notes • Drawings • Todos • Health Tracking • AI Integration</text>
+
   <!-- Tech stack badges -->
-  <g transform="translate(600, 420)">
+  <g transform="translate(600, 430)">
     <!-- React badge -->
     <g transform="translate(-180, 0)">
-      <rect x="-30" y="-12" width="60" height="24" rx="12" fill="rgba(97, 218, 251, 0.2)" stroke="rgba(97, 218, 251, 0.5)"/>
-      <text x="0" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#61dafb">React</text>
+      <rect x="-30" y="-12" width="60" height="24" rx="12" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)"/>
+      <text x="0" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">React</text>
     </g>
-    
+
     <!-- TypeScript badge -->
     <g transform="translate(-90, 0)">
-      <rect x="-35" y="-12" width="70" height="24" rx="12" fill="rgba(59, 130, 246, 0.2)" stroke="rgba(59, 130, 246, 0.5)"/>
-      <text x="0" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#3b82f6">TypeScript</text>
+      <rect x="-35" y="-12" width="70" height="24" rx="12" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)"/>
+      <text x="0" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">TypeScript</text>
     </g>
-    
+
     <!-- Cloudflare badge -->
     <g transform="translate(15, 0)">
-      <rect x="-40" y="-12" width="80" height="24" rx="12" fill="rgba(249, 115, 22, 0.2)" stroke="rgba(249, 115, 22, 0.5)"/>
-      <text x="0" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#f97316">Cloudflare</text>
+      <rect x="-40" y="-12" width="80" height="24" rx="12" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)"/>
+      <text x="0" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Cloudflare</text>
     </g>
-    
+
     <!-- Serverless badge -->
     <g transform="translate(120, 0)">
-      <rect x="-35" y="-12" width="70" height="24" rx="12" fill="rgba(34, 197, 94, 0.2)" stroke="rgba(34, 197, 94, 0.5)"/>
-      <text x="0" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#22c55e">Serverless</text>
+      <rect x="-35" y="-12" width="70" height="24" rx="12" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)"/>
+      <text x="0" y="4" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ffffff">Serverless</text>
     </g>
   </g>
-  
+
   <!-- Architecture info -->
-  <text x="600" y="500" text-anchor="middle" 
-        font-family="Arial, sans-serif" 
-        font-size="16" 
-        fill="rgba(255,255,255,0.6)">Monorepo • Zero-Cost Deployment • Vendor Lock-in Free</text>
-  
+  <text x="600" y="510" text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="16"
+        fill="rgba(255,255,255,0.5)">Monorepo • Zero-Cost Deployment • Vendor Lock-in Free</text>
+
   <!-- Decorative elements -->
   <g opacity="0.1">
     <circle cx="200" cy="500" r="3" fill="white"/>
