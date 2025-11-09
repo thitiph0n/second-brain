@@ -27,7 +27,7 @@ export class DrawingService {
 	private transformDrawingFromDb(rawDrawing: any): Drawing {
 		return {
 			id: rawDrawing.id,
-			title: rawDrawing.name,
+			title: rawDrawing.title,
 			description: rawDrawing.description,
 			userId: rawDrawing.user_id,
 			parentId: rawDrawing.parent_id,
@@ -60,7 +60,7 @@ export class DrawingService {
 
 			const result = await this.db
 				.prepare(
-					`INSERT INTO drawings (id, user_id, name, description, parent_id, type, data, created_at, updated_at)
+					`INSERT INTO drawings (id, user_id, title, description, parent_id, type, data, created_at, updated_at)
            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
            RETURNING *`,
 				)
@@ -190,7 +190,7 @@ export class DrawingService {
 			const result = await this.db
 				.prepare(
 					`UPDATE drawings
-           SET name = COALESCE(?3, name),
+           SET title = COALESCE(?3, title),
                description = COALESCE(?4, description),
                parent_id = COALESCE(?5, parent_id),
                data = COALESCE(?6, data),
