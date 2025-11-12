@@ -5,6 +5,8 @@ import { toast } from "sonner";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "https://2b.thitiphon.me" : "http://localhost:8787");
 
+console.log('useDrawingCanvas: API_BASE_URL configured as:', API_BASE_URL);
+
 function getAuthHeaders() {
 	const authData = localStorage.getItem("auth-storage");
 	let token = null;
@@ -18,10 +20,17 @@ function getAuthHeaders() {
 		}
 	}
 
-	return {
+	const headers = {
 		"Content-Type": "application/json",
 		...(token ? { Authorization: `Bearer ${token}` } : {}),
 	};
+
+	console.log('getAuthHeaders: Token exists:', !!token);
+	if (!token) {
+		console.warn('getAuthHeaders: No authentication token found!');
+	}
+
+	return headers;
 }
 
 export function useDrawingCanvas(drawingId: string) {
@@ -36,13 +45,22 @@ export function useDrawingCanvas(drawingId: string) {
 	} = useQuery<Drawing>({
 		queryKey: ["drawing", drawingId],
 		queryFn: async () => {
+			console.log('useDrawingCanvas: Fetching drawing data for ID:', drawingId);
 			const response = await fetch(`${API_BASE_URL}/api/v1/drawings/${drawingId}`, {
 				headers: getAuthHeaders(),
 			});
+			console.log('useDrawingCanvas: Response status:', response.status, response.statusText);
 			if (!response.ok) {
-				throw new Error("Failed to load drawing");
+				const errorText = await response.text();
+				console.error('useDrawingCanvas: Failed to load drawing:', errorText);
+				throw new Error(`Failed to load drawing: ${response.status} ${response.statusText}`);
 			}
 			const data = await response.json();
+			console.log('useDrawingCanvas: Successfully fetched drawing data:', {
+				hasData: !!data.drawing,
+				hasDrawingData: !!data.drawing?.data,
+				dataLength: data.drawing?.data?.length || 0
+			});
 			return data.drawing;
 		},
 		enabled: !!drawingId,
@@ -51,19 +69,37 @@ export function useDrawingCanvas(drawingId: string) {
 	// Save drawing content mutation
 	const saveMutation = useMutation({
 		mutationFn: async ({ content }: { content: string }) => {
+			console.log('useDrawingCanvas: saveMutation called with content length:', content.length);
+			console.log('useDrawingCanvas: Drawing ID:', drawingId);
+			console.log('useDrawingCanvas: API URL:', `${API_BASE_URL}/api/v1/drawings/${drawingId}`);
+
+			const authHeaders = getAuthHeaders();
+			console.log('useDrawingCanvas: Auth headers:', Object.keys(authHeaders));
+
 			const response = await fetch(`${API_BASE_URL}/api/v1/drawings/${drawingId}`, {
 				method: "PATCH",
-				headers: getAuthHeaders(),
+				headers: authHeaders,
 				body: JSON.stringify({ data: content }),
 			});
+
+			console.log('useDrawingCanvas: Response status:', response.status, response.statusText);
+
 			if (!response.ok) {
-				throw new Error("Failed to save drawing");
+				const errorText = await response.text();
+				console.error('useDrawingCanvas: Save failed response:', errorText);
+				throw new Error(`Failed to save drawing: ${response.status} ${response.statusText}`);
 			}
 			const data = await response.json();
+			console.log('useDrawingCanvas: Save successful, received data:', data);
 			return data.drawing;
 		},
 		onSuccess: () => {
+			console.log('useDrawingCanvas: Save mutation success - invalidating query');
+			// Invalidate queries to get fresh data from server
 			queryClient.invalidateQueries({ queryKey: ["drawing", drawingId] });
+		},
+		onError: (error) => {
+			console.error('useDrawingCanvas: Save mutation error:', error);
 		},
 	});
 

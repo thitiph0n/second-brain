@@ -12,7 +12,7 @@ interface DrawingPageProps {
 export function DrawingPage({ drawingId }: DrawingPageProps) {
 	const navigate = useNavigate();
 
-	const { data: drawing, isLoading, isError, error } = useDrawing(drawingId);
+	const { data: drawing, isLoading, isError, error, refetch: refetchDrawing } = useDrawing(drawingId);
 	const { updateDrawing } = useUpdateDrawing(drawingId);
 
 	const [drawingName, setDrawingName] = useState("");
@@ -77,10 +77,9 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 			const hasTitleChanged = drawingName !== drawing.title;
 			const hasDescriptionChanged = false; // Description is not editable in current UI
 
-			// If nothing changed, no need to save
-			if (!hasTitleChanged && !hasDescriptionChanged && !hasChanges) {
-				return;
-			}
+			// For manual save, always proceed to save the current drawing state
+			// This ensures manual save works even if change detection thinks nothing changed
+			const shouldSaveContent = hasChanges || true; // Always save content on manual save
 
 			// Prepare update data
 			const updateData: {
@@ -92,9 +91,9 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 				description: hasDescriptionChanged ? drawing.description : undefined,
 			};
 
-			// Add content data if there are changes
-			if (hasChanges && excalidrawAPIRef.current) {
-				const elements = excalidrawAPIRef.current.getSceneElements();
+			// Add content data for manual save (always include current state)
+			if (shouldSaveContent && excalidrawAPIRef.current) {
+				const elements = [...excalidrawAPIRef.current.getSceneElements()];
 				const appState = excalidrawAPIRef.current.getAppState();
 				const files = excalidrawAPIRef.current.getFiles();
 				const libraryItems: any[] = []; // Library items not directly accessible via API
@@ -112,9 +111,13 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 					libraryItems,
 				};
 
+				
 				updateData.data = JSON.stringify(content);
 			} else if (hasChanges) {
 				// Fallback: use current drawing data if API not available
+				if (process.env.NODE_ENV === 'development') {
+					console.log('DrawingPage: Using fallback data for manual save');
+				}
 				updateData.data = drawing.data;
 			}
 
@@ -126,6 +129,13 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 
 			// Reset change state after successful save
 			setHasChanges(false);
+
+			// Immediately trigger a manual save completion event to reset ExcalidrawCanvas state
+			window.dispatchEvent(new Event('manualSaveComplete'));
+
+			// Refetch drawing data to ensure ExcalidrawCanvas gets updated data
+			// This will trigger the drawing data effect in ExcalidrawCanvas to reset state
+			refetchDrawing();
 		} catch (error) {
 			console.error("Failed to save drawing:", error);
 		}
