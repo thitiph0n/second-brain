@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useDrawing, useUpdateDrawing } from "@/hooks/drawings/useDrawing";
 import { ExcalidrawCanvas } from "@/components/drawing/ExcalidrawCanvas";
 import { Toolbar } from "./Toolbar";
@@ -14,12 +14,16 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 	const { data: drawing, isLoading, isError, error } = useDrawing(drawingId);
 	const { updateDrawing } = useUpdateDrawing(drawingId);
 
-	
 	const [drawingName, setDrawingName] = useState("");
 	const [hasChanges, setHasChanges] = useState(false);
+	const excalidrawAPIRef = useRef<any>(null);
 
 	const handleContentChanged = (changes: boolean) => {
 		setHasChanges(changes);
+	};
+
+	const handleExcalidrawAPI = (api: any) => {
+		excalidrawAPIRef.current = api;
 	};
 
 	// Add Cmd+S (Mac) and Ctrl+S (Windows) keyboard shortcuts for saving
@@ -67,23 +71,56 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 	const handleSave = async () => {
 		if (!drawing) return;
 
-				
 		try {
-			// Update metadata
-						await updateDrawing({
-				id: drawingId,
-				data: {
-					title: drawingName,
-					description: drawing.description,
-				},
-			});
-			
-			// Save content (if there are changes)
-			if (hasChanges) {
-				// Trigger manual save via event
-				window.dispatchEvent(new CustomEvent('manualSaveDrawing'));
-				setHasChanges(false);
+			// Check if anything has actually changed
+			const hasTitleChanged = drawingName !== drawing.title;
+			const hasDescriptionChanged = false; // Description is not editable in current UI
+
+			// If nothing changed, no need to save
+			if (!hasTitleChanged && !hasDescriptionChanged && !hasChanges) {
+				return;
 			}
+
+			// Prepare update data
+			const updateData: any = {
+				title: hasTitleChanged ? drawingName : undefined,
+				description: hasDescriptionChanged ? drawing.description : undefined,
+			};
+
+			// Add content data if there are changes
+			if (hasChanges && excalidrawAPIRef.current) {
+				const elements = excalidrawAPIRef.current.getSceneElements();
+				const appState = excalidrawAPIRef.current.getAppState();
+				const files = excalidrawAPIRef.current.getFiles();
+				const libraryItems = excalidrawAPIRef.current.getLibraryItems?.() || [];
+
+				const content = {
+					type: "excalidraw",
+					version: 2,
+					source: "https://excalidraw.com",
+					elements,
+					appState: {
+						viewBackgroundColor: appState.viewBackgroundColor,
+						gridSize: appState.gridSize,
+					},
+					files,
+					libraryItems,
+				};
+
+				updateData.data = JSON.stringify(content);
+			} else if (hasChanges) {
+				// Fallback: use current drawing data if API not available
+				updateData.data = drawing.data;
+			}
+
+			// Make single API call with all changes
+			await updateDrawing({
+				id: drawingId,
+				data: updateData,
+			});
+
+			// Reset change state after successful save
+			setHasChanges(false);
 		} catch (error) {
 			console.error("Failed to save drawing:", error);
 		}
@@ -193,6 +230,7 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 				<ExcalidrawCanvas
 					drawingId={drawingId}
 					onContentChanged={handleContentChanged}
+					onExcalidrawAPI={handleExcalidrawAPI}
 				/>
 			</div>
 		</div>

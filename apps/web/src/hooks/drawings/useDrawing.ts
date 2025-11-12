@@ -77,6 +77,7 @@ interface UpdateDrawingMutationVariables {
 		description?: string;
 		isArchived?: boolean;
 		parentId?: string;
+		data?: string;
 	};
 }
 

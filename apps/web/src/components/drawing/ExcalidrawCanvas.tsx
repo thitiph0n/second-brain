@@ -1,4 +1,4 @@
-import { Excalidraw } from "@excalidraw/excalidraw";
+import { Excalidraw, getDefaultAppState } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import { useEffect, useState } from "react";
 import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
@@ -7,16 +7,23 @@ interface ExcalidrawCanvasProps {
 	drawingId: string;
 	className?: string;
 	onContentChanged?: (hasChanges: boolean) => void;
+	onExcalidrawAPI?: (api: any) => void;
 }
 
-export function ExcalidrawCanvas({ drawingId, className, onContentChanged }: ExcalidrawCanvasProps) {
+export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExcalidrawAPI }: ExcalidrawCanvasProps) {
 	const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
 	const { drawing, isLoading, isError, error, saveDrawing } = useDrawingCanvas(drawingId);
+	const [libraryItems, setLibraryItems] = useState<any[]>([]);
 	const [initialData, setInitialData] = useState<{
 		elements?: any[];
 		appState?: any;
 		files?: any;
 	} | null>(null);
+
+	// Handle library changes
+	const onLibraryChange = (items: any[]) => {
+		setLibraryItems(items);
+	};
 
 	// Track changes by comparing current content with initial content
 	const checkForChanges = () => {
@@ -55,6 +62,7 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged }: Exc
 				gridSize: appState.gridSize,
 			},
 			files,
+			libraryItems, // Include library items in saved data
 		};
 
 		saveDrawing({ content: JSON.stringify(data) });
@@ -76,6 +84,10 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged }: Exc
 					appState: parsed.appState || {},
 					files: parsed.files || {},
 				});
+				// Restore library items if they exist
+				if (parsed.libraryItems) {
+					setLibraryItems(parsed.libraryItems);
+				}
 			} catch (err) {
 				console.error("Failed to load drawing data:", err);
 				setInitialData({
@@ -116,6 +128,7 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged }: Exc
 						gridSize: currentAppState.gridSize,
 					},
 					files: currentFiles,
+					libraryItems, // Include library items in auto-save
 				};
 
 				saveDrawing({ content: JSON.stringify(data) });
@@ -190,8 +203,14 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged }: Exc
 	return (
 		<div className={`w-full h-full ${className}`}>
 			<Excalidraw
-				excalidrawAPI={(api) => setExcalidrawAPI(api)}
+				excalidrawAPI={(api) => {
+					setExcalidrawAPI(api);
+					onExcalidrawAPI?.(api);
+				}}
 				initialData={initialData || undefined}
+				libraryItems={libraryItems}
+				onLibraryChange={onLibraryChange}
+				theme="light"
 			/>
 		</div>
 	);
