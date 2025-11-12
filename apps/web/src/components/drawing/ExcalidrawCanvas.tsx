@@ -39,13 +39,9 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExc
 		setInitialData(prev => prev ? { ...prev, libraryItems: items } : null);
 	};
 
-	// Simple hash function for object comparison
-	const createHash = (obj: any): string => {
-		return JSON.stringify(obj, Object.keys(obj).sort());
-	};
-
+	
 	// Simple but comprehensive element property comparison
-	const deepCompareElements = (current: any[], initial: any[]): boolean => {
+	const deepCompareElements = (current: readonly any[], initial: any[]): boolean => {
 		if (current.length !== initial.length) return false;
 
 		for (let i = 0; i < current.length; i++) {
@@ -114,7 +110,7 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExc
 
 		// Only do deep comparison if counts are the same
 		if (initialData.elements && currentElements.length === initialData.elements.length) {
-			const elementsChanged = !deepCompareElements(currentElements, initialData.elements);
+			const elementsChanged = !deepCompareElements(currentElements, [...initialData.elements]);
 			if (elementsChanged !== hasUnsavedChanges) {
 				setHasUnsavedChanges(elementsChanged);
 				if (onContentChanged) onContentChanged(elementsChanged);
