@@ -1,35 +1,40 @@
-import { Excalidraw, getDefaultAppState } from "@excalidraw/excalidraw";
+import { Excalidraw } from "@excalidraw/excalidraw";
+import type { ExcalidrawImperativeAPI, LibraryItems } from "@excalidraw/excalidraw/types";
 import "@excalidraw/excalidraw/index.css";
 import { useEffect, useState } from "react";
 import { useDrawingCanvas } from "@/hooks/useDrawingCanvas";
+
 
 interface ExcalidrawCanvasProps {
 	drawingId: string;
 	className?: string;
 	onContentChanged?: (hasChanges: boolean) => void;
-	onExcalidrawAPI?: (api: any) => void;
+	onExcalidrawAPI?: (api: ExcalidrawImperativeAPI) => void;
 }
 
 export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExcalidrawAPI }: ExcalidrawCanvasProps) {
-	const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
+	const [excalidrawAPI, setExcalidrawAPI] = useState<ExcalidrawImperativeAPI | null>(null);
 	const { drawing, isLoading, isError, error, saveDrawing } = useDrawingCanvas(drawingId);
-	const [libraryItems, setLibraryItems] = useState<any[]>([]);
+	const [libraryItems, setLibraryItems] = useState<LibraryItems>([]);
 	const [initialData, setInitialData] = useState<{
-		elements?: any[];
+		elements?: readonly any[];
 		appState?: any;
 		files?: any;
+		libraryItems?: LibraryItems;
 	} | null>(null);
 
 	// Handle library changes
-	const onLibraryChange = (items: any[]) => {
+	const onLibraryChange = (items: LibraryItems) => {
 		setLibraryItems(items);
+		// Update initialData to include new library items
+		setInitialData(prev => prev ? { ...prev, libraryItems: items } : null);
 	};
 
 	// Track changes by comparing current content with initial content
 	const checkForChanges = () => {
 		if (!excalidrawAPI || !initialData) return;
 
-		const currentElements = excalidrawAPI.getSceneElements();
+		const currentElements = [...excalidrawAPI.getSceneElements()];
 		const currentAppState = excalidrawAPI.getAppState();
 
 		// Simple comparison - check if elements count changed
@@ -48,7 +53,7 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExc
 			console.error("No excalidrawAPI available for manual save");
 			return;
 		}
-		const elements = excalidrawAPI.getSceneElements();
+		const elements = [...excalidrawAPI.getSceneElements()];
 		const appState = excalidrawAPI.getAppState();
 		const files = excalidrawAPI.getFiles();
 
@@ -72,6 +77,7 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExc
 			elements: data.elements,
 			appState: data.appState,
 			files: data.files,
+			libraryItems: data.libraryItems,
 		});
 	};
 
@@ -83,8 +89,9 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExc
 					elements: parsed.elements || [],
 					appState: parsed.appState || {},
 					files: parsed.files || {},
+					libraryItems: parsed.libraryItems || [],
 				});
-				// Restore library items if they exist
+				// Also set library items state
 				if (parsed.libraryItems) {
 					setLibraryItems(parsed.libraryItems);
 				}
@@ -94,6 +101,7 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExc
 					elements: [],
 					appState: {},
 					files: {},
+					libraryItems: [],
 				});
 			}
 		}
@@ -106,7 +114,7 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExc
 			if (!excalidrawAPI || !initialData) return;
 
 			// Get current content
-			const currentElements = excalidrawAPI.getSceneElements();
+			const currentElements = [...excalidrawAPI.getSceneElements()];
 			const currentAppState = excalidrawAPI.getAppState();
 			const currentFiles = excalidrawAPI.getFiles();
 
@@ -138,6 +146,7 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExc
 					elements: data.elements,
 					appState: data.appState,
 					files: data.files,
+					libraryItems: data.libraryItems,
 				});
 			}
 		};
@@ -208,7 +217,6 @@ export function ExcalidrawCanvas({ drawingId, className, onContentChanged, onExc
 					onExcalidrawAPI?.(api);
 				}}
 				initialData={initialData || undefined}
-				libraryItems={libraryItems}
 				onLibraryChange={onLibraryChange}
 				theme="light"
 			/>

@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useDrawing, useUpdateDrawing } from "@/hooks/drawings/useDrawing";
 import { ExcalidrawCanvas } from "@/components/drawing/ExcalidrawCanvas";
 import { Toolbar } from "./Toolbar";
+import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 
 interface DrawingPageProps {
 	drawingId: string;
@@ -16,13 +17,13 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 
 	const [drawingName, setDrawingName] = useState("");
 	const [hasChanges, setHasChanges] = useState(false);
-	const excalidrawAPIRef = useRef<any>(null);
+	const excalidrawAPIRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
 	const handleContentChanged = (changes: boolean) => {
 		setHasChanges(changes);
 	};
 
-	const handleExcalidrawAPI = (api: any) => {
+	const handleExcalidrawAPI = (api: ExcalidrawImperativeAPI) => {
 		excalidrawAPIRef.current = api;
 	};
 
@@ -82,7 +83,11 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 			}
 
 			// Prepare update data
-			const updateData: any = {
+			const updateData: {
+				title?: string;
+				description?: string;
+				data?: string;
+			} = {
 				title: hasTitleChanged ? drawingName : undefined,
 				description: hasDescriptionChanged ? drawing.description : undefined,
 			};
@@ -92,7 +97,7 @@ export function DrawingPage({ drawingId }: DrawingPageProps) {
 				const elements = excalidrawAPIRef.current.getSceneElements();
 				const appState = excalidrawAPIRef.current.getAppState();
 				const files = excalidrawAPIRef.current.getFiles();
-				const libraryItems = excalidrawAPIRef.current.getLibraryItems?.() || [];
+				const libraryItems: any[] = []; // Library items not directly accessible via API
 
 				const content = {
 					type: "excalidraw",
