@@ -13,7 +13,7 @@ import type {
   MealType
 } from '@/types/meal-tracker';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://2b.thitiphon.me' : 'http://localhost:8787');
 
 class MealTrackerAPI {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
