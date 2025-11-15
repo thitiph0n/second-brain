@@ -1,21 +1,19 @@
 import { useMemo, useState } from 'react';
-import { useMealTracker } from '@/store/meal-tracker';
 import { useUserProfile, useMeals, useDailySummary, useStreak } from '@/hooks/meal-tracker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MealForm } from './MealForm';
 import { MealList } from './MealList';
 import { StreakWidget } from './StreakWidget';
 import { FavoritesList } from './FavoritesList';
 import { Plus, Flame, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { MealType } from '@/types/meal-tracker';
+import { useNavigate } from '@tanstack/react-router';
 
 export function DailyDashboard() {
-  const { setEditingMeal } = useMealTracker();
+  const navigate = useNavigate();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
 
   // Get local date in YYYY-MM-DD format
@@ -37,10 +35,7 @@ export function DailyDashboard() {
   const dailySummaryFromAPI = dailySummaryData?.dailySummary || null;
   const streak = streakData?.streak || null;
 
-  const [showMealForm, setShowMealForm] = useState(false);
-  const [selectedMealType] = useState<MealType>('breakfast');
-  const [editingMealId, setEditingMealId] = useState<string | null>(null);
-
+  
   // Calculate daily totals for selected date if we don't have summary from API
   const calculatedDailySummary = useMemo(() => {
     if (dailySummaryFromAPI) return dailySummaryFromAPI;
@@ -106,13 +101,17 @@ export function DailyDashboard() {
   };
 
   const handleAddMeal = (mealType: MealType) => {
-    setEditingMeal(null, mealType);
-    setShowMealForm(true);
+    navigate({
+      to: '/meal-tracker/add',
+      search: { mealType }
+    });
   };
 
   const handleEditMeal = (mealId: string) => {
-    setEditingMealId(mealId);
-    setShowMealForm(true);
+    navigate({
+      to: '/meal-tracker/edit/$id',
+      params: { id: mealId }
+    });
   };
 
   const handlePreviousDay = () => {
@@ -346,30 +345,6 @@ export function DailyDashboard() {
 
       {/* Meal List */}
       <MealList meals={meals} onEditMeal={handleEditMeal} />
-
-      {/* Meal Form Dialog */}
-      <Dialog open={showMealForm} onOpenChange={(open) => {
-        if (!open) {
-          setShowMealForm(false);
-          setEditingMealId(null);
-        }
-      }}>
-        <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingMealId ? 'Edit Meal' : 'Log Meal'}
-            </DialogTitle>
-          </DialogHeader>
-          <MealForm
-            mealType={selectedMealType}
-            editingMealId={editingMealId}
-            onClose={() => {
-              setShowMealForm(false);
-              setEditingMealId(null);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

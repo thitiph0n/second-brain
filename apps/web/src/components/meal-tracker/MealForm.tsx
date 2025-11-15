@@ -15,9 +15,10 @@ interface MealFormProps {
   mealType?: MealType;
   editingMealId?: string | null;
   onClose: () => void;
+  isStandalone?: boolean; // New prop to indicate standalone page usage
 }
 
-export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: MealFormProps) {
+export function MealForm({ mealType = 'breakfast', editingMealId, onClose, isStandalone = false }: MealFormProps) {
   const queryClient = useQueryClient();
   const { data: mealsData } = useMeals();
   const createMeal = useCreateMeal();
@@ -281,7 +282,7 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+        <div className={`flex gap-3 pt-4 ${isStandalone ? 'flex-col sm:flex-row' : 'flex-col sm:flex-row'}`}>
           <Button type="submit" className="flex-1 w-full sm:w-auto" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
@@ -295,6 +296,18 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
               </>
             )}
           </Button>
+
+          {isStandalone && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+          )}
+
           {!editingMealId && (
             <Button
               type="button"
