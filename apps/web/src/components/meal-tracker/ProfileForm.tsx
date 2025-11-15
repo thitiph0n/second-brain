@@ -1,31 +1,45 @@
-import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useState, useEffect } from 'react';
 import { useUserProfile, useCreateProfile, useUpdateProfile } from '@/hooks/meal-tracker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { ProfileFormData, Gender, ActivityLevel, Goal } from '@/types/meal-tracker';
 
-export function ProfileForm() {
-  const navigate = useNavigate();
+interface ProfileFormProps {
+  onSuccess?: () => void;
+  embedded?: boolean;
+}
+
+export function ProfileForm({ onSuccess, embedded = false }: ProfileFormProps) {
   const { data: profile, isLoading } = useUserProfile();
   const createProfile = useCreateProfile();
   const updateProfile = useUpdateProfile();
 
-  // Debug logging
-  console.log('ProfileForm render - isLoading:', isLoading, 'profile:', profile);
-
   const isEditing = !!profile;
   const [formData, setFormData] = useState<ProfileFormData>({
     age: profile?.age || 25,
-    weight_kg: profile?.weight_kg || 70,
-    height_cm: profile?.height_cm || 170,
+    weightKg: profile?.weightKg || 70,
+    heightCm: profile?.heightCm || 170,
     gender: profile?.gender || 'male',
-    activity_level: profile?.activity_level || 'moderately_active',
+    activityLevel: profile?.activityLevel || 'moderately_active',
     goal: profile?.goal || 'maintain_weight',
   });
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        age: profile.age,
+        weightKg: profile.weightKg,
+        heightCm: profile.heightCm,
+        gender: profile.gender,
+        activityLevel: profile.activityLevel,
+        goal: profile.goal,
+      });
+    }
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +47,12 @@ export function ProfileForm() {
     try {
       if (isEditing) {
         await updateProfile.mutateAsync(formData);
+        toast.success('Profile updated successfully!');
       } else {
         await createProfile.mutateAsync(formData);
+        toast.success('Profile created successfully!');
       }
-      navigate({ to: '/meal-tracker' });
+      onSuccess?.();
     } catch (error) {
       // Error is handled by the mutation hook
     }
@@ -60,16 +76,30 @@ export function ProfileForm() {
     );
   }
 
+  const FormWrapper = embedded ? 'div' : Card;
+  const HeaderWrapper = embedded ? 'div' : CardHeader;
+  const ContentWrapper = embedded ? 'div' : CardContent;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
-          <CardDescription>
-            Tell us about yourself to calculate your daily calorie needs
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <FormWrapper>
+        {!embedded && (
+          <HeaderWrapper>
+            <CardTitle>Personal Information</CardTitle>
+            <CardDescription>
+              Tell us about yourself to calculate your daily calorie needs
+            </CardDescription>
+          </HeaderWrapper>
+        )}
+        {embedded && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-1">Personal Information</h3>
+            <p className="text-sm text-muted-foreground">
+              Tell us about yourself to calculate your daily calorie needs
+            </p>
+          </div>
+        )}
+        <ContentWrapper className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="age">Age (years)</Label>
@@ -107,8 +137,8 @@ export function ProfileForm() {
                 min="20"
                 max="300"
                 step="0.1"
-                value={formData.weight_kg}
-                onChange={(e) => handleChange('weight_kg', parseFloat(e.target.value))}
+                value={formData.weightKg}
+                onChange={(e) => handleChange('weightKg', parseFloat(e.target.value))}
                 required
               />
             </div>
@@ -121,23 +151,33 @@ export function ProfileForm() {
                 min="100"
                 max="250"
                 step="0.1"
-                value={formData.height_cm}
-                onChange={(e) => handleChange('height_cm', parseFloat(e.target.value))}
+                value={formData.heightCm}
+                onChange={(e) => handleChange('heightCm', parseFloat(e.target.value))}
                 required
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </ContentWrapper>
+      </FormWrapper>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity Level</CardTitle>
-          <CardDescription>
-            How active are you on a typical day?
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <FormWrapper>
+        {!embedded && (
+          <HeaderWrapper>
+            <CardTitle>Activity Level</CardTitle>
+            <CardDescription>
+              How active are you on a typical day?
+            </CardDescription>
+          </HeaderWrapper>
+        )}
+        {embedded && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-1">Activity Level</h3>
+            <p className="text-sm text-muted-foreground">
+              How active are you on a typical day?
+            </p>
+          </div>
+        )}
+        <ContentWrapper className="space-y-3">
           {[
             { value: 'sedentary', label: 'Sedentary', description: 'Little to no exercise' },
             { value: 'lightly_active', label: 'Lightly Active', description: 'Exercise 1-3 days/week' },
@@ -148,17 +188,17 @@ export function ProfileForm() {
             <label
               key={option.value}
               className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                formData.activity_level === option.value
+                formData.activityLevel === option.value
                   ? 'border-primary bg-primary/5'
                   : 'border-input hover:bg-accent'
               }`}
             >
               <input
                 type="radio"
-                name="activity_level"
+                name="activityLevel"
                 value={option.value}
-                checked={formData.activity_level === option.value}
-                onChange={(e) => handleChange('activity_level', e.target.value as ActivityLevel)}
+                checked={formData.activityLevel === option.value}
+                onChange={(e) => handleChange('activityLevel', e.target.value as ActivityLevel)}
                 className="h-4 w-4 text-primary"
               />
               <div className="flex-1">
@@ -167,17 +207,27 @@ export function ProfileForm() {
               </div>
             </label>
           ))}
-        </CardContent>
-      </Card>
+        </ContentWrapper>
+      </FormWrapper>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Goal</CardTitle>
-          <CardDescription>
-            What do you want to achieve?
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <FormWrapper>
+        {!embedded && (
+          <HeaderWrapper>
+            <CardTitle>Your Goal</CardTitle>
+            <CardDescription>
+              What do you want to achieve?
+            </CardDescription>
+          </HeaderWrapper>
+        )}
+        {embedded && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-1">Your Goal</h3>
+            <p className="text-sm text-muted-foreground">
+              What do you want to achieve?
+            </p>
+          </div>
+        )}
+        <ContentWrapper className="space-y-3">
           {[
             { value: 'lose_weight', label: 'Lose Weight', description: '-500 cal/day (approx 0.5 kg/week)' },
             { value: 'maintain_weight', label: 'Maintain Weight', description: 'Stay at current weight' },
@@ -205,10 +255,10 @@ export function ProfileForm() {
               </div>
             </label>
           ))}
-        </CardContent>
-      </Card>
+        </ContentWrapper>
+      </FormWrapper>
 
-      <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

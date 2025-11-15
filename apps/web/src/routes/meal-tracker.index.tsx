@@ -40,7 +40,7 @@ function MealTrackerContent() {
         <p className="text-muted-foreground mb-6">
           Please create your profile to get started with meal tracking.
         </p>
-        <Button onClick={() => navigate({ to: '/meal-tracker/profile' })}>
+        <Button onClick={() => navigate({ to: '/profile' })}>
           Create Profile
         </Button>
       </div>

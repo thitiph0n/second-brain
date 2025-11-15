@@ -23,13 +23,8 @@ import {
   foods
 } from '@second-brain/database/schema';
 import type {
-  UserProfile,
   ProfileFormData,
-  Meal,
   MealFormData,
-  DailySummary,
-  Streak,
-  FavoriteFood,
   MacroTargets,
   Gender,
   ActivityLevel,
@@ -99,34 +94,9 @@ export class MealTrackerService {
   /**
    * Create or update user profile with TDEE and macro calculations
    */
-  async createOrUpdateUserProfile(userId: string, profileData: ProfileFormData): Promise<UserProfile> {
+  async createOrUpdateUserProfile(userId: string, profileData: Partial<ProfileFormData>): Promise<typeof userProfiles.$inferSelect> {
     try {
       const now = new Date().toISOString();
-
-      // Calculate TDEE and macro targets
-      const tdee = this.calculateTDEE(
-        profileData.weight_kg,
-        profileData.height_cm,
-        profileData.age,
-        profileData.gender,
-        profileData.activity_level,
-        profileData.goal
-      );
-
-      const macroTargets = this.calculateMacroTargets(
-        profileData.weight_kg,
-        tdee,
-        profileData.gender
-      );
-
-      const profileDataWithTargets = {
-        ...profileData,
-        tdee,
-        target_calories: tdee,
-        target_protein_g: macroTargets.protein_g,
-        target_carbs_g: macroTargets.carbs_g,
-        target_fat_g: macroTargets.fat_g
-      };
 
       // Check if profile exists for the user
       const existingProfile = await this.db
@@ -135,33 +105,61 @@ export class MealTrackerService {
         .where(eq(userProfiles.userId, userId))
         .get();
 
+      // Merge with existing profile data if updating
+      const mergedData: ProfileFormData = existingProfile ? {
+        age: profileData.age ?? existingProfile.age,
+        weightKg: profileData.weightKg ?? existingProfile.weightKg,
+        heightCm: profileData.heightCm ?? existingProfile.heightCm,
+        gender: profileData.gender ?? existingProfile.gender,
+        activityLevel: profileData.activityLevel ?? existingProfile.activityLevel,
+        goal: profileData.goal ?? existingProfile.goal,
+      } : profileData as ProfileFormData;
+
+      // Validate that all required fields are present
+      if (!mergedData.age || !mergedData.weightKg || !mergedData.heightCm || !mergedData.gender || !mergedData.activityLevel || !mergedData.goal) {
+        throw new Error('Missing required profile fields');
+      }
+
+      // Calculate TDEE and macro targets
+      const tdee = this.calculateTDEE(
+        mergedData.weightKg,
+        mergedData.heightCm,
+        mergedData.age,
+        mergedData.gender,
+        mergedData.activityLevel,
+        mergedData.goal
+      );
+
+      const macroTargets = this.calculateMacroTargets(
+        mergedData.weightKg,
+        tdee,
+        mergedData.gender
+      );
+
+      const profileDataWithTargets = {
+        ...mergedData,
+        tdee,
+        targetCalories: tdee,
+        targetProteinG: macroTargets.protein_g,
+        targetCarbsG: macroTargets.carbs_g,
+        targetFatG: macroTargets.fat_g
+      };
+
       if (existingProfile) {
         // Update existing profile
-        const result = await this.db
+        return await this.db
           .update(userProfiles)
           .set({
-            age: profileDataWithTargets.age,
-            weightKg: profileDataWithTargets.weight_kg,
-            heightCm: profileDataWithTargets.height_cm,
-            gender: profileDataWithTargets.gender,
-            activityLevel: profileDataWithTargets.activity_level,
-            goal: profileDataWithTargets.goal,
-            tdee: profileDataWithTargets.tdee,
-            targetCalories: profileDataWithTargets.target_calories,
-            targetProteinG: profileDataWithTargets.target_protein_g,
-            targetCarbsG: profileDataWithTargets.target_carbs_g,
-            targetFatG: profileDataWithTargets.target_fat_g,
+            ...profileDataWithTargets,
             updatedAt: now
           })
           .where(eq(userProfiles.id, existingProfile.id))
           .returning()
           .get();
-
-        return this.transformUserProfileFromDb(result);
       } else {
         // Create new profile
         const id = crypto.randomUUID();
-        const result = await this.db
+        return await this.db
           .insert(userProfiles)
           .values({
             id,
@@ -172,8 +170,6 @@ export class MealTrackerService {
           })
           .returning()
           .get();
-
-        return this.transformUserProfileFromDb(result);
       }
     } catch (error) {
       console.error('Error in createOrUpdateUserProfile:', error);
@@ -185,7 +181,7 @@ export class MealTrackerService {
   /**
    * Get user profile by user ID
    */
-  async getUserProfile(userId: string): Promise<UserProfile | null> {
+  async getUserProfile(userId: string): Promise<(typeof userProfiles.$inferSelect) | null> {
     try {
       const result = await this.db
         .select()
@@ -193,7 +189,7 @@ export class MealTrackerService {
         .where(eq(userProfiles.userId, userId))
         .get();
 
-      return result ? this.transformUserProfileFromDb(result) : null;
+      return result || null;
     } catch (error) {
       console.error('Error in getUserProfile:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -225,26 +221,26 @@ export class MealTrackerService {
   /**
    * Create a new meal entry
    */
-  async createMeal(userId: string, mealData: MealFormData): Promise<Meal> {
+  async createMeal(userId: string, mealData: MealFormData): Promise<typeof meals.$inferSelect> {
     try {
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
-      const loggedAt = mealData.logged_at ? new Date(mealData.logged_at).toISOString() : now;
+      const loggedAt = mealData.loggedAt ? new Date(mealData.loggedAt).toISOString() : now;
 
       const result = await this.db
         .insert(meals)
         .values({
           id,
           userId,
-          mealType: mealData.meal_type,
-          foodName: mealData.food_name,
+          mealType: mealData.mealType,
+          foodName: mealData.foodName,
           calories: mealData.calories,
-          proteinG: mealData.protein_g || 0,
-          carbsG: mealData.carbs_g || 0,
-          fatG: mealData.fat_g || 0,
-          servingSize: mealData.serving_size || null,
-          servingUnit: mealData.serving_unit || null,
-          imageUrl: mealData.image_url || null,
+          proteinG: mealData.proteinG || 0,
+          carbsG: mealData.carbsG || 0,
+          fatG: mealData.fatG || 0,
+          servingSize: mealData.servingSize || null,
+          servingUnit: mealData.servingUnit || null,
+          imageUrl: mealData.imageUrl || null,
           notes: mealData.notes || null,
           loggedAt,
           createdAt: now,
@@ -256,7 +252,7 @@ export class MealTrackerService {
       await this.updateDailySummary(userId, loggedAt.split('T')[0], result);
       await this.updateStreak(userId, loggedAt.split('T')[0]);
 
-      return this.transformMealFromDb(result);
+      return result;
     } catch (error) {
       console.error('Error in createMeal:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -267,7 +263,7 @@ export class MealTrackerService {
   /**
    * Get meal by ID
    */
-  async getMealById(id: string, userId: string): Promise<Meal | null> {
+  async getMealById(id: string, userId: string): Promise<(typeof meals.$inferSelect) | null> {
     try {
       const result = await this.db
         .select()
@@ -275,7 +271,7 @@ export class MealTrackerService {
         .where(and(eq(meals.id, id), eq(meals.userId, userId)))
         .get();
 
-      return result ? this.transformMealFromDb(result) : null;
+      return result || null;
     } catch (error) {
       console.error('Error in getMealById:', error);
       if (error instanceof Error) {
@@ -295,7 +291,7 @@ export class MealTrackerService {
     offset?: number;
     sortBy?: 'loggedAt' | 'createdAt';
     sortOrder?: 'asc' | 'desc';
-  }): Promise<{ meals: Meal[]; total: number }> {
+  }): Promise<{ meals: (typeof meals.$inferSelect)[]; total: number }> {
     try {
       const {
         mealType,
@@ -306,38 +302,44 @@ export class MealTrackerService {
         sortOrder = 'desc'
       } = options || {};
 
-      let query = this.db
-        .select()
-        .from(meals)
-        .where(eq(meals.userId, userId));
+      // Build where conditions
+      const conditions = [eq(meals.userId, userId)];
 
-      // Apply filters
       if (mealType) {
-        query = query.where(eq(meals.mealType, mealType));
+        conditions.push(eq(meals.mealType, mealType));
       }
 
       if (date) {
-        const startOfDay = new Date(`${date}T00:00:00.000Z`).toISOString();
-        const endOfDay = new Date(`${date}T23:59:59.999Z`).toISOString();
-        query = query.where(between(meals.loggedAt, startOfDay, endOfDay));
+        // Filter by date portion of loggedAt, ignoring time
+        // This handles timezone differences by comparing just the date part
+        const startOfDay = `${date}T00:00:00.000Z`;
+        const endOfDay = `${date}T23:59:59.999Z`;
+        conditions.push(between(meals.loggedAt, startOfDay, endOfDay));
       }
 
-      // Get total count for pagination
-      const countResult = await query.clone().execute();
-      const total = countResult.length;
+      // Get total count
+      const allResults = await this.db
+        .select()
+        .from(meals)
+        .where(and(...conditions))
+        .all();
+      const total = allResults.length;
 
       // Apply sorting and pagination
       const orderByField = sortBy === 'loggedAt' ? meals.loggedAt : meals.createdAt;
       const order = sortOrder === 'desc' ? desc(orderByField) : asc(orderByField);
 
-      const result = await query
+      const result = await this.db
+        .select()
+        .from(meals)
+        .where(and(...conditions))
         .orderBy(order)
         .limit(limit)
         .offset(offset)
         .all();
 
       return {
-        meals: result.map(meal => this.transformMealFromDb(meal)),
+        meals: result,
         total
       };
     } catch (error) {
@@ -352,7 +354,7 @@ export class MealTrackerService {
   /**
    * Update meal by ID
    */
-  async updateMeal(id: string, userId: string, mealData: Partial<MealFormData>): Promise<Meal | null> {
+  async updateMeal(id: string, userId: string, mealData: Partial<MealFormData>): Promise<(typeof meals.$inferSelect) | null> {
     try {
       const existingMeal = await this.getMealById(id, userId);
       if (!existingMeal) {
@@ -360,23 +362,23 @@ export class MealTrackerService {
       }
 
       const now = new Date().toISOString();
-      const loggedAt = mealData.logged_at ? new Date(mealData.logged_at).toISOString() : existingMeal.logged_at;
+      const loggedAt = mealData.loggedAt ? new Date(mealData.loggedAt).toISOString() : existingMeal.loggedAt;
 
       const updateData: Partial<typeof meals.$inferInsert> = {
         updatedAt: now
       };
 
-      if (mealData.meal_type !== undefined) updateData.mealType = mealData.meal_type;
-      if (mealData.food_name !== undefined) updateData.foodName = mealData.food_name;
+      if (mealData.mealType !== undefined) updateData.mealType = mealData.mealType;
+      if (mealData.foodName !== undefined) updateData.foodName = mealData.foodName;
       if (mealData.calories !== undefined) updateData.calories = mealData.calories;
-      if (mealData.protein_g !== undefined) updateData.proteinG = mealData.protein_g;
-      if (mealData.carbs_g !== undefined) updateData.carbsG = mealData.carbs_g;
-      if (mealData.fat_g !== undefined) updateData.fatG = mealData.fat_g;
-      if (mealData.serving_size !== undefined) updateData.servingSize = mealData.serving_size;
-      if (mealData.serving_unit !== undefined) updateData.servingUnit = mealData.serving_unit;
-      if (mealData.image_url !== undefined) updateData.imageUrl = mealData.image_url;
+      if (mealData.proteinG !== undefined) updateData.proteinG = mealData.proteinG;
+      if (mealData.carbsG !== undefined) updateData.carbsG = mealData.carbsG;
+      if (mealData.fatG !== undefined) updateData.fatG = mealData.fatG;
+      if (mealData.servingSize !== undefined) updateData.servingSize = mealData.servingSize;
+      if (mealData.servingUnit !== undefined) updateData.servingUnit = mealData.servingUnit;
+      if (mealData.imageUrl !== undefined) updateData.imageUrl = mealData.imageUrl;
       if (mealData.notes !== undefined) updateData.notes = mealData.notes;
-      if (mealData.logged_at !== undefined) updateData.loggedAt = loggedAt;
+      if (mealData.loggedAt !== undefined) updateData.loggedAt = loggedAt;
 
       const result = await this.db
         .update(meals)
@@ -386,8 +388,8 @@ export class MealTrackerService {
         .get();
 
       // Update daily summary if date changed
-      if (mealData.logged_at && mealData.logged_at !== existingMeal.logged_at) {
-        const oldDate = existingMeal.logged_at.split('T')[0];
+      if (mealData.loggedAt && mealData.loggedAt !== existingMeal.loggedAt) {
+        const oldDate = existingMeal.loggedAt.split('T')[0];
         const newDate = loggedAt.split('T')[0];
         if (oldDate !== newDate) {
           await this.updateDailySummary(userId, oldDate, existingMeal, true);
@@ -395,7 +397,7 @@ export class MealTrackerService {
         }
       }
 
-      return this.transformMealFromDb(result);
+      return result;
     } catch (error) {
       console.error('Error in updateMeal:', error);
       if (error instanceof Error) {
@@ -421,7 +423,7 @@ export class MealTrackerService {
         .run();
 
       // Update daily summary
-      await this.updateDailySummary(userId, existingMeal.logged_at.split('T')[0], existingMeal, true);
+      await this.updateDailySummary(userId, existingMeal.loggedAt.split('T')[0], existingMeal, true);
 
       return true;
     } catch (error) {
@@ -436,15 +438,39 @@ export class MealTrackerService {
   /**
    * Get daily summary for a specific date
    */
-  async getDailySummary(userId: string, date: string): Promise<DailySummary | null> {
+  async getDailySummary(userId: string, date: string): Promise<any> {
     try {
-      const result = await this.db
-        .select()
-        .from(dailySummaries)
-        .where(and(eq(dailySummaries.userId, userId), eq(dailySummaries.date, date)))
-        .get();
+      // Get all meals for the date
+      const startOfDay = new Date(`${date}T00:00:00.000Z`).toISOString();
+      const endOfDay = new Date(`${date}T23:59:59.999Z`).toISOString();
 
-      return result ? this.transformDailySummaryFromDb(result) : null;
+      const mealsForDay = await this.db
+        .select()
+        .from(meals)
+        .where(
+          and(
+            eq(meals.userId, userId),
+            between(meals.loggedAt, startOfDay, endOfDay)
+          )
+        )
+        .all();
+
+      // If no meals, return null
+      if (mealsForDay.length === 0) {
+        return null;
+      }
+
+      // Calculate aggregated summary
+      const summary = {
+        date,
+        totalCalories: mealsForDay.reduce((sum, meal) => sum + (meal.calories || 0), 0),
+        totalProteinG: mealsForDay.reduce((sum, meal) => sum + (meal.proteinG || 0), 0),
+        totalCarbsG: mealsForDay.reduce((sum, meal) => sum + (meal.carbsG || 0), 0),
+        totalFatG: mealsForDay.reduce((sum, meal) => sum + (meal.fatG || 0), 0),
+        mealCount: mealsForDay.length,
+      };
+
+      return summary;
     } catch (error) {
       console.error('Error in getDailySummary:', error);
       if (error instanceof Error) {
@@ -457,9 +483,9 @@ export class MealTrackerService {
   /**
    * Get daily summaries for a date range
    */
-  async getDailySummariesByDateRange(userId: string, startDate: string, endDate: string): Promise<DailySummary[]> {
+  async getDailySummariesByDateRange(userId: string, startDate: string, endDate: string): Promise<(typeof dailySummaries.$inferSelect)[]> {
     try {
-      const result = await this.db
+      return await this.db
         .select()
         .from(dailySummaries)
         .where(
@@ -471,8 +497,6 @@ export class MealTrackerService {
         )
         .orderBy(asc(dailySummaries.date))
         .all();
-
-      return result.map(summary => this.transformDailySummaryFromDb(summary));
     } catch (error) {
       console.error('Error in getDailySummariesByDateRange:', error);
       if (error instanceof Error) {
@@ -485,7 +509,7 @@ export class MealTrackerService {
   /**
    * Update daily summary after meal creation/update/deletion
    */
-  private async updateDailySummary(userId: string, date: string, meal: DrizzleMeal, isDelete = false): Promise<void> {
+  private async updateDailySummary(userId: string, date: string, meal: typeof meals.$inferSelect, isDelete = false): Promise<void> {
     try {
       const existingSummary = await this.db
         .select()
@@ -560,7 +584,7 @@ export class MealTrackerService {
   /**
    * Get streak information for user
    */
-  async getStreak(userId: string): Promise<Streak | null> {
+  async getStreak(userId: string): Promise<(typeof mealStreaks.$inferSelect) | null> {
     try {
       const result = await this.db
         .select()
@@ -568,7 +592,7 @@ export class MealTrackerService {
         .where(eq(mealStreaks.userId, userId))
         .get();
 
-      return result ? this.transformStreakFromDb(result) : null;
+      return result || null;
     } catch (error) {
       console.error('Error in getStreak:', error);
       if (error instanceof Error) {
@@ -581,12 +605,12 @@ export class MealTrackerService {
   /**
    * Initialize streak record for user
    */
-  async initializeStreak(userId: string): Promise<Streak> {
+  async initializeStreak(userId: string): Promise<typeof mealStreaks.$inferSelect> {
     try {
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
 
-      const result = await this.db
+      return await this.db
         .insert(mealStreaks)
         .values({
           id,
@@ -601,8 +625,6 @@ export class MealTrackerService {
         })
         .returning()
         .get();
-
-      return this.transformStreakFromDb(result);
     } catch (error) {
       console.error('Error in initializeStreak:', error);
       if (error instanceof Error) {
@@ -623,12 +645,12 @@ export class MealTrackerService {
       }
 
       const today = new Date().toISOString().split('T')[0];
-      const lastLoggedDate = streak.last_logged_date ? new Date(streak.last_logged_date).toISOString().split('T')[0] : null;
+      const lastLoggedDate = streak.lastLoggedDate ? new Date(streak.lastLoggedDate).toISOString().split('T')[0] : null;
 
-      let newStreak = streak.current_streak;
-      let newLongestStreak = streak.longest_streak;
-      let newTotalLoggedDays = streak.total_logged_days;
-      let newLastLoggedDate = date;
+      let newStreak = streak.currentStreak;
+      let newLongestStreak = streak.longestStreak;
+      let newTotalLoggedDays = streak.totalLoggedDays;
+      const newLastLoggedDate = new Date(date).toISOString();
 
       if (lastLoggedDate && lastLoggedDate !== date) {
         const lastDate = new Date(lastLoggedDate);
@@ -788,12 +810,12 @@ export class MealTrackerService {
     servingSize?: string;
     servingUnit?: string;
     category?: string;
-  }): Promise<FavoriteFood> {
+  }): Promise<typeof favoriteFoods.$inferSelect> {
     try {
       const id = crypto.randomUUID();
       const now = new Date().toISOString();
 
-      const result = await this.db
+      return await this.db
         .insert(favoriteFoods)
         .values({
           id,
@@ -813,8 +835,6 @@ export class MealTrackerService {
         })
         .returning()
         .get();
-
-      return this.transformFavoriteFoodFromDb(result);
     } catch (error) {
       console.error('Error in createFavoriteFood:', error);
       if (error instanceof Error) {
@@ -827,21 +847,15 @@ export class MealTrackerService {
   /**
    * Get favorite foods by user, sorted by usage count
    */
-  async getFavoriteFoodsByUser(userId: string, limit = 20): Promise<FavoriteFood[]> {
+  async getFavoriteFoodsByUser(userId: string, limit = 20): Promise<(typeof favoriteFoods.$inferSelect)[]> {
     try {
-      const result = await this.db
+      return await this.db
         .select()
         .from(favoriteFoods)
         .where(eq(favoriteFoods.userId, userId))
-        .orderBy([
-          desc(favoriteFoods.usageCount),
-          desc(favoriteFoods.lastUsedAt),
-          desc(favoriteFoods.createdAt)
-        ])
+        .orderBy(desc(favoriteFoods.usageCount), desc(favoriteFoods.lastUsedAt), desc(favoriteFoods.createdAt))
         .limit(limit)
         .all();
-
-      return result.map(food => this.transformFavoriteFoodFromDb(food));
     } catch (error) {
       console.error('Error in getFavoriteFoodsByUser:', error);
       if (error instanceof Error) {
@@ -854,7 +868,7 @@ export class MealTrackerService {
   /**
    * Get favorite food by ID
    */
-  async getFavoriteFoodById(id: string, userId: string): Promise<FavoriteFood | null> {
+  async getFavoriteFoodById(id: string, userId: string): Promise<(typeof favoriteFoods.$inferSelect) | null> {
     try {
       const result = await this.db
         .select()
@@ -862,7 +876,7 @@ export class MealTrackerService {
         .where(and(eq(favoriteFoods.id, id), eq(favoriteFoods.userId, userId)))
         .get();
 
-      return result ? this.transformFavoriteFoodFromDb(result) : null;
+      return result || null;
     } catch (error) {
       console.error('Error in getFavoriteFoodById:', error);
       if (error instanceof Error) {
@@ -906,7 +920,7 @@ export class MealTrackerService {
     servingSize?: string;
     servingUnit?: string;
     category?: string;
-  }>): Promise<FavoriteFood | null> {
+  }>): Promise<(typeof favoriteFoods.$inferSelect) | null> {
     try {
       const existingFood = await this.getFavoriteFoodById(id, userId);
       if (!existingFood) {
@@ -928,14 +942,12 @@ export class MealTrackerService {
       if (foodData.servingUnit !== undefined) updateData.servingUnit = foodData.servingUnit;
       if (foodData.category !== undefined) updateData.category = foodData.category;
 
-      const result = await this.db
+      return await this.db
         .update(favoriteFoods)
         .set(updateData)
         .where(and(eq(favoriteFoods.id, id), eq(favoriteFoods.userId, userId)))
         .returning()
         .get();
-
-      return this.transformFavoriteFoodFromDb(result);
     } catch (error) {
       console.error('Error in updateFavoriteFood:', error);
       if (error instanceof Error) {
@@ -968,9 +980,9 @@ export class MealTrackerService {
   /**
    * Search favorite foods by name
    */
-  async searchFavoriteFoods(userId: string, query: string, limit = 10): Promise<FavoriteFood[]> {
+  async searchFavoriteFoods(userId: string, query: string, limit = 10): Promise<(typeof favoriteFoods.$inferSelect)[]> {
     try {
-      const result = await this.db
+      return await this.db
         .select()
         .from(favoriteFoods)
         .where(
@@ -979,15 +991,9 @@ export class MealTrackerService {
             ilike(favoriteFoods.foodName, `%${query}%`)
           )
         )
-        .orderBy([
-          desc(favoriteFoods.usageCount),
-          desc(favoriteFoods.lastUsedAt),
-          desc(favoriteFoods.createdAt)
-        ])
+        .orderBy(desc(favoriteFoods.usageCount), desc(favoriteFoods.lastUsedAt), desc(favoriteFoods.createdAt))
         .limit(limit)
         .all();
-
-      return result.map(food => this.transformFavoriteFoodFromDb(food));
     } catch (error) {
       console.error('Error in searchFavoriteFoods:', error);
       if (error instanceof Error) {
@@ -1312,86 +1318,4 @@ export class MealTrackerService {
     }
   }
 
-  // Helper transformation methods
-
-  private transformUserProfileFromDb(rawProfile: DrizzleUserProfile): UserProfile {
-    return {
-      user_id: rawProfile.userId,
-      age: rawProfile.age,
-      weight_kg: rawProfile.weightKg,
-      height_cm: rawProfile.heightCm,
-      gender: rawProfile.gender as Gender,
-      activity_level: rawProfile.activityLevel as ActivityLevel,
-      goal: rawProfile.goal as Goal,
-      tdee: rawProfile.tdee,
-      target_calories: rawProfile.targetCalories,
-      target_protein_g: rawProfile.targetProteinG,
-      target_carbs_g: rawProfile.targetCarbsG,
-      target_fat_g: rawProfile.targetFatG,
-      created_at: rawProfile.createdAt || '',
-      updated_at: rawProfile.updatedAt || ''
-    };
-  }
-
-  private transformMealFromDb(rawMeal: DrizzleMeal): Meal {
-    return {
-      id: rawMeal.id,
-      user_id: rawMeal.userId,
-      meal_type: rawMeal.mealType as MealType,
-      food_name: rawMeal.foodName,
-      calories: rawMeal.calories,
-      protein_g: rawMeal.proteinG,
-      carbs_g: rawMeal.carbsG,
-      fat_g: rawMeal.fatG,
-      serving_size: rawMeal.servingSize,
-      serving_unit: rawMeal.servingUnit,
-      image_url: rawMeal.imageUrl,
-      notes: rawMeal.notes,
-      logged_at: rawMeal.loggedAt,
-      created_at: rawMeal.createdAt || '',
-      updated_at: rawMeal.updatedAt || ''
-    };
-  }
-
-  private transformDailySummaryFromDb(rawSummary: DrizzleDailySummary): DailySummary {
-    return {
-      date: rawSummary.date,
-      total_calories: rawSummary.totalCalories,
-      total_protein_g: rawSummary.totalProteinG,
-      total_carbs_g: rawSummary.totalCarbsG,
-      total_fat_g: rawSummary.totalFatG,
-      meal_count: rawSummary.mealCount,
-      target_calories: rawSummary.targetCalories || 0
-    };
-  }
-
-  private transformStreakFromDb(rawStreak: DrizzleMealStreak): Streak {
-    return {
-      user_id: rawStreak.userId,
-      current_streak: rawStreak.currentStreak,
-      longest_streak: rawStreak.longestStreak,
-      last_logged_date: rawStreak.lastLoggedDate || undefined,
-      freeze_credits: rawStreak.freezeCredits,
-      total_logged_days: rawStreak.totalLoggedDays
-    };
-  }
-
-  private transformFavoriteFoodFromDb(rawFood: DrizzleFavoriteFood): FavoriteFood {
-    return {
-      id: rawFood.id,
-      user_id: rawFood.userId,
-      food_name: rawFood.foodName,
-      calories: rawFood.calories,
-      protein_g: rawFood.proteinG,
-      carbs_g: rawFood.carbsG,
-      fat_g: rawFood.fatG,
-      serving_size: rawFood.servingSize,
-      serving_unit: rawFood.servingUnit,
-      category: rawFood.category,
-      usage_count: rawFood.usageCount,
-      last_used_at: rawFood.lastUsedAt,
-      created_at: rawFood.createdAt || '',
-      updated_at: rawFood.updatedAt || ''
-    };
-  }
 }

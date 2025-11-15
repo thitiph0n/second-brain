@@ -9,7 +9,8 @@
 		".": "./src/index.ts",
 		"./coupon": "./src/coupon.ts",
 		"./auth": "./src/auth.ts",
-		"./drawing": "./src/drawing.ts"
+		"./drawing": "./src/drawing.ts",
+		"./meal-tracker": "./src/meal-tracker.ts"
 	},
 	"scripts": {
 		"lint": "biome lint .",

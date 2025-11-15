@@ -4,9 +4,17 @@ import { useFavorites, useDeleteFavorite, useCreateMeal } from '@/hooks/meal-tra
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Plus, Trash2, Coffee, Sun, Moon, Apple } from 'lucide-react';
+import { Star, Plus, Trash2, Coffee, Sun, Moon, Apple, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { MealType } from '@/types/meal-tracker';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export function FavoritesList() {
   const queryClient = useQueryClient();
@@ -16,74 +24,59 @@ export function FavoritesList() {
 
   const favorites = favoritesData?.favorites || [];
   const [selectedFavoriteId, setSelectedFavoriteId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [favoriteToDelete, setFavoriteToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  const sortedFavorites = [...favorites].sort((a, b) => b.usage_count - a.usage_count);
+  const sortedFavorites = [...favorites].sort((a, b) => b.usageCount - a.usageCount);
 
   const handleQuickAdd = (favoriteId: string, mealType: MealType) => {
     const favorite = favorites.find(f => f.id === favoriteId);
     if (favorite) {
+      // Get local date in YYYY-MM-DD format
+      const now = new Date();
+      const offset = now.getTimezoneOffset() * 60000;
+      const localDate = new Date(now.getTime() - offset);
+      const localDateStr = localDate.toISOString().split('T')[0];
+
+      // Use noon UTC for the local date to avoid timezone issues
+      const loggedAtISO = new Date(localDateStr + 'T12:00:00.000Z').toISOString();
+
       const mealData = {
-        meal_type: mealType,
-        food_name: favorite.food_name,
+        mealType: mealType,
+        foodName: favorite.foodName,
         calories: favorite.calories,
-        protein_g: favorite.protein_g || 0,
-        carbs_g: favorite.carbs_g || 0,
-        fat_g: favorite.fat_g || 0,
-        serving_size: favorite.serving_size || '',
-        serving_unit: favorite.serving_unit || '',
+        proteinG: favorite.proteinG || 0,
+        carbsG: favorite.carbsG || 0,
+        fatG: favorite.fatG || 0,
+        servingSize: favorite.servingSize || '',
+        servingUnit: favorite.servingUnit || '',
         notes: '',
+        loggedAt: loggedAtISO,
       };
-
-      // Optimistically update
-      const currentMeals = (queryClient.getQueryData(['meal-tracker', 'meals']) as any)?.meals || [];
-      const newMeal = {
-        ...mealData,
-        id: `temp-${Date.now()}`,
-        logged_at: new Date().toISOString(),
-      };
-
-      queryClient.setQueryData(['meal-tracker', 'meals'], {
-        meals: [...currentMeals, newMeal],
-        total: currentMeals.length + 1,
-      });
 
       createMeal.mutate(mealData, {
         onSuccess: () => {
-          // Update favorite usage count
-          queryClient.setQueryData(['meal-tracker', 'favorites'], (oldData: any) => {
-            if (!oldData) return { favorites: [], total: 0 };
-            return {
-              ...oldData,
-              favorites: oldData.favorites.map((fav: any) =>
-                fav.id === favoriteId
-                  ? { ...fav, usage_count: fav.usage_count + 1, last_used_at: new Date().toISOString() }
-                  : fav
-              ),
-            };
-          });
-
-          toast.success('Meal added from favorites!');
           setSelectedFavoriteId(null);
-        },
-        onError: () => {
-          // Rollback optimistic update
-          queryClient.setQueryData(['meal-tracker', 'meals'], (oldData: any) => ({
-            ...oldData,
-            meals: oldData.meals.filter((meal: any) => meal.id !== newMeal.id),
-            total: Math.max(0, oldData.total - 1),
-          }));
         },
       });
     }
   };
 
-  const handleDelete = (favoriteId: string, foodName: string) => {
-    if (window.confirm(`Remove "${foodName}" from favorites?`)) {
-      deleteFavorite.mutate(favoriteId, {
-        onSuccess: () => {
-          toast.success('Removed from favorites');
-        },
-      });
+  const handleDeleteClick = (favoriteId: string, foodName: string) => {
+    setFavoriteToDelete({ id: favoriteId, name: foodName });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!favoriteToDelete) return;
+
+    try {
+      await deleteFavorite.mutateAsync(favoriteToDelete.id);
+      toast.success('Removed from favorites');
+      setDeleteDialogOpen(false);
+      setFavoriteToDelete(null);
+    } catch (error) {
+      // Error is handled by the mutation hook
     }
   };
 
@@ -155,7 +148,7 @@ export function FavoritesList() {
             >
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium truncate">{favorite.food_name}</h4>
+                  <h4 className="font-medium truncate">{favorite.foodName}</h4>
                   <div className="text-sm font-semibold text-muted-foreground">
                     {favorite.calories} kcal
                   </div>
@@ -163,39 +156,36 @@ export function FavoritesList() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleDelete(favorite.id, favorite.food_name)}
+                  onClick={() => handleDeleteClick(favorite.id, favorite.foodName)}
                   disabled={deleteFavorite.isPending}
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  title="Remove from favorites"
                 >
-                  {deleteFavorite.isPending ? (
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                  ) : (
-                    <Trash2 className="h-3.5 w-3.5" />
-                  )}
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
 
               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mb-3">
-                {favorite.protein_g > 0 && (
-                  <span>P: {Math.round(favorite.protein_g)}g</span>
+                {favorite.proteinG > 0 && (
+                  <span>P: {Math.round(favorite.proteinG)}g</span>
                 )}
-                {favorite.carbs_g > 0 && (
-                  <span>C: {Math.round(favorite.carbs_g)}g</span>
+                {favorite.carbsG > 0 && (
+                  <span>C: {Math.round(favorite.carbsG)}g</span>
                 )}
-                {favorite.fat_g > 0 && (
-                  <span>F: {Math.round(favorite.fat_g)}g</span>
+                {favorite.fatG > 0 && (
+                  <span>F: {Math.round(favorite.fatG)}g</span>
                 )}
               </div>
 
-              {favorite.serving_size && (
+              {favorite.servingSize && (
                 <div className="text-xs text-muted-foreground mb-3">
-                  {favorite.serving_size}{favorite.serving_unit ? ` ${favorite.serving_unit}` : ''}
+                  {favorite.servingSize}{favorite.servingUnit ? ` ${favorite.servingUnit}` : ''}
                 </div>
               )}
 
-              {favorite.usage_count > 0 && (
+              {favorite.usageCount > 0 && (
                 <Badge variant="secondary" className="mb-3">
-                  Used {favorite.usage_count} time{favorite.usage_count !== 1 ? 's' : ''}
+                  Used {favorite.usageCount} time{favorite.usageCount !== 1 ? 's' : ''}
                 </Badge>
               )}
 
@@ -239,6 +229,41 @@ export function FavoritesList() {
           ))}
         </div>
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Favorite</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove &quot;{favoriteToDelete?.name}&quot; from favorites? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleteFavorite.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteFavorite.isPending}
+            >
+              {deleteFavorite.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                'Remove'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

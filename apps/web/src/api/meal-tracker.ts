@@ -102,14 +102,14 @@ class MealTrackerAPI {
 
   // Meal Management Endpoints
   async getMeals(options?: {
-    start_date?: string;
-    end_date?: string;
+    startDate?: string;
+    endDate?: string;
     limit?: number;
     offset?: number;
   }): Promise<{ meals: Meal[]; total: number }> {
     const params = new URLSearchParams();
-    if (options?.start_date) params.append('start_date', options.start_date);
-    if (options?.end_date) params.append('end_date', options.end_date);
+    if (options?.startDate) params.append('startDate', options.startDate);
+    if (options?.endDate) params.append('endDate', options.endDate);
     if (options?.limit) params.append('limit', options.limit.toString());
     if (options?.offset) params.append('offset', options.offset.toString());
 
@@ -139,7 +139,7 @@ class MealTrackerAPI {
     });
   }
 
-  async getDailySummary(date?: string): Promise<{ daily_summary: DailySummary }> {
+  async getDailySummary(date?: string): Promise<{ dailySummary: DailySummary }> {
     const params = new URLSearchParams();
     if (date) params.append('date', date);
 
@@ -165,7 +165,7 @@ class MealTrackerAPI {
     return this.request(endpoint);
   }
 
-  async useFreezeCredit(): Promise<{ message: string; freeze_used: boolean }> {
+  async useFreezeCredit(): Promise<{ message: string; freezeUsed: boolean }> {
     return this.request('/streak/freeze', {
       method: 'POST',
       body: JSON.stringify({}),
@@ -178,7 +178,7 @@ class MealTrackerAPI {
     return response;
   }
 
-  async createFavorite(data: Omit<FavoriteFood, 'id' | 'user_id' | 'usage_count' | 'last_used_at' | 'created_at' | 'updated_at'>): Promise<FavoriteFood> {
+  async createFavorite(data: Omit<FavoriteFood, 'id' | 'userId' | 'usageCount' | 'lastUsedAt' | 'createdAt' | 'updatedAt'>): Promise<FavoriteFood> {
     const response = await this.request<{ favorite: FavoriteFood }>('/favorites', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -202,11 +202,11 @@ class MealTrackerAPI {
 
   async logFavoriteMeal(id: string, mealType: MealType): Promise<{
     meal: Meal;
-    favorite: { id: string; usage_count: number };
+    favorite: { id: string; usageCount: number };
   }> {
-    const response = await this.request<{ data: { meal: Meal; favorite: { id: string; usage_count: number } } }>(`/favorites/${id}/log`, {
+    const response = await this.request<{ data: { meal: Meal; favorite: { id: string; usageCount: number } } }>(`/favorites/${id}/log`, {
       method: 'POST',
-      body: JSON.stringify({ meal_type: mealType }),
+      body: JSON.stringify({ mealType: mealType }),
     });
     return response.data;
   }
@@ -265,10 +265,10 @@ export const mealTrackerUtils = {
   // Calculate TDEE using Mifflin-St Jeor equation
   calculateTDEE(weightKg: number, heightCm: number, age: number, gender: Gender, activityLevel: ActivityLevel, goal: Goal): {
     tdee: number;
-    target_calories: number;
-    target_protein_g: number;
-    target_carbs_g: number;
-    target_fat_g: number;
+    targetCalories: number;
+    targetProteinG: number;
+    targetCarbsG: number;
+    targetFatG: number;
   } {
     const activityMultipliers = {
       sedentary: 1.2,
@@ -303,10 +303,10 @@ export const mealTrackerUtils = {
 
     return {
       tdee,
-      target_calories: tdee,
-      target_protein_g: targetProteinG,
-      target_carbs_g: targetCarbsG,
-      target_fat_g: targetFatG,
+      targetCalories: tdee,
+      targetProteinG: targetProteinG,
+      targetCarbsG: targetCarbsG,
+      targetFatG: targetFatG,
     };
   },
 
@@ -318,37 +318,37 @@ export const mealTrackerUtils = {
   // Calculate daily summary from meals
   calculateDailySummary(meals: Meal[], targetCalories: number = 0): DailySummary {
     const today = new Date().toISOString().split('T')[0];
-    const todayMeals = meals.filter(meal => meal.logged_at.split('T')[0] === today);
+    const todayMeals = meals.filter(meal => meal.loggedAt.split('T')[0] === today);
 
     return {
       date: today,
-      total_calories: todayMeals.reduce((sum, meal) => sum + meal.calories, 0),
-      total_protein_g: todayMeals.reduce((sum, meal) => sum + meal.protein_g, 0),
-      total_carbs_g: todayMeals.reduce((sum, meal) => sum + meal.carbs_g, 0),
-      total_fat_g: todayMeals.reduce((sum, meal) => sum + meal.fat_g, 0),
-      meal_count: todayMeals.length,
-      target_calories: targetCalories,
+      totalCalories: todayMeals.reduce((sum, meal) => sum + meal.calories, 0),
+      totalProteinG: todayMeals.reduce((sum, meal) => sum + meal.proteinG, 0),
+      totalCarbsG: todayMeals.reduce((sum, meal) => sum + meal.carbsG, 0),
+      totalFatG: todayMeals.reduce((sum, meal) => sum + meal.fatG, 0),
+      mealCount: todayMeals.length,
+      targetCalories: targetCalories,
     };
   },
 
   // Calculate streak from meals
   calculateStreak(meals: Meal[]): {
-    current_streak: number;
-    longest_streak: number;
-    total_logged_days: number;
-    last_logged_date?: string;
+    currentStreak: number;
+    longestStreak: number;
+    totalLoggedDays: number;
+    lastLoggedDate?: string;
   } {
     if (meals.length === 0) {
       return {
-        current_streak: 0,
-        longest_streak: 0,
-        total_logged_days: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        totalLoggedDays: 0,
       };
     }
 
     // Get unique logged dates
     const loggedDates = new Set(
-      meals.map(meal => meal.logged_at.split('T')[0])
+      meals.map(meal => meal.loggedAt.split('T')[0])
     );
 
     // Calculate current streak
@@ -392,10 +392,10 @@ export const mealTrackerUtils = {
     }
 
     return {
-      current_streak: currentStreak,
-      longest_streak: longestStreak,
-      total_logged_days: loggedDates.size,
-      last_logged_date: lastLoggedDate,
+      currentStreak: currentStreak,
+      longestStreak: longestStreak,
+      totalLoggedDays: loggedDates.size,
+      lastLoggedDate: lastLoggedDate,
     };
   },
 };

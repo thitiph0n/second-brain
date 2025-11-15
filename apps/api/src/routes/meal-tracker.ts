@@ -178,16 +178,17 @@ mealTrackerRoutes.get("/meals", async (c) => {
 			);
 		}
 
+		const dateParam = c.req.query("date");
 		const query = {
-			start_date: c.req.query("start_date"),
-			end_date: c.req.query("end_date"),
+			startDate: c.req.query("startDate") || dateParam,
+			endDate: c.req.query("endDate"),
 		};
 
 		const validatedQuery = validateMealsQuery(query);
 
 		const mealService = new MealTrackerService(c.env.DB);
 		const result = await mealService.getMealsByUser(user.id, {
-			date: validatedQuery.start_date,
+			date: validatedQuery.startDate || dateParam,
 			limit: validatedQuery.limit,
 		});
 
@@ -224,19 +225,19 @@ mealTrackerRoutes.get("/meals/daily", async (c) => {
 
 		if (!summary) {
 			return c.json({
-				daily_summary: {
+				dailySummary: {
 					date: validatedQuery.date,
-					total_calories: 0,
-					total_protein_g: 0,
-					total_carbs_g: 0,
-					total_fat_g: 0,
-					meal_count: 0,
-					target_calories: 0
+					totalCalories: 0,
+					totalProteinG: 0,
+					totalCarbsG: 0,
+					totalFatG: 0,
+					mealCount: 0,
+					targetCalories: 0
 				}
 			});
 		}
 
-		return c.json({ daily_summary: summary });
+		return c.json({ dailySummary: summary });
 	} catch (error) {
 		if (error instanceof Error && error.message.includes("parse")) {
 			return createValidationErrorResponse(c, error);
@@ -261,23 +262,8 @@ mealTrackerRoutes.post("/meals", async (c) => {
 		const body = await c.req.json();
 		const mealData = validateCreateMeal(body);
 
-		// Transform snake_case to camelCase for service layer
-		const transformedData = {
-			mealType: mealData.meal_type,
-			foodName: mealData.food_name,
-			calories: mealData.calories,
-			proteinG: mealData.protein_g,
-			carbsG: mealData.carbs_g,
-			fatG: mealData.fat_g,
-			servingSize: mealData.serving_size,
-			servingUnit: mealData.serving_unit,
-			imageUrl: mealData.image_url,
-			notes: mealData.notes,
-			loggedAt: mealData.logged_at,
-		};
-
 		const mealService = new MealTrackerService(c.env.DB);
-		const meal = await mealService.createMeal(user.id, transformedData);
+		const meal = await mealService.createMeal(user.id, mealData);
 
 		return c.json({ meal }, 201);
 	} catch (error) {
@@ -305,25 +291,8 @@ mealTrackerRoutes.put("/meals/:id", async (c) => {
 		const body = await c.req.json();
 		const mealData = validateUpdateMeal(body);
 
-		// Transform snake_case to camelCase for service layer
-		const transformedData: any = {
-			updatedAt: new Date().toISOString()
-		};
-
-		if (mealData.meal_type !== undefined) transformedData.mealType = mealData.meal_type;
-		if (mealData.food_name !== undefined) transformedData.foodName = mealData.food_name;
-		if (mealData.calories !== undefined) transformedData.calories = mealData.calories;
-		if (mealData.protein_g !== undefined) transformedData.proteinG = mealData.protein_g;
-		if (mealData.carbs_g !== undefined) transformedData.carbsG = mealData.carbs_g;
-		if (mealData.fat_g !== undefined) transformedData.fatG = mealData.fat_g;
-		if (mealData.serving_size !== undefined) transformedData.servingSize = mealData.serving_size;
-		if (mealData.serving_unit !== undefined) transformedData.servingUnit = mealData.serving_unit;
-		if (mealData.image_url !== undefined) transformedData.imageUrl = mealData.image_url;
-		if (mealData.notes !== undefined) transformedData.notes = mealData.notes;
-		if (mealData.logged_at !== undefined) transformedData.loggedAt = mealData.logged_at;
-
 		const mealService = new MealTrackerService(c.env.DB);
-		const meal = await mealService.updateMeal(id, user.id, transformedData);
+		const meal = await mealService.updateMeal(id, user.id, mealData);
 
 		if (!meal) {
 			return createNotFoundErrorResponse(c, "Meal", id);
@@ -453,10 +422,10 @@ mealTrackerRoutes.get("/streak", async (c) => {
 		}
 
 		const mealService = new MealTrackerService(c.env.DB);
-		const streak = await mealService.getStreak(user.id);
+		let streak = await mealService.getStreak(user.id);
 
 		if (!streak) {
-			return createNotFoundErrorResponse(c, "Meal streak");
+			streak = await mealService.initializeStreak(user.id);
 		}
 
 		const validatedStreak = validateStreakResponse(streak);
@@ -575,20 +544,8 @@ mealTrackerRoutes.post("/favorites", async (c) => {
 		const body = await c.req.json();
 		const favoriteData = validateCreateFavorite(body);
 
-		// Transform snake_case to camelCase for service layer
-		const transformedData = {
-			foodName: favoriteData.food_name,
-			calories: favoriteData.calories,
-			proteinG: favoriteData.protein_g,
-			carbsG: favoriteData.carbs_g,
-			fatG: favoriteData.fat_g,
-			servingSize: favoriteData.serving_size,
-			servingUnit: favoriteData.serving_unit,
-			category: favoriteData.category,
-		};
-
 		const mealService = new MealTrackerService(c.env.DB);
-		const favorite = await mealService.createFavoriteFood(user.id, transformedData);
+		const favorite = await mealService.createFavoriteFood(user.id, favoriteData);
 
 		return c.json({ favorite }, 201);
 	} catch (error) {
@@ -616,22 +573,8 @@ mealTrackerRoutes.put("/favorites/:id", async (c) => {
 		const body = await c.req.json();
 		const favoriteData = validateUpdateFavorite(body);
 
-		// Transform snake_case to camelCase for service layer
-		const transformedData: any = {
-			updatedAt: new Date().toISOString()
-		};
-
-		if (favoriteData.food_name !== undefined) transformedData.foodName = favoriteData.food_name;
-		if (favoriteData.calories !== undefined) transformedData.calories = favoriteData.calories;
-		if (favoriteData.protein_g !== undefined) transformedData.proteinG = favoriteData.protein_g;
-		if (favoriteData.carbs_g !== undefined) transformedData.carbsG = favoriteData.carbs_g;
-		if (favoriteData.fat_g !== undefined) transformedData.fatG = favoriteData.fat_g;
-		if (favoriteData.serving_size !== undefined) transformedData.servingSize = favoriteData.serving_size;
-		if (favoriteData.serving_unit !== undefined) transformedData.servingUnit = favoriteData.serving_unit;
-		if (favoriteData.category !== undefined) transformedData.category = favoriteData.category;
-
 		const mealService = new MealTrackerService(c.env.DB);
-		const favorite = await mealService.updateFavoriteFood(id, user.id, transformedData);
+		const favorite = await mealService.updateFavoriteFood(id, user.id, favoriteData);
 
 		if (!favorite) {
 			return createNotFoundErrorResponse(c, "Favorite food", id);
@@ -707,15 +650,15 @@ mealTrackerRoutes.post("/favorites/:id/log", async (c) => {
 
 		// Create a meal from the favorite
 		const mealData = {
-			meal_type: logData.meal_type,
-			food_name: favorite.food_name,
+			mealType: logData.mealType,
+			foodName: favorite.foodName,
 			calories: favorite.calories,
-			protein_g: favorite.protein_g,
-			carbs_g: favorite.carbs_g,
-			fat_g: favorite.fat_g,
-			serving_size: favorite.serving_size,
-			serving_unit: favorite.serving_unit,
-			logged_at: logData.logged_at,
+			proteinG: favorite.proteinG,
+			carbsG: favorite.carbsG,
+			fatG: favorite.fatG,
+			servingSize: favorite.servingSize,
+			servingUnit: favorite.servingUnit,
+			loggedAt: logData.loggedAt,
 		};
 
 		const meal = await mealService.createMeal(user.id, mealData);
@@ -724,7 +667,7 @@ mealTrackerRoutes.post("/favorites/:id/log", async (c) => {
 			meal,
 			favorite: {
 				id: favorite.id,
-				usage_count: favorite.usage_count + 1
+				usageCount: favorite.usageCount + 1
 			}
 		};
 
@@ -840,7 +783,7 @@ mealTrackerRoutes.get("/analytics/weekly", async (c) => {
 		}
 
 		const query = {
-			start_date: c.req.query("start_date"),
+			startDate: c.req.query("startDate"),
 		};
 
 		const validatedQuery = validateWeeklyAnalytics(query);
@@ -912,7 +855,7 @@ mealTrackerRoutes.get("/analytics/trends", async (c) => {
 
 		const query = {
 			period: c.req.query("period") || "30d",
-			include_weight: c.req.query("include_weight") === "true",
+			includeWeight: c.req.query("includeWeight") === "true",
 		};
 
 		const validatedQuery = validateTrendsQuery(query);

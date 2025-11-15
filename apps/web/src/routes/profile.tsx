@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { LogOut, Mail, Settings, User } from "lucide-react";
+import { LogOut, Mail, Settings, User, Activity } from "lucide-react";
 import { useAuth, useAuthActions } from "@/auth/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProfileForm } from "@/components/meal-tracker/ProfileForm";
 
 export const Route = createFileRoute("/profile")({
 	component: ProfilePage,
@@ -76,6 +77,19 @@ function ProfilePage() {
 							</div>
 							<Badge variant="outline">GitHub OAuth</Badge>
 						</div>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<Activity className="h-5 w-5" />
+							Meal Tracker Profile
+						</CardTitle>
+						<CardDescription>Set your nutrition goals and activity level</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<ProfileForm embedded />
 					</CardContent>
 				</Card>
 

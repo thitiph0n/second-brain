@@ -19,36 +19,62 @@ interface MealFormProps {
 
 export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: MealFormProps) {
   const queryClient = useQueryClient();
-  const { data: meals } = useMeals();
+  const { data: mealsData } = useMeals();
   const createMeal = useCreateMeal();
   const updateMeal = useUpdateMeal();
   const createFavorite = useCreateFavorite();
 
-  const editingMeal = editingMealId
-    ? (meals as any)?.find((m: any) => m.id === editingMealId)
+  const editingMeal = editingMealId && mealsData?.meals
+    ? mealsData.meals.find((m) => m.id === editingMealId)
     : null;
 
+  // Get local date in YYYY-MM-DD format
+  const getLocalDateString = (date: Date = new Date()) => {
+    const offset = date.getTimezoneOffset() * 60000;
+    const localDate = new Date(date.getTime() - offset);
+    return localDate.toISOString().split('T')[0];
+  };
+
   const [formData, setFormData] = useState<MealFormData>({
-    meal_type: editingMeal?.meal_type || mealType,
-    food_name: editingMeal?.food_name || '',
+    mealType: editingMeal?.mealType || mealType,
+    foodName: editingMeal?.foodName || '',
     calories: editingMeal?.calories || 0,
-    protein_g: editingMeal?.protein_g || 0,
-    carbs_g: editingMeal?.carbs_g || 0,
-    fat_g: editingMeal?.fat_g || 0,
-    serving_size: editingMeal?.serving_size || '',
-    serving_unit: editingMeal?.serving_unit || '',
+    proteinG: editingMeal?.proteinG || 0,
+    carbsG: editingMeal?.carbsG || 0,
+    fatG: editingMeal?.fatG || 0,
+    servingSize: editingMeal?.servingSize || '',
+    servingUnit: editingMeal?.servingUnit || '',
     notes: editingMeal?.notes || '',
+    loggedAt: editingMeal?.loggedAt ? editingMeal.loggedAt.split('T')[0] : getLocalDateString(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
+      // Convert date to ISO datetime format
+      const now = new Date();
+      const selectedDate = formData.loggedAt || now.toISOString().split('T')[0];
+      const todayDate = now.toISOString().split('T')[0];
+
+      // If selected date is today, use current time. Otherwise use noon.
+      let loggedAtISO: string;
+      if (selectedDate === todayDate) {
+        loggedAtISO = now.toISOString();
+      } else {
+        loggedAtISO = new Date(selectedDate + 'T12:00:00.000Z').toISOString();
+      }
+
+      const submissionData = {
+        ...formData,
+        loggedAt: loggedAtISO
+      };
+
       if (editingMealId) {
-        await updateMeal.mutateAsync({ id: editingMealId, data: formData });
+        await updateMeal.mutateAsync({ id: editingMealId, data: submissionData });
         toast.success('Meal updated successfully!');
       } else {
-        await createMeal.mutateAsync(formData);
+        await createMeal.mutateAsync(submissionData);
         toast.success('Meal logged successfully!');
       }
       onClose();
@@ -58,30 +84,30 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
   };
 
   const handleSaveAsFavorite = async () => {
-    if (!formData.food_name || !formData.calories) {
+    if (!formData.foodName || !formData.calories) {
       toast.error('Please enter food name and calories first');
       return;
     }
 
     try {
       const favoriteData = {
-        food_name: formData.food_name,
+        foodName: formData.foodName,
         calories: formData.calories,
-        protein_g: formData.protein_g || 0,
-        carbs_g: formData.carbs_g || 0,
-        fat_g: formData.fat_g || 0,
-        serving_size: formData.serving_size,
-        serving_unit: formData.serving_unit,
+        proteinG: formData.proteinG || 0,
+        carbsG: formData.carbsG || 0,
+        fatG: formData.fatG || 0,
+        servingSize: formData.servingSize,
+        servingUnit: formData.servingUnit,
       };
 
       const newFavorite: FavoriteFood = {
         ...favoriteData,
         id: `fav-${Date.now()}`,
-        user_id: 'current-user-id',
-        usage_count: 0,
-        last_used_at: undefined,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        userId: 'current-user-id',
+        usageCount: 0,
+        lastUsedAt: undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       // Optimistically add to favorites
@@ -129,9 +155,9 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
               <button
                 key={value}
                 type="button"
-                onClick={() => handleChange('meal_type', value as MealType)}
+                onClick={() => handleChange('mealType', value as MealType)}
                 className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                  formData.meal_type === value
+                  formData.mealType === value
                     ? 'border-primary bg-primary/5'
                     : 'border-input hover:bg-accent'
                 }`}
@@ -143,13 +169,26 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
           </div>
         </div>
 
+        {/* Date */}
+        <div className="space-y-2">
+          <Label htmlFor="loggedAt">Date</Label>
+          <Input
+            id="loggedAt"
+            type="date"
+            value={formData.loggedAt}
+            onChange={(e) => handleChange('loggedAt', e.target.value)}
+            max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
+            required
+          />
+        </div>
+
         {/* Food Name */}
         <div className="space-y-2">
-          <Label htmlFor="food_name">Food Name *</Label>
+          <Label htmlFor="foodName">Food Name *</Label>
           <Input
-            id="food_name"
-            value={formData.food_name}
-            onChange={(e) => handleChange('food_name', e.target.value)}
+            id="foodName"
+            value={formData.foodName}
+            onChange={(e) => handleChange('foodName', e.target.value)}
             placeholder="e.g., Grilled chicken breast"
             required
           />
@@ -158,20 +197,20 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
         {/* Serving Size */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="serving_size">Serving Size</Label>
+            <Label htmlFor="servingSize">Serving Size</Label>
             <Input
-              id="serving_size"
-              value={formData.serving_size || ''}
-              onChange={(e) => handleChange('serving_size', e.target.value)}
+              id="servingSize"
+              value={formData.servingSize || ''}
+              onChange={(e) => handleChange('servingSize', e.target.value)}
               placeholder="e.g., 150"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="serving_unit">Unit</Label>
+            <Label htmlFor="servingUnit">Unit</Label>
             <Input
-              id="serving_unit"
-              value={formData.serving_unit || ''}
-              onChange={(e) => handleChange('serving_unit', e.target.value)}
+              id="servingUnit"
+              value={formData.servingUnit || ''}
+              onChange={(e) => handleChange('servingUnit', e.target.value)}
               placeholder="e.g., g, ml, piece"
             />
           </div>
@@ -200,8 +239,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
                 type="number"
                 min="0"
                 step="0.1"
-                value={formData.protein_g || ''}
-                onChange={(e) => handleChange('protein_g', parseFloat(e.target.value) || 0)}
+                value={formData.proteinG || ''}
+                onChange={(e) => handleChange('proteinG', parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
@@ -211,8 +250,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
                 type="number"
                 min="0"
                 step="0.1"
-                value={formData.carbs_g || ''}
-                onChange={(e) => handleChange('carbs_g', parseFloat(e.target.value) || 0)}
+                value={formData.carbsG || ''}
+                onChange={(e) => handleChange('carbsG', parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
@@ -222,8 +261,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
                 type="number"
                 min="0"
                 step="0.1"
-                value={formData.fat_g || ''}
-                onChange={(e) => handleChange('fat_g', parseFloat(e.target.value) || 0)}
+                value={formData.fatG || ''}
+                onChange={(e) => handleChange('fatG', parseFloat(e.target.value) || 0)}
               />
             </div>
           </div>

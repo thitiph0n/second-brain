@@ -1,14 +1,24 @@
-import { useMemo } from 'react';
-import { useDeleteMeal } from '@/hooks/meal-tracker';
+import { useMemo, useState } from 'react';
+import { useDeleteMeal, useCreateFavorite } from '@/hooks/meal-tracker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Coffee, Sun, Moon, Apple } from 'lucide-react';
+import { Edit, Trash2, Coffee, Sun, Moon, Apple, Loader2, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Meal, MealType } from '@/types/meal-tracker';
+import { toast } from 'sonner';
+import type { Meal, MealType, FavoriteFood } from '@/types/meal-tracker';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface MealListProps {
+  meals: Meal[];
   onEditMeal: (mealId: string) => void;
 }
 
@@ -19,21 +29,15 @@ const mealTypeConfig = {
   snack: { icon: Apple, label: 'Snack', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
 };
 
-export function MealList({ onEditMeal }: MealListProps) {
+export function MealList({ meals, onEditMeal }: MealListProps) {
   const queryClient = useQueryClient();
   const deleteMeal = useDeleteMeal();
+  const createFavorite = useCreateFavorite();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [mealToDelete, setMealToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Get today's meals grouped by meal type
   const todayMeals = useMemo(() => {
-    // Get meals from cache or data
-    const cachedData = queryClient.getQueryData(['meal-tracker', 'meals']);
-    const meals = (cachedData as any)?.meals || [];
-
-    const today = new Date().toISOString().split('T')[0];
-    const filtered = meals.filter((meal: any) =>
-      meal.logged_at.split('T')[0] === today
-    );
-
     // Group by meal type
     const grouped: Record<MealType, Meal[]> = {
       breakfast: [],
@@ -42,32 +46,46 @@ export function MealList({ onEditMeal }: MealListProps) {
       snack: [],
     };
 
-    filtered.forEach((meal: any) => {
-      grouped[meal.meal_type as MealType].push(meal);
+    meals.forEach((meal: Meal) => {
+      grouped[meal.mealType as MealType].push(meal);
     });
 
     return grouped;
-  }, [queryClient]);
+  }, [meals]);
 
-  const handleDelete = async (mealId: string, foodName: string) => {
-    if (window.confirm(`Are you sure you want to delete "${foodName}"?`)) {
-      try {
-        const mealToDelete = (queryClient.getQueryData(['meal-tracker', 'meals']) as any)?.meals?.find((m: any) => m.id === mealId);
-        if (mealToDelete) {
-          // Optimistically update
-          queryClient.setQueryData(['meal-tracker', 'meals'], (oldData: any) => {
-            if (!oldData) return { meals: [], total: 0 };
-            return {
-              meals: oldData.meals.filter((meal: Meal) => meal.id !== mealId),
-              total: Math.max(0, oldData.total - 1),
-            };
-          });
+  const handleDeleteClick = (mealId: string, foodName: string) => {
+    setMealToDelete({ id: mealId, name: foodName });
+    setDeleteDialogOpen(true);
+  };
 
-          await deleteMeal.mutateAsync(mealId);
-        }
-      } catch (error) {
-        // Error is handled by the mutation hook
-      }
+  const handleConfirmDelete = async () => {
+    if (!mealToDelete) return;
+
+    try {
+      await deleteMeal.mutateAsync(mealToDelete.id);
+      setDeleteDialogOpen(false);
+      setMealToDelete(null);
+    } catch (error) {
+      // Error is handled by the mutation hook
+    }
+  };
+
+  const handleAddToFavorites = async (meal: Meal) => {
+    try {
+      const favoriteData = {
+        foodName: meal.foodName,
+        calories: meal.calories,
+        proteinG: meal.proteinG || 0,
+        carbsG: meal.carbsG || 0,
+        fatG: meal.fatG || 0,
+        servingSize: meal.servingSize,
+        servingUnit: meal.servingUnit,
+      };
+
+      await createFavorite.mutateAsync(favoriteData);
+      toast.success(`"${meal.foodName}" added to favorites!`);
+    } catch (error) {
+      // Error is handled by the mutation hook
     }
   };
 
@@ -87,8 +105,8 @@ export function MealList({ onEditMeal }: MealListProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Today's Meals</CardTitle>
-          <CardDescription>No meals logged yet today</CardDescription>
+          <CardTitle>Meals</CardTitle>
+          <CardDescription>No meals logged for this date</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
@@ -102,7 +120,7 @@ export function MealList({ onEditMeal }: MealListProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Today's Meals</CardTitle>
+        <CardTitle>Meals</CardTitle>
         <CardDescription>{totalMeals} meal{totalMeals !== 1 ? 's' : ''} logged</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -127,67 +145,75 @@ export function MealList({ onEditMeal }: MealListProps) {
                 {mealsForType.map((meal) => (
                   <div
                     key={meal.id}
-                    className="flex items-start gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                    className="flex items-center gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h4 className="font-medium truncate">{meal.food_name}</h4>
-                        <span className="text-sm font-semibold whitespace-nowrap">
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <h4 className="font-medium text-base">{meal.foodName}</h4>
+                        <span className="text-base font-semibold whitespace-nowrap">
                           {meal.calories} kcal
                         </span>
                       </div>
 
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mb-2">
-                        {meal.protein_g > 0 && (
-                          <span>P: {Math.round(meal.protein_g)}g</span>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                        {meal.proteinG > 0 && (
+                          <span>P: {Math.round(meal.proteinG)}g</span>
                         )}
-                        {meal.carbs_g > 0 && (
-                          <span>C: {Math.round(meal.carbs_g)}g</span>
+                        {meal.carbsG > 0 && (
+                          <span>C: {Math.round(meal.carbsG)}g</span>
                         )}
-                        {meal.fat_g > 0 && (
-                          <span>F: {Math.round(meal.fat_g)}g</span>
+                        {meal.fatG > 0 && (
+                          <span>F: {Math.round(meal.fatG)}g</span>
                         )}
-                        {meal.serving_size && (
+                        {meal.servingSize && (
                           <span>
-                            {meal.serving_size}{meal.serving_unit ? ` ${meal.serving_unit}` : ''}
+                            {meal.servingSize}{meal.servingUnit ? ` ${meal.servingUnit}` : ''}
                           </span>
                         )}
                       </div>
 
                       {meal.notes && (
-                        <p className="text-sm text-muted-foreground italic line-clamp-2 mb-2">
+                        <p className="text-sm text-muted-foreground italic line-clamp-2">
                           {meal.notes}
                         </p>
                       )}
 
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">
-                          {formatTime(meal.logged_at)}
+                          {formatTime(meal.loggedAt)}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex gap-1">
+                    <div className="flex flex-col gap-1 self-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleAddToFavorites(meal)}
+                        disabled={createFavorite.isPending}
+                        className="h-8 w-8 text-yellow-600 hover:text-yellow-700"
+                        title="Add to favorites"
+                      >
+                        <Star className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => onEditMeal(meal.id)}
                         className="h-8 w-8"
+                        title="Edit meal"
                       >
                         <Edit className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(meal.id, meal.food_name)}
+                        onClick={() => handleDeleteClick(meal.id, meal.foodName)}
                         disabled={isLoading}
                         className="h-8 w-8 text-destructive hover:text-destructive"
+                        title="Delete meal"
                       >
-                        {isLoading ? (
-                          <Skeleton className="h-3.5 w-3.5" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -197,6 +223,41 @@ export function MealList({ onEditMeal }: MealListProps) {
           );
         })}
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Meal</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{mealToDelete?.name}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

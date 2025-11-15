@@ -203,10 +203,17 @@ When working in this codebase:
 10. Components should follow responsive design patterns (mobile-first)
 11. Use Zod for validation on both frontend and backend
 12. **ALWAYS ensure files end with a newline character (EOL)** - this is required for proper git handling and POSIX compliance
+13. **Naming Convention**:
+    - API layer uses **camelCase** for request/response fields (e.g., `mealType`, `foodName`, `proteinG`)
+    - Database layer uses **snake_case** for column names (e.g., `meal_type`, `food_name`, `protein_g`)
+    - TypeScript/Service layer uses **camelCase** matching Drizzle ORM field names
+    - No transformation needed between API and service layers - both use camelCase
 
 ### important-instruction-reminders
+
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+
 - Do not run dev server for me

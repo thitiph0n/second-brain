@@ -66,8 +66,8 @@ export const useUpdateProfile = () => {
 
 // Meals API Hooks
 export const useMeals = (options?: {
-  start_date?: string;
-  end_date?: string;
+  startDate?: string;
+  endDate?: string;
   limit?: number;
   offset?: number;
 }) => {
@@ -186,7 +186,7 @@ export const useCreateFavorite = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<FavoriteFood, 'id' | 'user_id' | 'usage_count' | 'last_used_at' | 'created_at' | 'updated_at'>) =>
+    mutationFn: (data: Omit<FavoriteFood, 'id' | 'userId' | 'usageCount' | 'lastUsedAt' | 'createdAt' | 'updatedAt'>) =>
       mealTrackerAPI.createFavorite(data),
     onSuccess: () => {
       toast.success('Favorite added successfully!');
@@ -313,27 +313,27 @@ export const mealTrackerOptimistic = {
     client.setQueryData(['meal-tracker', 'daily-summary'], (oldData: any) => {
       if (!oldData) {
         return {
-          daily_summary: {
+          dailySummary: {
             date: mealTrackerUtils.formatDate(new Date()),
-            total_calories: newMeal.calories,
-            total_protein_g: newMeal.protein_g,
-            total_carbs_g: newMeal.carbs_g,
-            total_fat_g: newMeal.fat_g,
-            meal_count: 1,
-            target_calories: 0,
+            totalCalories: newMeal.calories,
+            totalProteinG: newMeal.proteinG,
+            totalCarbsG: newMeal.carbsG,
+            totalFatG: newMeal.fatG,
+            mealCount: 1,
+            targetCalories: 0,
           },
         };
       }
 
-      const summary = oldData.daily_summary;
+      const summary = oldData.dailySummary;
       return {
-        daily_summary: {
+        dailySummary: {
           ...summary,
-          total_calories: summary.total_calories + newMeal.calories,
-          total_protein_g: summary.total_protein_g + newMeal.protein_g,
-          total_carbs_g: summary.total_carbs_g + newMeal.carbs_g,
-          total_fat_g: summary.total_fat_g + newMeal.fat_g,
-          meal_count: summary.meal_count + 1,
+          totalCalories: summary.totalCalories + newMeal.calories,
+          totalProteinG: summary.totalProteinG + newMeal.proteinG,
+          totalCarbsG: summary.totalCarbsG + newMeal.carbsG,
+          totalFatG: summary.totalFatG + newMeal.fatG,
+          mealCount: summary.mealCount + 1,
         },
       };
     });
@@ -351,26 +351,26 @@ export const mealTrackerOptimistic = {
 
     // Update daily summary
     client.setQueryData(['meal-tracker', 'daily-summary'], (oldData: any) => {
-      if (!oldData) return { daily_summary: null };
+      if (!oldData) return { dailySummary: null };
 
-      const summary = oldData.daily_summary;
-      if (!summary) return { daily_summary: null };
+      const summary = oldData.dailySummary;
+      if (!summary) return { dailySummary: null };
 
       const newSummary = {
         ...summary,
-        total_calories: Math.max(0, summary.total_calories - deletedMeal.calories),
-        total_protein_g: Math.max(0, summary.total_protein_g - deletedMeal.protein_g),
-        total_carbs_g: Math.max(0, summary.total_carbs_g - deletedMeal.carbs_g),
-        total_fat_g: Math.max(0, summary.total_fat_g - deletedMeal.fat_g),
-        meal_count: Math.max(0, summary.meal_count - 1),
+        totalCalories: Math.max(0, summary.totalCalories - deletedMeal.calories),
+        totalProteinG: Math.max(0, summary.totalProteinG - deletedMeal.proteinG),
+        totalCarbsG: Math.max(0, summary.totalCarbsG - deletedMeal.carbsG),
+        totalFatG: Math.max(0, summary.totalFatG - deletedMeal.fatG),
+        mealCount: Math.max(0, summary.mealCount - 1),
       };
 
       // Remove summary if no meals left
-      if (newSummary.meal_count === 0) {
-        return { daily_summary: null };
+      if (newSummary.mealCount === 0) {
+        return { dailySummary: null };
       }
 
-      return { daily_summary: newSummary };
+      return { dailySummary: newSummary };
     });
   },
 

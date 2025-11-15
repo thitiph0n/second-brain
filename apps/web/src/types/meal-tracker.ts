@@ -6,96 +6,96 @@ export type Goal = 'lose_weight' | 'maintain_weight' | 'gain_weight';
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export interface UserProfile {
-  user_id: string;
+  userId: string;
   age: number;
-  weight_kg: number;
-  height_cm: number;
+  weightKg: number;
+  heightCm: number;
   gender: Gender;
-  activity_level: ActivityLevel;
+  activityLevel: ActivityLevel;
   goal: Goal;
   tdee: number;
-  target_calories: number;
-  target_protein_g: number;
-  target_carbs_g: number;
-  target_fat_g: number;
-  created_at: string;
-  updated_at: string;
+  targetCalories: number;
+  targetProteinG: number;
+  targetCarbsG: number;
+  targetFatG: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProfileFormData {
   age: number;
-  weight_kg: number;
-  height_cm: number;
+  weightKg: number;
+  heightCm: number;
   gender: Gender;
-  activity_level: ActivityLevel;
+  activityLevel: ActivityLevel;
   goal: Goal;
 }
 
 export interface Meal {
   id: string;
-  user_id: string;
-  meal_type: MealType;
-  food_name: string;
+  userId: string;
+  mealType: MealType;
+  foodName: string;
   calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  serving_size?: string;
-  serving_unit?: string;
-  image_url?: string;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  servingSize?: string;
+  servingUnit?: string;
+  imageUrl?: string;
   notes?: string;
-  logged_at: string;
-  created_at: string;
-  updated_at: string;
+  loggedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MealFormData {
-  meal_type: MealType;
-  food_name: string;
+  mealType: MealType;
+  foodName: string;
   calories: number;
-  protein_g?: number;
-  carbs_g?: number;
-  fat_g?: number;
-  serving_size?: string;
-  serving_unit?: string;
+  proteinG?: number;
+  carbsG?: number;
+  fatG?: number;
+  servingSize?: string;
+  servingUnit?: string;
   notes?: string;
-  logged_at?: Date;
+  loggedAt?: string;
 }
 
 export interface DailySummary {
   date: string;
-  total_calories: number;
-  total_protein_g: number;
-  total_carbs_g: number;
-  total_fat_g: number;
-  meal_count: number;
-  target_calories: number;
+  totalCalories: number;
+  totalProteinG: number;
+  totalCarbsG: number;
+  totalFatG: number;
+  mealCount: number;
+  targetCalories: number;
 }
 
 export interface Streak {
-  user_id: string;
-  current_streak: number;
-  longest_streak: number;
-  last_logged_date: string;
-  freeze_credits: number;
-  total_logged_days: number;
+  userId: string;
+  currentStreak: number;
+  longestStreak: number;
+  lastLoggedDate: string;
+  freezeCredits: number;
+  totalLoggedDays: number;
 }
 
 export interface FavoriteFood {
   id: string;
-  user_id: string;
-  food_name: string;
+  userId: string;
+  foodName: string;
   calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  serving_size?: string;
-  serving_unit?: string;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  servingSize?: string;
+  servingUnit?: string;
   category?: string;
-  usage_count: number;
-  last_used_at?: string;
-  created_at: string;
-  updated_at: string;
+  usageCount: number;
+  lastUsedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MacroTargets {
@@ -105,10 +105,10 @@ export interface MacroTargets {
 }
 
 export interface NutritionSuggestion {
-  food_name: string;
+  foodName: string;
   calories: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
   confidence: number;
 }

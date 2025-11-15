@@ -21,41 +21,41 @@ export const createProfileSchema = z.object({
 		.min(1, "Age must be at least 1")
 		.max(120, "Age must be at most 120")
 		.int("Age must be an integer"),
-	weight_kg: z
+	weightKg: z
 		.number()
 		.min(1, "Weight must be at least 1 kg")
 		.max(300, "Weight must be at most 300 kg")
 		.positive("Weight must be positive"),
-	height_cm: z
+	heightCm: z
 		.number()
 		.min(50, "Height must be at least 50 cm")
 		.max(250, "Height must be at most 250 cm")
 		.positive("Height must be positive"),
 	gender: genderSchema,
-	activity_level: activityLevelSchema,
+	activityLevel: activityLevelSchema,
 	goal: goalSchema,
 });
 
 export const updateProfileSchema = createProfileSchema.partial();
 
-export const profileResponseSchema = z.object({
+export const profileResponseSchema = createProfileSchema.extend({
 	tdee: z
 		.number()
 		.min(500, "TDEE must be at least 500 calories")
 		.max(5000, "TDEE must be at most 5000 calories"),
-	target_calories: z
+	targetCalories: z
 		.number()
 		.min(500, "Target calories must be at least 500")
 		.max(5000, "Target calories must be at most 5000"),
-	target_protein_g: z
+	targetProteinG: z
 		.number()
 		.min(10, "Target protein must be at least 10g")
 		.max(500, "Target protein must be at most 500g"),
-	target_carbs_g: z
+	targetCarbsG: z
 		.number()
 		.min(10, "Target carbs must be at least 10g")
 		.max(1000, "Target carbs must be at most 1000g"),
-	target_fat_g: z
+	targetFatG: z
 		.number()
 		.min(5, "Target fat must be at least 5g")
 		.max(300, "Target fat must be at most 300g"),
@@ -63,8 +63,8 @@ export const profileResponseSchema = z.object({
 
 // Meal Management
 export const createMealSchema = z.object({
-	meal_type: mealTypeSchema,
-	food_name: z
+	mealType: mealTypeSchema,
+	foodName: z
 		.string()
 		.min(1, "Food name is required")
 		.max(200, "Food name must be less than 200 characters")
@@ -74,26 +74,26 @@ export const createMealSchema = z.object({
 		.min(1, "Calories must be at least 1")
 		.max(5000, "Calories must be at most 5000")
 		.positive("Calories must be positive"),
-	protein_g: z
+	proteinG: z
 		.number()
 		.min(0, "Protein cannot be negative")
 		.max(1000, "Protein must be at most 1000g")
 		.optional(),
-	carbs_g: z
+	carbsG: z
 		.number()
 		.min(0, "Carbs cannot be negative")
 		.max(1000, "Carbs must be at most 1000g")
 		.optional(),
-	fat_g: z
+	fatG: z
 		.number()
 		.min(0, "Fat cannot be negative")
 		.max(300, "Fat must be at most 300g")
 		.optional(),
-	serving_size: z
+	servingSize: z
 		.string()
 		.max(50, "Serving size must be less than 50 characters")
 		.optional(),
-	serving_unit: z
+	servingUnit: z
 		.string()
 		.max(20, "Serving unit must be less than 20 characters")
 		.optional(),
@@ -101,13 +101,13 @@ export const createMealSchema = z.object({
 		.string()
 		.max(500, "Notes must be less than 500 characters")
 		.optional(),
-	image_url: z
+	imageUrl: z
 		.string()
 		.url("Invalid image URL format")
 		.max(500, "Image URL must be less than 500 characters")
 		.optional()
 		.nullable(),
-	logged_at: z
+	loggedAt: z
 		.string()
 		.datetime("Invalid datetime format")
 		.optional(),
@@ -116,11 +116,11 @@ export const createMealSchema = z.object({
 export const updateMealSchema = createMealSchema.partial();
 
 export const mealsQuerySchema = z.object({
-	start_date: z
+	startDate: z
 		.string()
 		.regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format")
 		.optional(),
-	end_date: z
+	endDate: z
 		.string()
 		.regex(/^\d{4}-\d{2}-\d{2}$/, "End date must be in YYYY-MM-DD format")
 		.optional(),
@@ -141,14 +141,14 @@ export const dailySummaryQuerySchema = z.object({
 
 // Streak Management
 export const streakResponseSchema = z.object({
-	current_streak: z.number().min(0, "Current streak cannot be negative"),
-	longest_streak: z.number().min(0, "Longest streak cannot be negative"),
-	last_logged_date: z.string().datetime("Invalid date format").nullable(),
-	freeze_credits: z
+	currentStreak: z.number().min(0, "Current streak cannot be negative"),
+	longestStreak: z.number().min(0, "Longest streak cannot be negative"),
+	lastLoggedDate: z.string().datetime("Invalid datetime format").nullable(),
+	freezeCredits: z
 		.number()
 		.min(0, "Freeze credits cannot be negative")
 		.max(12, "Freeze credits cannot exceed 12"),
-	total_logged_days: z.number().min(0, "Total logged days cannot be negative"),
+	totalLoggedDays: z.number().min(0, "Total logged days cannot be negative"),
 });
 
 export const streakCalendarQuerySchema = z.object({
@@ -173,7 +173,7 @@ export const freezeSchema = z.object({
 
 // Favorite Foods
 export const createFavoriteSchema = z.object({
-	food_name: z
+	foodName: z
 		.string()
 		.min(1, "Food name is required")
 		.max(200, "Food name must be less than 200 characters")
@@ -183,26 +183,26 @@ export const createFavoriteSchema = z.object({
 		.min(1, "Calories must be at least 1")
 		.max(5000, "Calories must be at most 5000")
 		.positive("Calories must be positive"),
-	protein_g: z
+	proteinG: z
 		.number()
 		.min(0, "Protein cannot be negative")
 		.max(1000, "Protein must be at most 1000g")
 		.optional(),
-	carbs_g: z
+	carbsG: z
 		.number()
 		.min(0, "Carbs cannot be negative")
 		.max(1000, "Carbs must be at most 1000g")
 		.optional(),
-	fat_g: z
+	fatG: z
 		.number()
 		.min(0, "Fat cannot be negative")
 		.max(300, "Fat must be at most 300g")
 		.optional(),
-	serving_size: z
+	servingSize: z
 		.string()
 		.max(50, "Serving size must be less than 50 characters")
 		.optional(),
-	serving_unit: z
+	servingUnit: z
 		.string()
 		.max(20, "Serving unit must be less than 20 characters")
 		.optional(),
@@ -216,54 +216,54 @@ export const updateFavoriteSchema = createFavoriteSchema.partial();
 
 export const favoritesResponseSchema = z.array(z.object({
 	id: z.string().uuid("Invalid favorite ID"),
-	food_name: z.string().min(1).max(200),
+	foodName: z.string().min(1).max(200),
 	calories: z.number().min(1).max(5000),
-	protein_g: z.number().min(0).max(1000),
-	carbs_g: z.number().min(0).max(1000),
-	fat_g: z.number().min(0).max(300),
-	serving_size: z.string().max(50).nullable(),
-	serving_unit: z.string().max(20).nullable(),
+	proteinG: z.number().min(0).max(1000),
+	carbsG: z.number().min(0).max(1000),
+	fatG: z.number().min(0).max(300),
+	servingSize: z.string().max(50).nullable(),
+	servingUnit: z.string().max(20).nullable(),
 	category: z.string().max(50).nullable(),
-	usage_count: z.number().min(0),
-	last_used_at: z.string().datetime().nullable(),
+	usageCount: z.number().min(0),
+	lastUsedAt: z.string().datetime().nullable(),
 }));
 
 export const quickAddFavoriteSchema = z.object({
-	meal_type: mealTypeSchema,
-	logged_at: z.string().datetime().optional(),
+	mealType: mealTypeSchema,
+	loggedAt: z.string().datetime().optional(),
 });
 
 export const quickAddFavoriteResponseSchema = z.object({
 	meal: z.object({
 		id: z.string().uuid(),
-		user_id: z.string(),
-		meal_type: mealTypeSchema,
-		food_name: z.string(),
+		userId: z.string(),
+		mealType: mealTypeSchema,
+		foodName: z.string(),
 		calories: z.number(),
-		protein_g: z.number(),
-		carbs_g: z.number(),
-		fat_g: z.number(),
-		serving_size: z.string().nullable(),
-		serving_unit: z.string().nullable(),
-		image_url: z.string().nullable(),
+		proteinG: z.number(),
+		carbsG: z.number(),
+		fatG: z.number(),
+		servingSize: z.string().nullable(),
+		servingUnit: z.string().nullable(),
+		imageUrl: z.string().nullable(),
 		notes: z.string().nullable(),
-		logged_at: z.string(),
-		created_at: z.string(),
-		updated_at: z.string(),
+		loggedAt: z.string(),
+		createdAt: z.string(),
+		updatedAt: z.string(),
 	}),
 	favorite: z.object({
 		id: z.string().uuid(),
-		usage_count: z.number(),
+		usageCount: z.number(),
 	}),
 });
 
 // Analytics
 export const analyticsQuerySchema = z.object({
-	start_date: z
+	startDate: z
 		.string()
 		.regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format")
 		.optional(),
-	end_date: z
+	endDate: z
 		.string()
 		.regex(/^\d{4}-\d{2}-\d{2}$/, "End date must be in YYYY-MM-DD format")
 		.optional(),
@@ -280,7 +280,7 @@ export const dailyAnalyticsSchema = analyticsQuerySchema.extend({
 });
 
 export const weeklyAnalyticsSchema = analyticsQuerySchema.extend({
-	start_date: z
+	startDate: z
 		.string()
 		.regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format"),
 });
@@ -292,7 +292,7 @@ export const monthlyAnalyticsSchema = analyticsQuerySchema.extend({
 
 export const trendsQuerySchema = z.object({
 	period: z.enum(["7d", "30d", "90d"]).default("30d"),
-	include_weight: z.boolean().default(false),
+	includeWeight: z.boolean().default(false),
 });
 
 // Food Search
@@ -314,30 +314,30 @@ export const foodSearchResponseSchema = z.array(z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1).max(200),
 	brand: z.string().max(100).nullable(),
-	calories_per_100g: z.number().min(0).max(5000),
-	protein_per_100g: z.number().min(0).max(1000),
-	carbs_per_100g: z.number().min(0).max(1000),
-	fat_per_100g: z.number().min(0).max(300),
-	serving_size_g: z.number().positive().nullable(),
-	serving_description: z.string().max(100).nullable(),
+	caloriesPer100g: z.number().min(0).max(5000),
+	proteinPer100g: z.number().min(0).max(1000),
+	carbsPer100g: z.number().min(0).max(1000),
+	fatPer100g: z.number().min(0).max(300),
+	servingSizeG: z.number().positive().nullable(),
+	servingDescription: z.string().max(100).nullable(),
 	category: z.string().max(50).nullable(),
 }));
 
 // AI Image Analysis
 export const aiImageAnalysisSchema = z.object({
 	suggestions: z.array(z.object({
-		food_name: z
+		foodName: z
 			.string()
 			.min(1, "Food name is required")
 			.max(200, "Food name must be less than 200 characters")
 			.trim(),
 		calories: z.number().min(1).max(5000),
-		protein_g: z.number().min(0).max(1000),
-		carbs_g: z.number().min(0).max(1000),
-		fat_g: z.number().min(0).max(300),
+		proteinG: z.number().min(0).max(1000),
+		carbsG: z.number().min(0).max(1000),
+		fatG: z.number().min(0).max(300),
 		confidence: z.number().min(0).max(1),
 	})).min(1, "At least one suggestion is required"),
-	meal_id: z.string().uuid("Invalid meal ID"),
+	mealId: z.string().uuid("Invalid meal ID"),
 });
 
 // Bulk Operations
