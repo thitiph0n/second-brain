@@ -150,11 +150,11 @@ export function DailyDashboard() {
       {/* Header with Hero Section */}
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Meal Tracker</h1>
-            <p className="text-muted-foreground">Track your daily nutrition and stay on target</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold truncate">Meal Tracker</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Track your daily nutrition and stay on target</p>
           </div>
-          <Button onClick={() => handleAddMeal('breakfast')} size="lg">
+          <Button onClick={() => handleAddMeal('breakfast')} size="lg" className="w-full sm:w-auto shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             Log Meal
           </Button>
@@ -163,7 +163,44 @@ export function DailyDashboard() {
         {/* Date Navigation */}
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center justify-between gap-4">
+            {/* Mobile Layout - Stacked */}
+            <div className="flex flex-col sm:hidden gap-4">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handlePreviousDay}
+                  className="shrink-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium text-center min-w-0 truncate">
+                  {formatDisplayDate(selectedDate)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleNextDay}
+                  disabled={isToday}
+                  className="shrink-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                  max={today}
+                  className="w-full max-w-[200px] text-center font-medium text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Desktop Layout - Horizontal */}
+            <div className="hidden sm:flex items-center justify-between gap-4">
               <Button
                 variant="outline"
                 size="icon"
@@ -172,16 +209,16 @@ export function DailyDashboard() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              <div className="flex items-center gap-3 flex-1 justify-center">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
+              <div className="flex items-center gap-3 flex-1 justify-center min-w-0">
+                <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
                 <Input
                   type="date"
                   value={selectedDate}
                   onChange={handleDateChange}
                   max={today}
-                  className="w-auto text-center font-semibold"
+                  className="w-auto max-w-[180px] text-center font-semibold"
                 />
-                <span className="text-sm text-muted-foreground min-w-[120px] text-center">
+                <span className="text-sm text-muted-foreground min-w-[100px] text-center truncate">
                   {formatDisplayDate(selectedDate)}
                 </span>
               </div>
@@ -199,15 +236,15 @@ export function DailyDashboard() {
         </Card>
 
         {/* Hero Section - Calories and Nutrition */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* Calorie Progress */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Calories</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center mb-4">
-              <div className="relative w-32 h-32">
+            <div className="flex items-center justify-center mb-3 sm:mb-4">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
                 <svg className="w-full h-full" viewBox="0 0 100 100">
                   {/* Background circle */}
                   <circle
@@ -235,13 +272,13 @@ export function DailyDashboard() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <Flame className="h-5 w-5 mb-1 text-orange-500" />
-                  <div className="text-xl font-bold">{Math.round(calculatedDailySummary.totalCalories)}</div>
+                  <Flame className="h-4 w-4 sm:h-5 sm:w-5 mb-1 text-orange-500" />
+                  <div className="text-lg sm:text-xl font-bold">{Math.round(calculatedDailySummary.totalCalories)}</div>
                   <div className="text-xs text-muted-foreground">of {profile.targetCalories}</div>
                 </div>
               </div>
             </div>
-            <div className="text-center text-sm text-muted-foreground">
+            <div className="text-center text-xs sm:text-sm text-muted-foreground">
               {profile.targetCalories - calculatedDailySummary.totalCalories > 0
                 ? `${Math.round(profile.targetCalories - calculatedDailySummary.totalCalories)} kcal remaining`
                 : `${Math.round(calculatedDailySummary.totalCalories - profile.targetCalories)} kcal over`}
