@@ -29,7 +29,8 @@ import type {
   Gender,
   ActivityLevel,
   Goal,
-  MealType
+  MealType,
+  DailySummary
 } from '@second-brain/types/meal-tracker';
 
 export class MealTrackerService {
@@ -37,6 +38,24 @@ export class MealTrackerService {
 
   constructor(d1Database: D1Database) {
     this.db = drizzle(d1Database);
+  }
+
+  // Helper function to convert date to user's local date string based on timezone
+  private getUserLocalDateString(date: Date, timezone?: string): string {
+    if (timezone) {
+      // Use user's timezone if available
+      return date.toLocaleString('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).replace(/-/g, '-');
+    } else {
+      // Fallback to local date calculation
+      const offset = date.getTimezoneOffset() * 60000;
+      const localDate = new Date(date.getTime() - offset);
+      return localDate.toISOString().split('T')[0];
+    }
   }
 
   // TDEE Calculation Constants and Methods
@@ -83,9 +102,9 @@ export class MealTrackerService {
     const carbsG = Math.round(remainingCalories / 4);
 
     return {
-      protein_g: proteinG,
-      carbs_g: carbsG,
-      fat_g: fatG
+      proteinG: proteinG,
+      carbsG: carbsG,
+      fatG: fatG
     };
   }
 
@@ -110,9 +129,9 @@ export class MealTrackerService {
         age: profileData.age ?? existingProfile.age,
         weightKg: profileData.weightKg ?? existingProfile.weightKg,
         heightCm: profileData.heightCm ?? existingProfile.heightCm,
-        gender: profileData.gender ?? existingProfile.gender,
-        activityLevel: profileData.activityLevel ?? existingProfile.activityLevel,
-        goal: profileData.goal ?? existingProfile.goal,
+        gender: profileData.gender ?? existingProfile.gender as Gender,
+        activityLevel: profileData.activityLevel ?? existingProfile.activityLevel as ActivityLevel,
+        goal: profileData.goal ?? existingProfile.goal as Goal,
       } : profileData as ProfileFormData;
 
       // Validate that all required fields are present
@@ -140,9 +159,9 @@ export class MealTrackerService {
         ...mergedData,
         tdee,
         targetCalories: tdee,
-        targetProteinG: macroTargets.protein_g,
-        targetCarbsG: macroTargets.carbs_g,
-        targetFatG: macroTargets.fat_g
+        targetProteinG: macroTargets.proteinG,
+        targetCarbsG: macroTargets.carbsG,
+        targetFatG: macroTargets.fatG
       };
 
       if (existingProfile) {
@@ -212,7 +231,7 @@ export class MealTrackerService {
       return !!result;
     } catch (error) {
       console.error('Error in hasUserProfile:', error);
-      throw new Error(`Failed to check user profile existence: ${error.message}`);
+      throw new Error(`Failed to check user profile existence: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -275,7 +294,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getMealById:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch meal: ${error.message}`);
+        throw new Error(`Failed to fetch meal: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch meal: Unknown error occurred');
     }
@@ -345,7 +364,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getMealsByUser:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch meals: ${error.message}`);
+        throw new Error(`Failed to fetch meals: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch meals: Unknown error occurred');
     }
@@ -388,7 +407,7 @@ export class MealTrackerService {
         .get();
 
       // Update daily summary if date changed
-      if (mealData.loggedAt && mealData.loggedAt !== existingMeal.loggedAt) {
+      if (mealData.loggedAt && loggedAt && existingMeal.loggedAt && mealData.loggedAt !== existingMeal.loggedAt) {
         const oldDate = existingMeal.loggedAt.split('T')[0];
         const newDate = loggedAt.split('T')[0];
         if (oldDate !== newDate) {
@@ -401,7 +420,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in updateMeal:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to update meal: ${error.message}`);
+        throw new Error(`Failed to update meal: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to update meal: Unknown error occurred');
     }
@@ -423,13 +442,15 @@ export class MealTrackerService {
         .run();
 
       // Update daily summary
-      await this.updateDailySummary(userId, existingMeal.loggedAt.split('T')[0], existingMeal, true);
+      if (existingMeal.loggedAt) {
+        await this.updateDailySummary(userId, existingMeal.loggedAt.split('T')[0], existingMeal, true);
+      }
 
       return true;
     } catch (error) {
       console.error('Error in deleteMeal:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to delete meal: ${error.message}`);
+        throw new Error(`Failed to delete meal: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to delete meal: Unknown error occurred');
     }
@@ -474,7 +495,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getDailySummary:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch daily summary: ${error.message}`);
+        throw new Error(`Failed to fetch daily summary: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch daily summary: Unknown error occurred');
     }
@@ -500,7 +521,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getDailySummariesByDateRange:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch daily summaries: ${error.message}`);
+        throw new Error(`Failed to fetch daily summaries: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch daily summaries: Unknown error occurred');
     }
@@ -519,14 +540,14 @@ export class MealTrackerService {
 
       const mealData = isDelete ? {
         calories: -meal.calories,
-        proteinG: -meal.proteinG,
-        carbsG: -meal.carbsG,
-        fatG: -meal.fatG
+        proteinG: -(meal.proteinG ?? 0),
+        carbsG: -(meal.carbsG ?? 0),
+        fatG: -(meal.fatG ?? 0)
       } : {
         calories: meal.calories,
-        proteinG: meal.proteinG,
-        carbsG: meal.carbsG,
-        fatG: meal.fatG
+        proteinG: meal.proteinG ?? 0,
+        carbsG: meal.carbsG ?? 0,
+        fatG: meal.fatG ?? 0
       };
 
       if (existingSummary) {
@@ -534,10 +555,10 @@ export class MealTrackerService {
         await this.db
           .update(dailySummaries)
           .set({
-            totalCalories: existingSummary.totalCalories + mealData.calories,
-            totalProteinG: existingSummary.totalProteinG + mealData.proteinG,
-            totalCarbsG: existingSummary.totalCarbsG + mealData.carbsG,
-            totalFatG: existingSummary.totalFatG + mealData.fatG,
+            totalCalories: (existingSummary.totalCalories ?? 0) + mealData.calories,
+            totalProteinG: (existingSummary.totalProteinG ?? 0) + mealData.proteinG,
+            totalCarbsG: (existingSummary.totalCarbsG ?? 0) + mealData.carbsG,
+            totalFatG: (existingSummary.totalFatG ?? 0) + mealData.fatG,
             mealCount: isDelete ? (existingSummary.mealCount || 0) - 1 : (existingSummary.mealCount || 0) + 1,
             updatedAt: new Date().toISOString()
           })
@@ -554,7 +575,7 @@ export class MealTrackerService {
       } else if (!isDelete) {
         // Create new summary if it doesn't exist and it's not a delete operation
         const userProfile = await this.getUserProfile(userId);
-        const targetCalories = userProfile?.target_calories || 0;
+        const targetCalories = userProfile?.targetCalories || 0;
 
         await this.db
           .insert(dailySummaries)
@@ -575,7 +596,7 @@ export class MealTrackerService {
       }
     } catch (error) {
       console.error('Error in updateDailySummary:', error);
-      throw new Error(`Failed to update daily summary: ${error.message}`);
+      throw new Error(`Failed to update daily summary: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -596,7 +617,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getStreak:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch streak: ${error.message}`);
+        throw new Error(`Failed to fetch streak: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch streak: Unknown error occurred');
     }
@@ -628,7 +649,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in initializeStreak:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to initialize streak: ${error.message}`);
+        throw new Error(`Failed to initialize streak: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to initialize streak: Unknown error occurred');
     }
@@ -644,13 +665,17 @@ export class MealTrackerService {
         streak = await this.initializeStreak(userId);
       }
 
-      const today = new Date().toISOString().split('T')[0];
-      const lastLoggedDate = streak.lastLoggedDate ? new Date(streak.lastLoggedDate).toISOString().split('T')[0] : null;
+      // Get user's profile for timezone
+      const profile = await this.getUserProfile(userId);
+      const userTimezone = profile?.timezone;
 
-      let newStreak = streak.currentStreak;
-      let newLongestStreak = streak.longestStreak;
-      let newTotalLoggedDays = streak.totalLoggedDays;
-      const newLastLoggedDate = new Date(date).toISOString();
+      const today = this.getUserLocalDateString(new Date(), userTimezone || undefined);
+      const lastLoggedDate = streak.lastLoggedDate ? this.getUserLocalDateString(new Date(streak.lastLoggedDate), userTimezone || undefined) : null;
+
+      let newStreak = streak.currentStreak ?? 0;
+      let newLongestStreak = streak.longestStreak ?? 0;
+      let newTotalLoggedDays = streak.totalLoggedDays ?? 0;
+      const newLastLoggedDate = new Date(date).toISOString(); // Keep ISO format for storage
 
       if (lastLoggedDate && lastLoggedDate !== date) {
         const lastDate = new Date(lastLoggedDate);
@@ -693,7 +718,7 @@ export class MealTrackerService {
         .run();
     } catch (error) {
       console.error('Error in updateStreak:', error);
-      throw new Error(`Failed to update streak: ${error.message}`);
+      throw new Error(`Failed to update streak: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -703,14 +728,14 @@ export class MealTrackerService {
   async useFreezeCredit(userId: string): Promise<boolean> {
     try {
       const streak = await this.getStreak(userId);
-      if (!streak || streak.freeze_credits <= 0) {
+      if (!streak || (streak.freezeCredits ?? 0) <= 0) {
         return false;
       }
 
       await this.db
         .update(mealStreaks)
         .set({
-          freezeCredits: streak.freeze_credits - 1,
+          freezeCredits: (streak.freezeCredits ?? 0) - 1,
           updatedAt: new Date().toISOString()
         })
         .where(eq(mealStreaks.userId, userId))
@@ -719,7 +744,7 @@ export class MealTrackerService {
       return true;
     } catch (error) {
       console.error('Error in useFreezeCredit:', error);
-      throw new Error(`Failed to use freeze credit: ${error.message}`);
+      throw new Error(`Failed to use freeze credit: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -742,7 +767,7 @@ export class MealTrackerService {
         .run();
     } catch (error) {
       console.error('Error in resetCurrentStreak:', error);
-      throw new Error(`Failed to reset current streak: ${error.message}`);
+      throw new Error(`Failed to reset current streak: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -763,7 +788,7 @@ export class MealTrackerService {
       const startOfMonth = new Date(year, month - 1, 1).toISOString();
       const endOfMonth = new Date(year, month, 0).toISOString();
 
-      const meals = await this.db
+      const monthMeals = await this.db
         .select({ loggedAt: meals.loggedAt })
         .from(meals)
         .where(
@@ -776,14 +801,14 @@ export class MealTrackerService {
         .all();
 
       // Extract unique dates from logged meals
-      const loggedDates = meals
-        .map(meal => new Date(meal.loggedAt).toISOString().split('T')[0])
+      const loggedDates = monthMeals
+        .map(meal => new Date(meal.loggedAt ?? '').toISOString().split('T')[0])
         .filter((date, index, arr) => arr.indexOf(date) === index);
 
       const streakInfo = {
-        current: streak.current_streak,
-        longest: streak.longest_streak,
-        freezeCredits: streak.freeze_credits
+        current: streak.currentStreak ?? 0,
+        longest: streak.longestStreak ?? 0,
+        freezeCredits: streak.freezeCredits ?? 0
       };
 
       return {
@@ -792,7 +817,7 @@ export class MealTrackerService {
       };
     } catch (error) {
       console.error('Error in getStreakCalendar:', error);
-      throw new Error(`Failed to fetch streak calendar: ${error.message}`);
+      throw new Error(`Failed to fetch streak calendar: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -838,7 +863,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in createFavoriteFood:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to create favorite food: ${error.message}`);
+        throw new Error(`Failed to create favorite food: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to create favorite food: Unknown error occurred');
     }
@@ -859,7 +884,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getFavoriteFoodsByUser:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch favorite foods: ${error.message}`);
+        throw new Error(`Failed to fetch favorite foods: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch favorite foods: Unknown error occurred');
     }
@@ -880,7 +905,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getFavoriteFoodById:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch favorite food: ${error.message}`);
+        throw new Error(`Failed to fetch favorite food: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch favorite food: Unknown error occurred');
     }
@@ -904,7 +929,7 @@ export class MealTrackerService {
         .run();
     } catch (error) {
       console.error('Error in incrementFavoriteFoodUsage:', error);
-      throw new Error(`Failed to increment favorite food usage: ${error.message}`);
+      throw new Error(`Failed to increment favorite food usage: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -951,7 +976,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in updateFavoriteFood:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to update favorite food: ${error.message}`);
+        throw new Error(`Failed to update favorite food: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to update favorite food: Unknown error occurred');
     }
@@ -971,7 +996,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in deleteFavoriteFood:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to delete favorite food: ${error.message}`);
+        throw new Error(`Failed to delete favorite food: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to delete favorite food: Unknown error occurred');
     }
@@ -997,7 +1022,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in searchFavoriteFoods:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to search favorite foods: ${error.message}`);
+        throw new Error(`Failed to search favorite foods: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to search favorite foods: Unknown error occurred');
     }
@@ -1021,22 +1046,33 @@ export class MealTrackerService {
     averageFatRatio: number;
   }> {
     try {
-      const dailyBreakdown = await this.getDailySummariesByDateRange(userId, startDate, endDate);
+      const dailyBreakdownRaw = await this.getDailySummariesByDateRange(userId, startDate, endDate);
+
+      // Transform database results to match DailySummary interface with proper null handling
+      const dailyBreakdown: DailySummary[] = dailyBreakdownRaw.map(day => ({
+        date: day.date,
+        totalCalories: day.totalCalories ?? 0,
+        totalProteinG: day.totalProteinG ?? 0,
+        totalCarbsG: day.totalCarbsG ?? 0,
+        totalFatG: day.totalFatG ?? 0,
+        mealCount: day.mealCount ?? 0,
+        targetCalories: day.targetCalories ?? 0
+      }));
 
       const totals = dailyBreakdown.reduce((acc, day) => ({
-        calories: acc.calories + day.total_calories,
-        protein: acc.protein + day.total_protein_g,
-        carbs: acc.carbs + day.total_carbs_g,
-        fat: acc.fat + day.total_fat_g
+        calories: acc.calories + day.totalCalories,
+        protein: acc.protein + day.totalProteinG,
+        carbs: acc.carbs + day.totalCarbsG,
+        fat: acc.fat + day.totalFatG
       }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
       const avgCalories = dailyBreakdown.length > 0 ? totals.calories / dailyBreakdown.length : 0;
 
       const profile = await this.getUserProfile(userId);
-      const targetCalories = profile?.target_calories || 2000;
+      const targetCalories = profile?.targetCalories || 2000;
 
       const goalAchievementRate = dailyBreakdown.length > 0
-        ? dailyBreakdown.filter(day => Math.abs(day.total_calories - targetCalories) <= 200).length / dailyBreakdown.length * 100
+        ? dailyBreakdown.filter(day => Math.abs(day.totalCalories - targetCalories) <= 200).length / dailyBreakdown.length * 100
         : 0;
 
       const totalCaloriesForRatio = totals.calories || 1;
@@ -1059,7 +1095,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getNutritionAnalytics:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch nutrition analytics: ${error.message}`);
+        throw new Error(`Failed to fetch nutrition analytics: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch nutrition analytics: Unknown error occurred');
     }
@@ -1088,9 +1124,9 @@ export class MealTrackerService {
       }
 
       // Calculate ideal macro distribution based on profile
-      const idealProteinCalories = profile.target_protein_g * 4;
-      const idealFatCalories = profile.target_fat_g * 9;
-      const idealCarbsCalories = profile.target_calories - idealProteinCalories - idealFatCalories;
+      const idealProteinCalories = profile.targetProteinG * 4;
+      const idealFatCalories = profile.targetFatG * 9;
+      const idealCarbsCalories = profile.targetCalories - idealProteinCalories - idealFatCalories;
 
       const totalCalories = idealProteinCalories + idealFatCalories + idealCarbsCalories || 1;
 
@@ -1114,7 +1150,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getMacroDistribution:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch macro distribution: ${error.message}`);
+        throw new Error(`Failed to fetch macro distribution: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch macro distribution: Unknown error occurred');
     }
@@ -1145,7 +1181,16 @@ export class MealTrackerService {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - (weeks * 7));
 
-      const weekSummaries = [];
+      const weekSummaries: Array<{
+        weekStart: string;
+        weekEnd: string;
+        totalCalories: number;
+        averageDailyCalories: number;
+        totalProtein: number;
+        totalCarbs: number;
+        totalFat: number;
+        mealCount: number;
+      }> = [];
       for (let i = weeks - 1; i >= 0; i--) {
         const weekStart = new Date(startDate);
         weekStart.setDate(weekStart.getDate() + (i * 7));
@@ -1168,7 +1213,7 @@ export class MealTrackerService {
           totalProtein: weekAnalytics.totalProtein,
           totalCarbs: weekAnalytics.totalCarbs,
           totalFat: weekAnalytics.totalFat,
-          mealCount: weekAnalytics.dailyBreakdown.reduce((sum, day) => sum + day.meal_count, 0)
+          mealCount: weekAnalytics.dailyBreakdown.reduce((sum, day) => sum + day.mealCount, 0)
         });
       }
 
@@ -1222,7 +1267,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in getWeeklySummaries:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to fetch weekly summaries: ${error.message}`);
+        throw new Error(`Failed to fetch weekly summaries: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to fetch weekly summaries: Unknown error occurred');
     }
@@ -1258,15 +1303,15 @@ export class MealTrackerService {
         name: food.name,
         brand: food.brand || '',
         caloriesPer100g: food.caloriesPer100g,
-        proteinPer100g: food.proteinPer100g,
-        carbsPer100g: food.carbsPer100g,
-        fatPer100g: food.fatPer100g,
+        proteinPer100g: food.proteinPer100g ?? 0,
+        carbsPer100g: food.carbsPer100g ?? 0,
+        fatPer100g: food.fatPer100g ?? 0,
         category: food.category || ''
       }));
     } catch (error) {
       console.error('Error in searchFoods:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to search foods: ${error.message}`);
+        throw new Error(`Failed to search foods: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to search foods: Unknown error occurred');
     }
@@ -1312,7 +1357,7 @@ export class MealTrackerService {
     } catch (error) {
       console.error('Error in addFoodToDatabase:', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to add food to database: ${error.message}`);
+        throw new Error(`Failed to add food to database: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       throw new Error('Failed to add food to database: Unknown error occurred');
     }

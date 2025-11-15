@@ -15,6 +15,13 @@
       "when": 1763207853151,
       "tag": "0001_dapper_scarecrow",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1763231303513,
+      "tag": "0002_sticky_random",
+      "breakpoints": true
     }
   ]
 }

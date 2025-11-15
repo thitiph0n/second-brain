@@ -18,6 +18,7 @@ export interface UserProfile {
   targetProteinG: number;
   targetCarbsG: number;
   targetFatG: number;
+  timezone?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +30,7 @@ export interface ProfileFormData {
   gender: Gender;
   activityLevel: ActivityLevel;
   goal: Goal;
+  timezone?: string;
 }
 
 export interface Meal {
@@ -76,7 +78,7 @@ export interface Streak {
   userId: string;
   currentStreak: number;
   longestStreak: number;
-  lastLoggedDate: string;
+  lastLoggedDate?: string;
   freezeCredits: number;
   totalLoggedDays: number;
 }

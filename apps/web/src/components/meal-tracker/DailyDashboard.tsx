@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMealTracker } from '@/store/meal-tracker';
 import { useUserProfile, useMeals, useDailySummary, useStreak } from '@/hooks/meal-tracker';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

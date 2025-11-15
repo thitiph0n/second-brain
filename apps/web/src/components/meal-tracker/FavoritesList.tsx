@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useFavorites, useDeleteFavorite, useCreateMeal } from '@/hooks/meal-tracker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ import {
 } from '@/components/ui/dialog';
 
 export function FavoritesList() {
-  const queryClient = useQueryClient();
   const { data: favoritesData, isLoading } = useFavorites();
   const deleteFavorite = useDeleteFavorite();
   const createMeal = useCreateMeal();

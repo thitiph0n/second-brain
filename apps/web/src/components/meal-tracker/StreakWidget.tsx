@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Flame, Trophy, Calendar } from 'lucide-react';
+import { Flame } from 'lucide-react';
 import type { Streak } from '@/types/meal-tracker';
 
 interface StreakWidgetProps {

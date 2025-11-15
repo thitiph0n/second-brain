@@ -653,11 +653,11 @@ mealTrackerRoutes.post("/favorites/:id/log", async (c) => {
 			mealType: logData.mealType,
 			foodName: favorite.foodName,
 			calories: favorite.calories,
-			proteinG: favorite.proteinG,
-			carbsG: favorite.carbsG,
-			fatG: favorite.fatG,
-			servingSize: favorite.servingSize,
-			servingUnit: favorite.servingUnit,
+			proteinG: favorite.proteinG ?? undefined,
+			carbsG: favorite.carbsG ?? undefined,
+			fatG: favorite.fatG ?? undefined,
+			servingSize: favorite.servingSize ?? undefined,
+			servingUnit: favorite.servingUnit ?? undefined,
 			loggedAt: logData.loggedAt,
 		};
 
@@ -667,7 +667,7 @@ mealTrackerRoutes.post("/favorites/:id/log", async (c) => {
 			meal,
 			favorite: {
 				id: favorite.id,
-				usageCount: favorite.usageCount + 1
+				usageCount: (favorite.usageCount ?? 0) + 1
 			}
 		};
 

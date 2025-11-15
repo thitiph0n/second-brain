@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { getUserTimezone, TIMEZONE_LABELS } from '@/utils/timezone';
 import type { ProfileFormData, Gender, ActivityLevel, Goal } from '@/types/meal-tracker';
 
 interface ProfileFormProps {
@@ -19,6 +20,9 @@ export function ProfileForm({ onSuccess, embedded = false }: ProfileFormProps) {
   const updateProfile = useUpdateProfile();
 
   const isEditing = !!profile;
+  // Detect user's current timezone
+  const detectedTimezone = getUserTimezone();
+
   const [formData, setFormData] = useState<ProfileFormData>({
     age: profile?.age || 25,
     weightKg: profile?.weightKg || 70,
@@ -26,6 +30,7 @@ export function ProfileForm({ onSuccess, embedded = false }: ProfileFormProps) {
     gender: profile?.gender || 'male',
     activityLevel: profile?.activityLevel || 'moderately_active',
     goal: profile?.goal || 'maintain_weight',
+    timezone: profile?.timezone || detectedTimezone,
   });
 
   useEffect(() => {
@@ -37,9 +42,10 @@ export function ProfileForm({ onSuccess, embedded = false }: ProfileFormProps) {
         gender: profile.gender,
         activityLevel: profile.activityLevel,
         goal: profile.goal,
+        timezone: profile.timezone || detectedTimezone,
       });
     }
-  }, [profile]);
+  }, [profile, detectedTimezone]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +161,88 @@ export function ProfileForm({ onSuccess, embedded = false }: ProfileFormProps) {
                 onChange={(e) => handleChange('heightCm', parseFloat(e.target.value))}
                 required
               />
+            </div>
+          </div>
+        </ContentWrapper>
+      </FormWrapper>
+
+      <FormWrapper>
+        {!embedded && (
+          <HeaderWrapper>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Timezone Settings
+            </CardTitle>
+            <CardDescription>
+              Choose your timezone for accurate streak tracking
+            </CardDescription>
+          </HeaderWrapper>
+        )}
+        {embedded && (
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Timezone Settings
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Choose your timezone for accurate streak tracking
+            </p>
+          </div>
+        )}
+        <ContentWrapper className="space-y-4">
+          {/* Timezone mismatch warning */}
+          {detectedTimezone !== formData.timezone && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800 mb-1">
+                    Traveling or moved?
+                  </p>
+                  <p className="text-amber-700">
+                    Your browser is in {TIMEZONE_LABELS[detectedTimezone] || detectedTimezone},
+                    but your profile is set to {TIMEZONE_LABELS[formData.timezone!] || formData.timezone}.
+                    Update your timezone if needed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="timezone">Your Timezone</Label>
+            <select
+              id="timezone"
+              value={formData.timezone || ''}
+              onChange={(e) => handleChange('timezone', e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">Select timezone...</option>
+              {Object.entries(TIMEZONE_LABELS).map(([tz, label]) => (
+                <option key={tz} value={tz}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              This ensures your daily streak resets at the correct time for your location.
+              Your current time: {new Date().toLocaleTimeString('en-US', {
+                timeZone: formData.timezone || detectedTimezone
+              })}
+            </p>
+          </div>
+
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">Why timezone matters:</p>
+                <ul className="text-blue-700 space-y-1">
+                  <li>• Streak counters reset at midnight in your timezone</li>
+                  <li>• "Today's meals" shows your local date</li>
+                  <li>• Consistent tracking even when traveling</li>
+                </ul>
+              </div>
             </div>
           </div>
         </ContentWrapper>

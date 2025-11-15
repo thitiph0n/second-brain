@@ -17,6 +17,7 @@ export const userProfiles = sqliteTable('user_profiles', {
   targetProteinG: real('target_protein_g').notNull(),
   targetCarbsG: real('target_carbs_g').notNull(),
   targetFatG: real('target_fat_g').notNull(),
+  timezone: text('timezone'), // IANA timezone name
   createdAt: text('created_at').default(new Date().toISOString()),
   updatedAt: text('updated_at').default(new Date().toISOString()),
 });
