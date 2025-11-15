@@ -1437,21 +1437,25 @@ None currently.
 ### 🔗 Related Files
 
 **Frontend Components:**
+
 - `apps/web/src/components/meal-tracker/`
 - `apps/web/src/routes/meal-tracker.tsx`
 - `apps/web/src/routes/meal-tracker.profile.tsx`
 
 **State & Types:**
+
 - `apps/web/src/store/meal-tracker.ts`
 - `apps/web/src/types/meal-tracker.ts`
 
 **Navigation:**
+
 - `apps/web/src/components/sidebar/SidebarContent.tsx`
 - `apps/web/src/components/sidebar/BottomNav.tsx`
 
 ### 📝 Implementation Notes
 
 **Current Limitations:**
+
 - No persistence to backend database (localStorage only)
 - No AI nutrition estimation
 - No food search database
@@ -1460,6 +1464,7 @@ None currently.
 - Data is device-specific (not synced across devices)
 
 **Next Steps:**
+
 1. Implement database schema and migrations
 2. Create API endpoints for CRUD operations
 3. Replace Zustand mock store with API calls

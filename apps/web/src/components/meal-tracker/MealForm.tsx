@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { useMealTracker } from '@/store/meal-tracker';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMeals, useCreateMeal, useUpdateMeal, useCreateFavorite } from '@/hooks/meal-tracker';
+import { mealTrackerOptimistic } from '@/hooks/meal-tracker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Save, Star } from 'lucide-react';
-import type { MealType, MealFormData } from '@/types/meal-tracker';
+import { Loader2 } from 'lucide-react';
+import type { MealType, MealFormData, FavoriteFood } from '@/types/meal-tracker';
 import { toast } from 'sonner';
 
 interface MealFormProps {
@@ -15,10 +18,14 @@ interface MealFormProps {
 }
 
 export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: MealFormProps) {
-  const { meals, addMeal, updateMeal, addFavorite } = useMealTracker();
+  const queryClient = useQueryClient();
+  const { data: meals } = useMeals();
+  const createMeal = useCreateMeal();
+  const updateMeal = useUpdateMeal();
+  const createFavorite = useCreateFavorite();
 
   const editingMeal = editingMealId
-    ? meals.find((m) => m.id === editingMealId)
+    ? (meals as any)?.find((m: any) => m.id === editingMealId)
     : null;
 
   const [formData, setFormData] = useState<MealFormData>({
@@ -33,19 +40,61 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
     notes: editingMeal?.notes || '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (editingMealId) {
-      updateMeal(editingMealId, formData);
-      toast.success('Meal updated successfully!');
-    } else {
-      addMeal(formData);
-      toast.success('Meal logged successfully!');
+    try {
+      if (editingMealId) {
+        await updateMeal.mutateAsync({ id: editingMealId, data: formData });
+        toast.success('Meal updated successfully!');
+      } else {
+        await createMeal.mutateAsync(formData);
+        toast.success('Meal logged successfully!');
+      }
+      onClose();
+    } catch (error) {
+      // Error is handled by the mutation hook
+    }
+  };
+
+  const handleSaveAsFavorite = async () => {
+    if (!formData.food_name || !formData.calories) {
+      toast.error('Please enter food name and calories first');
+      return;
     }
 
-    onClose();
+    try {
+      const favoriteData = {
+        food_name: formData.food_name,
+        calories: formData.calories,
+        protein_g: formData.protein_g || 0,
+        carbs_g: formData.carbs_g || 0,
+        fat_g: formData.fat_g || 0,
+        serving_size: formData.serving_size,
+        serving_unit: formData.serving_unit,
+      };
+
+      const newFavorite: FavoriteFood = {
+        ...favoriteData,
+        id: `fav-${Date.now()}`,
+        user_id: 'current-user-id',
+        usage_count: 0,
+        last_used_at: undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // Optimistically add to favorites
+      mealTrackerOptimistic.optimisticAddFavorite(queryClient, newFavorite);
+
+      await createFavorite.mutateAsync(favoriteData);
+      toast.success('Added to favorites!');
+    } catch (error) {
+      // Error is handled by the mutation hook
+    }
   };
+
+  const isSubmitting = createMeal.isPending || updateMeal.isPending;
 
   const handleChange = (field: keyof MealFormData, value: string | number) => {
     setFormData((prev) => ({
@@ -54,25 +103,7 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
     }));
   };
 
-  const handleSaveAsFavorite = () => {
-    if (!formData.food_name || !formData.calories) {
-      toast.error('Please enter food name and calories first');
-      return;
-    }
-
-    addFavorite({
-      food_name: formData.food_name,
-      calories: formData.calories,
-      protein_g: formData.protein_g || 0,
-      carbs_g: formData.carbs_g || 0,
-      fat_g: formData.fat_g || 0,
-      serving_size: formData.serving_size,
-      serving_unit: formData.serving_unit,
-    });
-
-    toast.success('Added to favorites!');
-  };
-
+  
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -212,14 +243,37 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-4">
-          <Button type="submit" className="flex-1">
-            <Save className="mr-2 h-4 w-4" />
-            {editingMealId ? 'Update Meal' : 'Log Meal'}
+          <Button type="submit" className="flex-1" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {editingMealId ? 'Updating...' : 'Logging...'}
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                {editingMealId ? 'Update Meal' : 'Log Meal'}
+              </>
+            )}
           </Button>
           {!editingMealId && (
-            <Button type="button" variant="outline" onClick={handleSaveAsFavorite}>
-              <Star className="mr-2 h-4 w-4" />
-              Save as Favorite
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSaveAsFavorite}
+              disabled={createFavorite.isPending}
+            >
+              {createFavorite.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Star className="mr-2 h-4 w-4" />
+                  Save as Favorite
+                </>
+              )}
             </Button>
           )}
         </div>

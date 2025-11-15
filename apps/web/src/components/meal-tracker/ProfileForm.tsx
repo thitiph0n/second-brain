@@ -1,16 +1,23 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { useMealTracker } from '@/store/meal-tracker';
+import { useUserProfile, useCreateProfile, useUpdateProfile } from '@/hooks/meal-tracker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import type { ProfileFormData, Gender, ActivityLevel, Goal } from '@/types/meal-tracker';
 
 export function ProfileForm() {
   const navigate = useNavigate();
-  const { profile, setProfile } = useMealTracker();
+  const { data: profile, isLoading } = useUserProfile();
+  const createProfile = useCreateProfile();
+  const updateProfile = useUpdateProfile();
 
+  // Debug logging
+  console.log('ProfileForm render - isLoading:', isLoading, 'profile:', profile);
+
+  const isEditing = !!profile;
   const [formData, setFormData] = useState<ProfileFormData>({
     age: profile?.age || 25,
     weight_kg: profile?.weight_kg || 70,
@@ -20,11 +27,22 @@ export function ProfileForm() {
     goal: profile?.goal || 'maintain_weight',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfile(formData);
-    navigate({ to: '/meal-tracker' });
+
+    try {
+      if (isEditing) {
+        await updateProfile.mutateAsync(formData);
+      } else {
+        await createProfile.mutateAsync(formData);
+      }
+      navigate({ to: '/meal-tracker' });
+    } catch (error) {
+      // Error is handled by the mutation hook
+    }
   };
+
+  const isSubmitting = createProfile.isPending || updateProfile.isPending;
 
   const handleChange = (field: keyof ProfileFormData, value: string | number) => {
     setFormData((prev) => ({
@@ -32,6 +50,15 @@ export function ProfileForm() {
       [field]: value,
     }));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading profile...</span>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -181,8 +208,17 @@ export function ProfileForm() {
         </CardContent>
       </Card>
 
-      <Button type="submit" className="w-full" size="lg">
-        {profile ? 'Update Profile' : 'Calculate My Targets'}
+      <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {isEditing ? 'Updating...' : 'Creating...'}
+          </>
+        ) : profile ? (
+          'Update Profile'
+        ) : (
+          'Calculate My Targets'
+        )}
       </Button>
     </form>
   );

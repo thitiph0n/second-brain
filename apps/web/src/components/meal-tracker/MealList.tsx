@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { useMealTracker } from '@/store/meal-tracker';
+import { useDeleteMeal } from '@/hooks/meal-tracker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Coffee, Sun, Moon, Apple } from 'lucide-react';
-import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Meal, MealType } from '@/types/meal-tracker';
 
 interface MealListProps {
@@ -19,12 +20,17 @@ const mealTypeConfig = {
 };
 
 export function MealList({ onEditMeal }: MealListProps) {
-  const { meals, deleteMeal } = useMealTracker();
+  const queryClient = useQueryClient();
+  const deleteMeal = useDeleteMeal();
 
   // Get today's meals grouped by meal type
   const todayMeals = useMemo(() => {
+    // Get meals from cache or data
+    const cachedData = queryClient.getQueryData(['meal-tracker', 'meals']);
+    const meals = (cachedData as any)?.meals || [];
+
     const today = new Date().toISOString().split('T')[0];
-    const filtered = meals.filter((meal) =>
+    const filtered = meals.filter((meal: any) =>
       meal.logged_at.split('T')[0] === today
     );
 
@@ -36,19 +42,37 @@ export function MealList({ onEditMeal }: MealListProps) {
       snack: [],
     };
 
-    filtered.forEach((meal) => {
-      grouped[meal.meal_type].push(meal);
+    filtered.forEach((meal: any) => {
+      grouped[meal.meal_type as MealType].push(meal);
     });
 
     return grouped;
-  }, [meals]);
+  }, [queryClient]);
 
-  const handleDelete = (mealId: string, foodName: string) => {
+  const handleDelete = async (mealId: string, foodName: string) => {
     if (window.confirm(`Are you sure you want to delete "${foodName}"?`)) {
-      deleteMeal(mealId);
-      toast.success('Meal deleted successfully');
+      try {
+        const mealToDelete = (queryClient.getQueryData(['meal-tracker', 'meals']) as any)?.meals?.find((m: any) => m.id === mealId);
+        if (mealToDelete) {
+          // Optimistically update
+          queryClient.setQueryData(['meal-tracker', 'meals'], (oldData: any) => {
+            if (!oldData) return { meals: [], total: 0 };
+            return {
+              meals: oldData.meals.filter((meal: Meal) => meal.id !== mealId),
+              total: Math.max(0, oldData.total - 1),
+            };
+          });
+
+          await deleteMeal.mutateAsync(mealId);
+        }
+      } catch (error) {
+        // Error is handled by the mutation hook
+      }
     }
   };
+
+  const totalMeals = Object.values(todayMeals).flat().length;
+  const isLoading = deleteMeal.isPending;
 
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
@@ -58,8 +82,6 @@ export function MealList({ onEditMeal }: MealListProps) {
       hour12: true,
     });
   };
-
-  const totalMeals = Object.values(todayMeals).flat().length;
 
   if (totalMeals === 0) {
     return (
@@ -158,9 +180,14 @@ export function MealList({ onEditMeal }: MealListProps) {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(meal.id, meal.food_name)}
+                        disabled={isLoading}
                         className="h-8 w-8 text-destructive hover:text-destructive"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        {isLoading ? (
+                          <Skeleton className="h-3.5 w-3.5" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
                       </Button>
                     </div>
                   </div>

@@ -16,6 +16,7 @@ import { Route as DrawingsRouteImport } from './routes/drawings'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CouponsRouteImport } from './routes/coupons'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MealTrackerIndexRouteImport } from './routes/meal-tracker.index'
 import { Route as DrawingsIndexRouteImport } from './routes/drawings.index'
 import { Route as MealTrackerProfileRouteImport } from './routes/meal-tracker.profile'
 import { Route as DrawingsNewRouteImport } from './routes/drawings.new'
@@ -59,6 +60,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const MealTrackerIndexRoute = MealTrackerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MealTrackerRoute,
 } as any)
 const DrawingsIndexRoute = DrawingsIndexRouteImport.update({
   id: '/',
@@ -117,12 +123,12 @@ export interface FileRoutesByFullPath {
   '/drawings/new': typeof DrawingsNewRoute
   '/meal-tracker/profile': typeof MealTrackerProfileRoute
   '/drawings/': typeof DrawingsIndexRoute
+  '/meal-tracker/': typeof MealTrackerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/coupons': typeof CouponsRoute
   '/dashboard': typeof DashboardRoute
-  '/meal-tracker': typeof MealTrackerRouteWithChildren
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -133,6 +139,7 @@ export interface FileRoutesByTo {
   '/drawings/new': typeof DrawingsNewRoute
   '/meal-tracker/profile': typeof MealTrackerProfileRoute
   '/drawings': typeof DrawingsIndexRoute
+  '/meal-tracker': typeof MealTrackerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -151,6 +158,7 @@ export interface FileRoutesById {
   '/drawings/new': typeof DrawingsNewRoute
   '/meal-tracker/profile': typeof MealTrackerProfileRoute
   '/drawings/': typeof DrawingsIndexRoute
+  '/meal-tracker/': typeof MealTrackerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -170,12 +178,12 @@ export interface FileRouteTypes {
     | '/drawings/new'
     | '/meal-tracker/profile'
     | '/drawings/'
+    | '/meal-tracker/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/coupons'
     | '/dashboard'
-    | '/meal-tracker'
     | '/notes'
     | '/profile'
     | '/auth/callback'
@@ -186,6 +194,7 @@ export interface FileRouteTypes {
     | '/drawings/new'
     | '/meal-tracker/profile'
     | '/drawings'
+    | '/meal-tracker'
   id:
     | '__root__'
     | '/'
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/drawings/new'
     | '/meal-tracker/profile'
     | '/drawings/'
+    | '/meal-tracker/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -269,6 +279,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/meal-tracker/': {
+      id: '/meal-tracker/'
+      path: '/'
+      fullPath: '/meal-tracker/'
+      preLoaderRoute: typeof MealTrackerIndexRouteImport
+      parentRoute: typeof MealTrackerRoute
     }
     '/drawings/': {
       id: '/drawings/'
@@ -347,10 +364,12 @@ const DrawingsRouteWithChildren = DrawingsRoute._addFileChildren(
 
 interface MealTrackerRouteChildren {
   MealTrackerProfileRoute: typeof MealTrackerProfileRoute
+  MealTrackerIndexRoute: typeof MealTrackerIndexRoute
 }
 
 const MealTrackerRouteChildren: MealTrackerRouteChildren = {
   MealTrackerProfileRoute: MealTrackerProfileRoute,
+  MealTrackerIndexRoute: MealTrackerIndexRoute,
 }
 
 const MealTrackerRouteWithChildren = MealTrackerRoute._addFileChildren(

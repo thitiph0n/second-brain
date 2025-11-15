@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useMealTracker } from '@/store/meal-tracker';
+import { useQueryClient } from '@tanstack/react-query';
+import { useFavorites, useDeleteFavorite, useCreateMeal } from '@/hooks/meal-tracker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,23 +9,109 @@ import { toast } from 'sonner';
 import type { MealType } from '@/types/meal-tracker';
 
 export function FavoritesList() {
-  const { favorites, addMealFromFavorite, deleteFavorite } = useMealTracker();
+  const queryClient = useQueryClient();
+  const { data: favoritesData, isLoading } = useFavorites();
+  const deleteFavorite = useDeleteFavorite();
+  const createMeal = useCreateMeal();
+
+  const favorites = favoritesData?.favorites || [];
   const [selectedFavoriteId, setSelectedFavoriteId] = useState<string | null>(null);
 
   const sortedFavorites = [...favorites].sort((a, b) => b.usage_count - a.usage_count);
 
   const handleQuickAdd = (favoriteId: string, mealType: MealType) => {
-    addMealFromFavorite(favoriteId, mealType);
-    toast.success('Meal added from favorites!');
-    setSelectedFavoriteId(null);
+    const favorite = favorites.find(f => f.id === favoriteId);
+    if (favorite) {
+      const mealData = {
+        meal_type: mealType,
+        food_name: favorite.food_name,
+        calories: favorite.calories,
+        protein_g: favorite.protein_g || 0,
+        carbs_g: favorite.carbs_g || 0,
+        fat_g: favorite.fat_g || 0,
+        serving_size: favorite.serving_size || '',
+        serving_unit: favorite.serving_unit || '',
+        notes: '',
+      };
+
+      // Optimistically update
+      const currentMeals = (queryClient.getQueryData(['meal-tracker', 'meals']) as any)?.meals || [];
+      const newMeal = {
+        ...mealData,
+        id: `temp-${Date.now()}`,
+        logged_at: new Date().toISOString(),
+      };
+
+      queryClient.setQueryData(['meal-tracker', 'meals'], {
+        meals: [...currentMeals, newMeal],
+        total: currentMeals.length + 1,
+      });
+
+      createMeal.mutate(mealData, {
+        onSuccess: () => {
+          // Update favorite usage count
+          queryClient.setQueryData(['meal-tracker', 'favorites'], (oldData: any) => {
+            if (!oldData) return { favorites: [], total: 0 };
+            return {
+              ...oldData,
+              favorites: oldData.favorites.map((fav: any) =>
+                fav.id === favoriteId
+                  ? { ...fav, usage_count: fav.usage_count + 1, last_used_at: new Date().toISOString() }
+                  : fav
+              ),
+            };
+          });
+
+          toast.success('Meal added from favorites!');
+          setSelectedFavoriteId(null);
+        },
+        onError: () => {
+          // Rollback optimistic update
+          queryClient.setQueryData(['meal-tracker', 'meals'], (oldData: any) => ({
+            ...oldData,
+            meals: oldData.meals.filter((meal: any) => meal.id !== newMeal.id),
+            total: Math.max(0, oldData.total - 1),
+          }));
+        },
+      });
+    }
   };
 
   const handleDelete = (favoriteId: string, foodName: string) => {
     if (window.confirm(`Remove "${foodName}" from favorites?`)) {
-      deleteFavorite(favoriteId);
-      toast.success('Removed from favorites');
+      deleteFavorite.mutate(favoriteId, {
+        onSuccess: () => {
+          toast.success('Removed from favorites');
+        },
+      });
     }
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-yellow-500" />
+            Favorite Foods
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-4 rounded-lg border bg-card">
+                <div className="space-y-3">
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                  <div className="h-8 bg-muted rounded w-full"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (favorites.length === 0) {
     return (
@@ -77,9 +164,14 @@ export function FavoritesList() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleDelete(favorite.id, favorite.food_name)}
+                  disabled={deleteFavorite.isPending}
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  {deleteFavorite.isPending ? (
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
                 </Button>
               </div>
 
@@ -132,9 +224,14 @@ export function FavoritesList() {
                   variant="default"
                   size="sm"
                   onClick={() => setSelectedFavoriteId(favorite.id)}
+                  disabled={createMeal.isPending}
                   className="w-full"
                 >
-                  <Plus className="mr-2 h-3.5 w-3.5" />
+                  {createMeal.isPending ? (
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></div>
+                  ) : (
+                    <Plus className="mr-2 h-3.5 w-3.5" />
+                  )}
                   Quick Add
                 </Button>
               )}

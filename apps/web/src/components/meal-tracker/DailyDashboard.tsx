@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMealTracker } from '@/store/meal-tracker';
+import { useUserProfile, useMeals, useDailySummary, useStreak } from '@/hooks/meal-tracker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -8,38 +9,81 @@ import { MealList } from './MealList';
 import { StreakWidget } from './StreakWidget';
 import { FavoritesList } from './FavoritesList';
 import { Plus, Flame } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { MealType } from '@/types/meal-tracker';
 
 export function DailyDashboard() {
-  const { profile, meals, streak } = useMealTracker();
-  const [showMealForm, setShowMealForm] = useState(false);
-  const [editingMealId, setEditingMealId] = useState<string | null>(null);
-  const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
+  const { setEditingMeal } = useMealTracker();
+  const { data: profile, isLoading: profileLoading } = useUserProfile();
+  const { data: mealsData, isLoading: mealsLoading } = useMeals();
+  const { data: dailySummaryData, isLoading: summaryLoading } = useDailySummary();
+  const { data: streakData, isLoading: streakLoading } = useStreak();
 
-  // Calculate daily totals for today
-  const dailySummary = useMemo(() => {
+  const meals = mealsData?.meals || [];
+  const dailySummaryFromAPI = dailySummaryData?.daily_summary || null;
+  const streak = streakData?.streak || null;
+
+  const [showMealForm, setShowMealForm] = useState(false);
+  const [selectedMealType] = useState<MealType>('breakfast');
+  const [editingMealId, setEditingMealId] = useState<string | null>(null);
+
+  // Calculate daily totals for today if we don't have summary from API
+  const calculatedDailySummary = useMemo(() => {
+    if (dailySummaryFromAPI) return dailySummaryFromAPI;
+
     const today = new Date().toISOString().split('T')[0];
     const todayMeals = meals.filter((meal) =>
       meal.logged_at.split('T')[0] === today
     );
 
     return {
+      date: today,
       total_calories: todayMeals.reduce((sum, meal) => sum + meal.calories, 0),
       total_protein_g: todayMeals.reduce((sum, meal) => sum + meal.protein_g, 0),
       total_carbs_g: todayMeals.reduce((sum, meal) => sum + meal.carbs_g, 0),
       total_fat_g: todayMeals.reduce((sum, meal) => sum + meal.fat_g, 0),
       meal_count: todayMeals.length,
+      target_calories: profile?.target_calories || 0,
     };
-  }, [meals]);
+  }, [meals, profile, dailySummaryFromAPI]);
+
+  // Loading states
+  const isLoading = profileLoading || mealsLoading || summaryLoading || streakLoading;
+
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <Skeleton className="h-12 w-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <Skeleton className="h-16 w-16 rounded-full mb-4" />
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-6 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!profile) {
     return null;
   }
 
-  const calorieProgress = (dailySummary.total_calories / profile.target_calories) * 100;
-  const proteinProgress = (dailySummary.total_protein_g / profile.target_protein_g) * 100;
-  const carbsProgress = (dailySummary.total_carbs_g / profile.target_carbs_g) * 100;
-  const fatProgress = (dailySummary.total_fat_g / profile.target_fat_g) * 100;
+  const calorieProgress = (calculatedDailySummary.total_calories / profile.target_calories) * 100;
+  const proteinProgress = (calculatedDailySummary.total_protein_g / profile.target_protein_g) * 100;
+  const carbsProgress = (calculatedDailySummary.total_carbs_g / profile.target_carbs_g) * 100;
+  const fatProgress = (calculatedDailySummary.total_fat_g / profile.target_fat_g) * 100;
 
   const getProgressColor = (progress: number) => {
     if (progress >= 95 && progress <= 105) return 'bg-green-500';
@@ -48,14 +92,12 @@ export function DailyDashboard() {
   };
 
   const handleAddMeal = (mealType: MealType) => {
-    setSelectedMealType(mealType);
-    setEditingMealId(null);
+    setEditingMeal(null, mealType);
     setShowMealForm(true);
   };
 
   const handleEditMeal = (mealId: string) => {
-    setEditingMealId(mealId);
-    setShowMealForm(true);
+    setEditingMeal(mealId);
   };
 
   return (
@@ -73,7 +115,7 @@ export function DailyDashboard() {
       </div>
 
       {/* Streak Widget */}
-      {streak && <StreakWidget streak={streak} />}
+      <StreakWidget streak={streak} isLoading={streakLoading} />
 
       {/* Daily Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -113,15 +155,15 @@ export function DailyDashboard() {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <Flame className="h-5 w-5 mb-1 text-orange-500" />
-                  <div className="text-xl font-bold">{Math.round(dailySummary.total_calories)}</div>
+                  <div className="text-xl font-bold">{Math.round(calculatedDailySummary.total_calories)}</div>
                   <div className="text-xs text-muted-foreground">of {profile.target_calories}</div>
                 </div>
               </div>
             </div>
             <div className="text-center text-sm text-muted-foreground">
-              {profile.target_calories - dailySummary.total_calories > 0
-                ? `${Math.round(profile.target_calories - dailySummary.total_calories)} kcal remaining`
-                : `${Math.round(dailySummary.total_calories - profile.target_calories)} kcal over`}
+              {profile.target_calories - calculatedDailySummary.total_calories > 0
+                ? `${Math.round(profile.target_calories - calculatedDailySummary.total_calories)} kcal remaining`
+                : `${Math.round(calculatedDailySummary.total_calories - profile.target_calories)} kcal over`}
             </div>
           </CardContent>
         </Card>
@@ -133,7 +175,7 @@ export function DailyDashboard() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold">{Math.round(dailySummary.total_protein_g)}g</span>
+              <span className="text-2xl font-bold">{Math.round(calculatedDailySummary.total_protein_g)}g</span>
               <span className="text-sm text-muted-foreground">/ {profile.target_protein_g}g</span>
             </div>
             <Progress value={Math.min(proteinProgress, 100)} className="h-2" />
@@ -149,7 +191,7 @@ export function DailyDashboard() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold">{Math.round(dailySummary.total_carbs_g)}g</span>
+              <span className="text-2xl font-bold">{Math.round(calculatedDailySummary.total_carbs_g)}g</span>
               <span className="text-sm text-muted-foreground">/ {profile.target_carbs_g}g</span>
             </div>
             <Progress value={Math.min(carbsProgress, 100)} className="h-2" />
@@ -165,7 +207,7 @@ export function DailyDashboard() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold">{Math.round(dailySummary.total_fat_g)}g</span>
+              <span className="text-2xl font-bold">{Math.round(calculatedDailySummary.total_fat_g)}g</span>
               <span className="text-sm text-muted-foreground">/ {profile.target_fat_g}g</span>
             </div>
             <Progress value={Math.min(fatProgress, 100)} className="h-2" />

@@ -1,13 +1,55 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Flame, Trophy, Calendar } from 'lucide-react';
 import type { Streak } from '@/types/meal-tracker';
 
 interface StreakWidgetProps {
-  streak: Streak;
+  streak?: Streak | null;
+  isLoading?: boolean;
 }
 
-export function StreakWidget({ streak }: StreakWidgetProps) {
+export function StreakWidget({ streak, isLoading = false }: StreakWidgetProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-4 w-32 mt-2" />
+            </div>
+            <div className="flex gap-1">
+              <Skeleton className="h-8 w-8 rounded" />
+              <Skeleton className="h-8 w-8 rounded" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-col items-center justify-center p-6 rounded-lg bg-muted">
+                <Skeleton className="h-12 w-12 mb-2" />
+                <Skeleton className="h-8 w-8 mb-1" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!streak) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Streak</CardTitle>
+          <CardDescription>No streak data available</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
   const getMilestoneMessage = (currentStreak: number) => {
     if (currentStreak === 0) return 'Start your journey today!';
     if (currentStreak < 7) return 'Great start! Keep it up!';
