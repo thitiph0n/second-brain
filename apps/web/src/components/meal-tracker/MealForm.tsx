@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { X, Save, Star } from 'lucide-react';
+import { Save, Star } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import type { MealType, MealFormData, FavoriteFood } from '@/types/meal-tracker';
 import { toast } from 'sonner';
@@ -131,17 +131,7 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
 
   
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">
-          {editingMealId ? 'Edit Meal' : 'Log Meal'}
-        </h2>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
         {/* Meal Type */}
         <div className="space-y-2">
           <Label>Meal Type</Label>
@@ -317,6 +307,5 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
           )}
         </div>
       </form>
-    </div>
   );
 }

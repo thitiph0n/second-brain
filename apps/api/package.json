@@ -13,9 +13,10 @@
 		"migrate:local": "wrangler d1 migrations apply second-brain-db --local",
 		"migrate:prod": "wrangler d1 migrations apply second-brain-db --remote",
 		"migrate:list": "wrangler d1 migrations list second-brain-db",
-		"drizzle:generate": "drizzle-kit generate",
+		"drizzle:generate": "drizzle-kit generate && cd ../.. && ./scripts/analyze-migration-safety.sh",
 		"drizzle:migrate": "drizzle-kit migrate",
-		"drizzle:studio": "drizzle-kit studio"
+		"drizzle:studio": "drizzle-kit studio",
+		"drizzle:analyze": "cd ../.. && ./scripts/analyze-migration-safety.sh"
 	},
 	"dependencies": {
 		"@hono/zod-validator": "^0.7.4",

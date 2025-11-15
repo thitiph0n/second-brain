@@ -6,4 +6,10 @@ export default defineConfig({
   dialect: 'sqlite',
   verbose: true,
   strict: true,
+  // Enable breakpoints for safer migrations
+  breakpoints: true,
+  // Custom migration table for better tracking
+  migrations: {
+    table: 'drizzle_migrations',
+  },
 });

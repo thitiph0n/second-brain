@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MealForm } from './MealForm';
 import { MealList } from './MealList';
 import { StreakWidget } from './StreakWidget';
@@ -137,7 +138,7 @@ export function DailyDashboard() {
   };
 
   const formatDisplayDate = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00');
+    const date = new Date(`${dateString}T00:00:00`);
     if (dateString === today) return 'Today';
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -236,9 +237,9 @@ export function DailyDashboard() {
         </Card>
 
         {/* Hero Section - Calories and Nutrition */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* Calorie Progress */}
-        <Card className="lg:col-span-2">
+        <Card className="sm:col-span-2 lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Calories</CardTitle>
           </CardHeader>
@@ -347,20 +348,28 @@ export function DailyDashboard() {
       <MealList meals={meals} onEditMeal={handleEditMeal} />
 
       {/* Meal Form Dialog */}
-      {showMealForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <MealForm
-              mealType={selectedMealType}
-              editingMealId={editingMealId}
-              onClose={() => {
-                setShowMealForm(false);
-                setEditingMealId(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
+      <Dialog open={showMealForm} onOpenChange={(open) => {
+        if (!open) {
+          setShowMealForm(false);
+          setEditingMealId(null);
+        }
+      }}>
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingMealId ? 'Edit Meal' : 'Log Meal'}
+            </DialogTitle>
+          </DialogHeader>
+          <MealForm
+            mealType={selectedMealType}
+            editingMealId={editingMealId}
+            onClose={() => {
+              setShowMealForm(false);
+              setEditingMealId(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
