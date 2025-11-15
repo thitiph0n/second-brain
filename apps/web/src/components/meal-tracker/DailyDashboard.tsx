@@ -354,7 +354,7 @@ export function DailyDashboard() {
           setEditingMealId(null);
         }
       }}>
-        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingMealId ? 'Edit Meal' : 'Log Meal'}

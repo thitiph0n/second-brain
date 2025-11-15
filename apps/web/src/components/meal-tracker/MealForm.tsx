@@ -131,11 +131,11 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
 
   
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 w-full min-w-0">
         {/* Meal Type */}
         <div className="space-y-2">
           <Label>Meal Type</Label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
               { value: 'breakfast', label: 'Breakfast', icon: '🌅' },
               { value: 'lunch', label: 'Lunch', icon: '☀️' },
@@ -185,7 +185,7 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
         </div>
 
         {/* Serving Size */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="servingSize">Serving Size</Label>
             <Input
@@ -193,6 +193,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
               value={formData.servingSize || ''}
               onChange={(e) => handleChange('servingSize', e.target.value)}
               placeholder="e.g., 150"
+              inputMode="numeric"
+              pattern="[0-9]*"
             />
           </div>
           <div className="space-y-2">
@@ -209,7 +211,7 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
         {/* Nutrition */}
         <div className="space-y-4">
           <h3 className="font-semibold">Nutrition Information</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="calories">Calories * (kcal)</Label>
               <Input
@@ -219,6 +221,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
                 step="1"
                 value={formData.calories}
                 onChange={(e) => handleChange('calories', parseFloat(e.target.value) || 0)}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 required
               />
             </div>
@@ -231,6 +235,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
                 step="0.1"
                 value={formData.proteinG || ''}
                 onChange={(e) => handleChange('proteinG', parseFloat(e.target.value) || 0)}
+                inputMode="decimal"
+                pattern="[0-9]*\.?[0-9]*"
               />
             </div>
             <div className="space-y-2">
@@ -242,6 +248,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
                 step="0.1"
                 value={formData.carbsG || ''}
                 onChange={(e) => handleChange('carbsG', parseFloat(e.target.value) || 0)}
+                inputMode="decimal"
+                pattern="[0-9]*\.?[0-9]*"
               />
             </div>
             <div className="space-y-2">
@@ -253,6 +261,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
                 step="0.1"
                 value={formData.fatG || ''}
                 onChange={(e) => handleChange('fatG', parseFloat(e.target.value) || 0)}
+                inputMode="decimal"
+                pattern="[0-9]*\.?[0-9]*"
               />
             </div>
           </div>
@@ -271,8 +281,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-4">
-          <Button type="submit" className="flex-1" disabled={isSubmitting}>
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          <Button type="submit" className="flex-1 w-full sm:w-auto" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -291,6 +301,7 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose }: Mea
               variant="outline"
               onClick={handleSaveAsFavorite}
               disabled={createFavorite.isPending}
+              className="w-full sm:w-auto"
             >
               {createFavorite.isPending ? (
                 <>
