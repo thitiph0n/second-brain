@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { MealList } from './MealList';
 import { StreakWidget } from './StreakWidget';
 import { FavoritesList } from './FavoritesList';
-import { Plus, Flame, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Plus, Flame, ChevronLeft, ChevronRight, Calendar, Beef, Wheat, Droplets } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { MealType } from '@/types/meal-tracker';
 import { useNavigate } from '@tanstack/react-router';
@@ -70,16 +70,27 @@ export function DailyDashboard() {
           </div>
           <Skeleton className="h-12 w-32" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-16 w-16 rounded-full mb-4" />
-                <Skeleton className="h-4 w-20 mb-2" />
-                <Skeleton className="h-6 w-24" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <Skeleton className="h-32 w-32 rounded-full mb-4 mx-auto" />
+              <Skeleton className="h-4 w-20 mb-2 mx-auto" />
+              <Skeleton className="h-6 w-24 mx-auto" />
+            </CardContent>
+          </Card>
+          <Card className="lg:col-span-2">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-6 w-12" />
+                    <Skeleton className="h-2 w-full" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -235,113 +246,129 @@ export function DailyDashboard() {
           </CardContent>
         </Card>
 
-        {/* Hero Section - Calories and Nutrition */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-        {/* Calorie Progress */}
-        <Card className="sm:col-span-2 lg:col-span-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Calories</CardTitle>
+          </div>
+
+    {/* Stats Section - Streak and Calories */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Streak Widget */}
+          <StreakWidget streak={streak} isLoading={streakLoading} />
+
+          {/* Calorie Progress */}
+          <Card className="p-4">
+            <CardHeader className="pb-2 px-2">
+              <CardTitle className="text-sm font-medium">Calories</CardTitle>
+            </CardHeader>
+            <CardContent className="px-2 py-2">
+              <div className="flex items-center justify-center mb-2">
+                <div className="relative w-40 h-40 sm:w-48 sm:h-48">
+                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                    {/* Background circle */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      className="text-muted"
+                      opacity="0.2"
+                    />
+                    {/* Progress circle */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      className={getProgressColor(calorieProgress).replace('bg-', 'text-')}
+                      strokeDasharray={`${Math.min(calorieProgress, 100) * 2.51} 251.2`}
+                      transform="rotate(-90 50 50)"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <Flame className="h-5 w-5 sm:h-6 sm:w-6 mb-1 text-orange-500" />
+                    <div className="text-xl sm:text-2xl font-bold">{Math.round(calculatedDailySummary.totalCalories)}</div>
+                    <div className="text-xs text-muted-foreground">of {profile.targetCalories}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="text-center text-xs sm:text-sm text-muted-foreground">
+                {profile.targetCalories - calculatedDailySummary.totalCalories > 0
+                  ? `${Math.round(profile.targetCalories - calculatedDailySummary.totalCalories)} kcal remaining`
+                  : `${Math.round(calculatedDailySummary.totalCalories - profile.targetCalories)} kcal over`}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Full Width Macros Card */}
+        <Card className="p-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Macros</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center mb-3 sm:mb-4">
-              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
-                <svg className="w-full h-full" viewBox="0 0 100 100">
-                  {/* Background circle */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    className="text-muted"
-                    opacity="0.2"
-                  />
-                  {/* Progress circle */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    className={getProgressColor(calorieProgress).replace('bg-', 'text-')}
-                    strokeDasharray={`${Math.min(calorieProgress, 100) * 2.51} 251.2`}
-                    transform="rotate(-90 50 50)"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <Flame className="h-4 w-4 sm:h-5 sm:w-5 mb-1 text-orange-500" />
-                  <div className="text-lg sm:text-xl font-bold">{Math.round(calculatedDailySummary.totalCalories)}</div>
-                  <div className="text-xs text-muted-foreground">of {profile.targetCalories}</div>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {/* Protein */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Beef className="h-4 w-4 text-red-500" />
+                  <span className="text-sm font-medium">Protein</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xl font-bold">{Math.round(calculatedDailySummary.totalProteinG)}g</span>
+                    <span className="text-xs text-muted-foreground">/ {profile.targetProteinG}g</span>
+                  </div>
+                  <Progress value={Math.min(proteinProgress, 100)} className="h-2" />
+                  <div className="text-xs text-muted-foreground text-center">
+                    {Math.round(proteinProgress)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Carbs */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Wheat className="h-4 w-4 text-yellow-600" />
+                  <span className="text-sm font-medium">Carbs</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xl font-bold">{Math.round(calculatedDailySummary.totalCarbsG)}g</span>
+                    <span className="text-xs text-muted-foreground">/ {profile.targetCarbsG}g</span>
+                  </div>
+                  <Progress value={Math.min(carbsProgress, 100)} className="h-2" />
+                  <div className="text-xs text-muted-foreground text-center">
+                    {Math.round(carbsProgress)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Fat */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Droplets className="h-4 w-4 text-amber-700" />
+                  <span className="text-sm font-medium">Fat</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xl font-bold">{Math.round(calculatedDailySummary.totalFatG)}g</span>
+                    <span className="text-xs text-muted-foreground">/ {profile.targetFatG}g</span>
+                  </div>
+                  <Progress value={Math.min(fatProgress, 100)} className="h-2" />
+                  <div className="text-xs text-muted-foreground text-center">
+                    {Math.round(fatProgress)}%
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="text-center text-xs sm:text-sm text-muted-foreground">
-              {profile.targetCalories - calculatedDailySummary.totalCalories > 0
-                ? `${Math.round(profile.targetCalories - calculatedDailySummary.totalCalories)} kcal remaining`
-                : `${Math.round(calculatedDailySummary.totalCalories - profile.targetCalories)} kcal over`}
-            </div>
           </CardContent>
         </Card>
 
-        {/* Macros Cards */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Protein</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold">{Math.round(calculatedDailySummary.totalProteinG)}g</span>
-              <span className="text-sm text-muted-foreground">/ {profile.targetProteinG}g</span>
-            </div>
-            <Progress value={Math.min(proteinProgress, 100)} className="h-2" />
-            <div className="text-xs text-muted-foreground text-center">
-              {Math.round(proteinProgress)}% of target
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Carbs</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold">{Math.round(calculatedDailySummary.totalCarbsG)}g</span>
-              <span className="text-sm text-muted-foreground">/ {profile.targetCarbsG}g</span>
-            </div>
-            <Progress value={Math.min(carbsProgress, 100)} className="h-2" />
-            <div className="text-xs text-muted-foreground text-center">
-              {Math.round(carbsProgress)}% of target
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Fat</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold">{Math.round(calculatedDailySummary.totalFatG)}g</span>
-              <span className="text-sm text-muted-foreground">/ {profile.targetFatG}g</span>
-            </div>
-            <Progress value={Math.min(fatProgress, 100)} className="h-2" />
-            <div className="text-xs text-muted-foreground text-center">
-              {Math.round(fatProgress)}% of target
-            </div>
-          </CardContent>
-        </Card>
-
-          {/* Streak Widget - Compact */}
-          <StreakWidget streak={streak} isLoading={streakLoading} />
-        </div>
-      </div>
-
-      {/* Favorites List */}
-      <FavoritesList />
+        {/* Favorites List */}
+        <FavoritesList />
 
       {/* Meal List */}
       <MealList meals={meals} onEditMeal={handleEditMeal} />

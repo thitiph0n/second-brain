@@ -3,7 +3,7 @@ import { useDeleteMeal, useCreateFavorite } from "@/hooks/meal-tracker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Coffee, Sun, Moon, Apple, Loader2, Star } from "lucide-react";
+import { Edit, Trash2, Coffee, Sun, Moon, Apple, Loader2, Star, Beef, Wheat, Droplets } from "lucide-react";
 import { toast } from "sonner";
 import type { Meal, MealType } from "@/types/meal-tracker";
 import {
@@ -161,12 +161,27 @@ export function MealList({ meals, onEditMeal }: MealListProps) {
 												</span>
 											</div>
 
-											<div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-												{meal.proteinG > 0 && <span>P: {Math.round(meal.proteinG)}g</span>}
-												{meal.carbsG > 0 && <span>C: {Math.round(meal.carbsG)}g</span>}
-												{meal.fatG > 0 && <span>F: {Math.round(meal.fatG)}g</span>}
+											<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+												{meal.proteinG > 0 && (
+													<div className="flex items-center gap-1">
+														<Beef className="h-3.5 w-3.5 text-red-500" />
+														<span>{Math.round(meal.proteinG)}g</span>
+													</div>
+												)}
+												{meal.carbsG > 0 && (
+													<div className="flex items-center gap-1">
+														<Wheat className="h-3.5 w-3.5 text-yellow-600" />
+														<span>{Math.round(meal.carbsG)}g</span>
+													</div>
+												)}
+												{meal.fatG > 0 && (
+													<div className="flex items-center gap-1">
+														<Droplets className="h-3.5 w-3.5 text-amber-700" />
+														<span>{Math.round(meal.fatG)}g</span>
+													</div>
+												)}
 												{meal.servingSize && (
-													<span>
+													<span className="ml-2">
 														{meal.servingSize}
 														{meal.servingUnit ? ` ${meal.servingUnit}` : ""}
 													</span>
