@@ -11,7 +11,7 @@ import { Loader2 } from "lucide-react";
 import type { MealType, MealFormData, FavoriteFood } from "@/types/meal-tracker";
 import { toast } from "sonner";
 import { mealTrackerAPI } from "@/api/meal-tracker";
-import heic2any from "heic2any";
+import libheif from "libheif-js";
 
 interface MealFormProps {
 	mealType?: MealType;
@@ -241,7 +241,14 @@ export function MealForm({
 		const file = e.target.files?.[0];
 		if (!file) return;
 
-		if (!file.type.startsWith("image/")) {
+		const fileName = file.name.toLowerCase();
+		const isHeic =
+			file.type === "image/heic" ||
+			file.type === "image/heif" ||
+			fileName.endsWith(".heic") ||
+			fileName.endsWith(".heif");
+
+		if (!file.type.startsWith("image/") && !isHeic) {
 			toast.error("Please select an image file");
 			return;
 		}
@@ -255,31 +262,72 @@ export function MealForm({
 		try {
 			let processedFile = file;
 
-			if (
-				file.type === "image/heic" ||
-				file.type === "image/heif" ||
-				file.name.toLowerCase().endsWith(".heic") ||
-				file.name.toLowerCase().endsWith(".heif")
-			) {
+			if (isHeic) {
 				toast.info("Converting HEIC to JPEG...", { duration: 2000 });
 
 				try {
-					const convertedBlob = await heic2any({
-						blob: file,
-						toType: "image/jpeg",
-						quality: 0.9,
+					const arrayBuffer = await file.arrayBuffer();
+					const decoder = new libheif.HeifDecoder();
+					const data = decoder.decode(arrayBuffer);
+
+					if (!data || data.length === 0) {
+						throw new Error("No image data decoded");
+					}
+
+					const image = data[0];
+					const width = image.get_width();
+					const height = image.get_height();
+
+					const canvas = document.createElement("canvas");
+					canvas.width = width;
+					canvas.height = height;
+					const ctx = canvas.getContext("2d");
+
+					if (!ctx) {
+						throw new Error("Failed to get canvas context");
+					}
+
+					const imageData = ctx.createImageData(width, height);
+
+					await new Promise<void>((resolve, reject) => {
+						image.display(imageData, (displayData: ImageData | null) => {
+							if (!displayData) {
+								reject(new Error("Failed to decode image data"));
+								return;
+							}
+							resolve();
+						});
 					});
 
-					const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+					ctx.putImageData(imageData, 0, 0);
+
+					const blob = await new Promise<Blob>((resolve, reject) => {
+						canvas.toBlob(
+							(blob) => {
+								if (blob) {
+									resolve(blob);
+								} else {
+									reject(new Error("Canvas to Blob conversion failed"));
+								}
+							},
+							"image/jpeg",
+							0.9,
+						);
+					});
+
 					processedFile = new File([blob], file.name.replace(/\.heic$/i, ".jpg"), {
 						type: "image/jpeg",
 						lastModified: Date.now(),
 					});
+
+					toast.success("HEIC converted to JPEG!");
 				} catch (heicError) {
 					console.error("HEIC conversion failed:", heicError);
-					toast.error(
-						"Failed to convert HEIC image. Please try converting it manually or use a different format.",
-					);
+					toast.error("Cannot convert this HEIC format", {
+						description:
+							"Please: 1) Take a new photo in JPEG format, or 2) Use Settings > Camera > Formats > Most Compatible",
+						duration: 8000,
+					});
 					return;
 				}
 			}
@@ -293,7 +341,9 @@ export function MealForm({
 			};
 			reader.readAsDataURL(compressed);
 
-			toast.success('Image loaded! Click "Analyze Image" to detect food.');
+			if (!isHeic) {
+				toast.success('Image loaded! Click "Analyze Image" to detect food.');
+			}
 		} catch (error) {
 			console.error("Failed to process image:", error);
 			toast.error("Failed to process image. Try a different photo or format.");
@@ -328,7 +378,13 @@ export function MealForm({
 			});
 		} catch (error) {
 			console.error("Failed to analyze image:", error);
-			toast.error("Failed to analyze image. Please try again or enter manually.");
+			const errorMessage =
+				error instanceof Error
+					? error.message
+					: "Failed to analyze image. Please try again or enter manually.";
+			toast.error("Image Analysis Failed", {
+				description: errorMessage,
+			});
 		} finally {
 			setIsAnalyzingImage(false);
 		}
@@ -413,7 +469,6 @@ export function MealForm({
 					ref={fileInputRef}
 					type="file"
 					accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-					capture="environment"
 					onChange={handleImageSelect}
 					className="hidden"
 				/>
