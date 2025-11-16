@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMeals, useCreateMeal, useUpdateMeal, useCreateFavorite } from '@/hooks/meal-tracker';
 import { mealTrackerOptimistic } from '@/hooks/meal-tracker';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, Star, Sparkles } from 'lucide-react';
+import { Save, Star, Sparkles, Upload, X, Camera } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import type { MealType, MealFormData, FavoriteFood } from '@/types/meal-tracker';
 import { toast } from 'sonner';
@@ -51,6 +51,10 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose, isSta
   });
 
   const [isEstimating, setIsEstimating] = useState(false);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,8 +147,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose, isSta
     try {
       const response = await mealTrackerAPI.estimateMacros({
         foodName: formData.foodName,
-        servingSize: formData.servingSize,
-        servingUnit: formData.servingUnit,
+        servingSize: formData.servingSize ? String(formData.servingSize) : undefined,
+        servingUnit: formData.servingUnit ? String(formData.servingUnit) : undefined,
         notes: formData.notes,
       });
 
@@ -167,6 +171,127 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose, isSta
       toast.error('Failed to estimate macros. Please try again or enter manually.');
     } finally {
       setIsEstimating(false);
+    }
+  };
+
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Canvas to Blob conversion failed'));
+              }
+            },
+            'image/jpeg',
+            0.8
+          );
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    try {
+      const compressed = await compressImage(file);
+      setSelectedImage(compressed);
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(compressed);
+
+      toast.success('Image loaded! Click "Analyze Image" to detect food.');
+    } catch (error) {
+      console.error('Failed to process image:', error);
+      toast.error('Failed to process image');
+    }
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!selectedImage) {
+      toast.error('Please select an image first');
+      return;
+    }
+
+    setIsAnalyzingImage(true);
+    try {
+      const response = await mealTrackerAPI.analyzeImage(selectedImage);
+
+      setFormData((prev) => ({
+        ...prev,
+        foodName: response.foodName,
+        calories: response.calories,
+        proteinG: response.proteinG,
+        carbsG: response.carbsG,
+        fatG: response.fatG,
+        servingSize: response.servingSize || prev.servingSize,
+        servingUnit: response.servingUnit || prev.servingUnit,
+      }));
+
+      const confidenceEmoji = response.confidence === 'high' ? '✓' : response.confidence === 'medium' ? '~' : '?';
+      toast.success(`Food detected with ${response.confidence} confidence ${confidenceEmoji}`, {
+        description: response.description,
+      });
+    } catch (error) {
+      console.error('Failed to analyze image:', error);
+      toast.error('Failed to analyze image. Please try again or enter manually.');
+    } finally {
+      setIsAnalyzingImage(false);
+    }
+  };
+
+  const handleClearImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -223,6 +348,79 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose, isSta
             placeholder="e.g., Grilled chicken breast"
             required
           />
+        </div>
+
+        {/* Image Upload Section */}
+        <div className="space-y-4 p-4 border rounded-lg bg-accent/50">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              Analyze from Photo
+            </Label>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+
+          {!imagePreview ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Food Image
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="relative rounded-lg overflow-hidden bg-muted">
+                <img
+                  src={imagePreview}
+                  alt="Food preview"
+                  className="w-full h-48 object-cover"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  onClick={handleClearImage}
+                  className="absolute top-2 right-2"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleAnalyzeImage}
+                disabled={isAnalyzingImage}
+                className="w-full"
+              >
+                {isAnalyzingImage ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing Image...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Analyze Image with AI
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            Upload a photo of your food to automatically detect and fill nutrition information
+          </p>
         </div>
 
         {/* Serving Size */}

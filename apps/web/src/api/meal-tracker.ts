@@ -271,10 +271,70 @@ class MealTrackerAPI {
       reasoning?: string;
     };
   }> {
+    const payload = {
+      foodName: data.foodName,
+      servingSize: data.servingSize || undefined,
+      servingUnit: data.servingUnit || undefined,
+      notes: data.notes || undefined,
+    };
+
     return this.request('/foods/estimate-macros', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
+  }
+
+  async analyzeImage(imageFile: File): Promise<{
+    foodName: string;
+    calories: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    servingSize?: string;
+    servingUnit?: string;
+    confidence: 'high' | 'medium' | 'low';
+    description?: string;
+  }> {
+    const url = `${API_BASE_URL}/api/v1/meal-tracker/foods/analyze-image`;
+
+    const authData = localStorage.getItem("auth-storage");
+    let token = null;
+
+    if (authData) {
+      try {
+        const parsed = JSON.parse(authData);
+        token = parsed.state?.accessToken;
+      } catch (_e) {
+        // Invalid JSON in storage
+      }
+    }
+
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('API request failed for image analysis:', error);
+      throw error;
+    }
   }
 }
 

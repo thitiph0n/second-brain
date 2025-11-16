@@ -982,7 +982,7 @@ mealTrackerRoutes.post("/foods/estimate-macros", async (c) => {
 	}
 });
 
-// POST /api/v1/meal-tracker/foods/analyze-image - Analyze food image (future placeholder)
+// POST /api/v1/meal-tracker/foods/analyze-image - Analyze food image with Gemini Vision via OpenRouter
 mealTrackerRoutes.post("/foods/analyze-image", async (c) => {
 	try {
 		const user = c.get("user");
@@ -994,14 +994,115 @@ mealTrackerRoutes.post("/foods/analyze-image", async (c) => {
 			);
 		}
 
-		// This is a placeholder for future AI integration
+		const formData = await c.req.formData();
+		const imageFile = formData.get('image');
+
+		if (!imageFile || typeof imageFile === 'string') {
+			return c.json({
+				error: "No image file provided",
+				message: "Please upload an image file"
+			}, 400);
+		}
+
+		const apiKey = c.env.OPENROUTER_API_KEY;
+		if (!apiKey) {
+			return c.json({
+				error: "OpenRouter API key not configured",
+				message: "Image analysis is not available. Please configure OPENROUTER_API_KEY."
+			}, 503);
+		}
+
+		const imageBuffer = await (imageFile as File).arrayBuffer();
+		const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+		const dataUrl = `data:image/jpeg;base64,${base64Image}`;
+
+		const prompt = `Analyze this food image and provide detailed nutritional information.
+
+IMPORTANT Instructions:
+- If this is Thai food, use the Thai name in Thai language (e.g., "ผัดกะเพราหมู", "ส้มตำ", "ข้าวผัด")
+- If it's international food, use the common English name
+- Estimate the portion size visible in the image
+- Provide realistic nutritional values based on the estimated portion
+
+Return ONLY a valid JSON object (no markdown, no explanations) with this EXACT structure:
+{
+  "foodName": "name of the food in Thai language if Thai food, English if international",
+  "calories": number,
+  "proteinG": number,
+  "carbsG": number,
+  "fatG": number,
+  "servingSize": "estimated portion size as string (e.g., \"200\", \"1\", \"350\")",
+  "servingUnit": "unit as string (e.g., \"g\", \"ml\", \"plate\", \"bowl\", \"piece\", \"cup\")",
+  "confidence": "high" | "medium" | "low",
+  "description": "brief description of the food and what you detected"
+}`;
+
+		const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+			method: "POST",
+			headers: {
+				"Authorization": `Bearer ${apiKey}`,
+				"Content-Type": "application/json",
+				"HTTP-Referer": c.env.FRONTEND_URL,
+				"X-Title": "Second Brain - Meal Tracker"
+			},
+			body: JSON.stringify({
+				model: "google/gemini-2.5-flash",
+				messages: [
+					{
+						role: "user",
+						content: [
+							{
+								type: "text",
+								text: prompt
+							},
+							{
+								type: "image_url",
+								image_url: {
+									url: dataUrl
+								}
+							}
+						]
+					}
+				],
+				temperature: 0.4,
+			})
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`OpenRouter API failed: ${response.status} - ${errorText}`);
+		}
+
+		const data = await response.json() as any;
+		const content = data.choices?.[0]?.message?.content;
+
+		if (!content) {
+			throw new Error("No response from vision model");
+		}
+
+		let cleanContent = content.trim();
+		if (cleanContent.startsWith("```json")) {
+			cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
+		} else if (cleanContent.startsWith("```")) {
+			cleanContent = cleanContent.replace(/```\n?/g, '').trim();
+		}
+
+		const nutritionInfo = JSON.parse(cleanContent);
+
 		return c.json({
-			message: "AI food analysis is not yet implemented. Please use manual food search.",
-			feature: "ai_food_analysis",
-			status: "planned"
-		}, 501); // 501 Not Implemented
+			foodName: nutritionInfo.foodName || "Unknown Food",
+			calories: nutritionInfo.calories || 0,
+			proteinG: nutritionInfo.proteinG || 0,
+			carbsG: nutritionInfo.carbsG || 0,
+			fatG: nutritionInfo.fatG || 0,
+			servingSize: nutritionInfo.servingSize ? String(nutritionInfo.servingSize) : undefined,
+			servingUnit: nutritionInfo.servingUnit ? String(nutritionInfo.servingUnit) : undefined,
+			confidence: nutritionInfo.confidence || "low",
+			description: nutritionInfo.description || "Food detected from image",
+		});
 	} catch (error) {
-		return createErrorResponse(c, error, "Failed to process AI food analysis");
+		console.error("Food image analysis error:", error);
+		return createErrorResponse(c, error, "Failed to analyze food image");
 	}
 });
 
