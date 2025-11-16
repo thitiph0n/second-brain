@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, Star } from 'lucide-react';
+import { Save, Star, Sparkles } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import type { MealType, MealFormData, FavoriteFood } from '@/types/meal-tracker';
 import { toast } from 'sonner';
+import { mealTrackerAPI } from '@/api/meal-tracker';
 
 interface MealFormProps {
   mealType?: MealType;
@@ -48,6 +49,8 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose, isSta
     notes: editingMeal?.notes || '',
     loggedAt: editingMeal?.loggedAt ? editingMeal.loggedAt.split('T')[0] : getLocalDateString(),
   });
+
+  const [isEstimating, setIsEstimating] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +133,44 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose, isSta
     }));
   };
 
-  
+  const handleEstimateMacros = async () => {
+    if (!formData.foodName) {
+      toast.error('Please enter a food name first');
+      return;
+    }
+
+    setIsEstimating(true);
+    try {
+      const response = await mealTrackerAPI.estimateMacros({
+        foodName: formData.foodName,
+        servingSize: formData.servingSize,
+        servingUnit: formData.servingUnit,
+        notes: formData.notes,
+      });
+
+      const { estimation } = response;
+
+      setFormData((prev) => ({
+        ...prev,
+        calories: estimation.calories,
+        proteinG: estimation.proteinG,
+        carbsG: estimation.carbsG,
+        fatG: estimation.fatG,
+      }));
+
+      const confidenceEmoji = estimation.confidence === 'high' ? '✓' : estimation.confidence === 'medium' ? '~' : '?';
+      toast.success(`Macros estimated with ${estimation.confidence} confidence ${confidenceEmoji}`, {
+        description: estimation.reasoning,
+      });
+    } catch (error) {
+      console.error('Failed to estimate macros:', error);
+      toast.error('Failed to estimate macros. Please try again or enter manually.');
+    } finally {
+      setIsEstimating(false);
+    }
+  };
+
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 w-full min-w-0">
         {/* Meal Type */}
@@ -207,6 +247,29 @@ export function MealForm({ mealType = 'breakfast', editingMealId, onClose, isSta
               placeholder="e.g., g, ml, piece"
             />
           </div>
+        </div>
+
+        {/* AI Estimation Button */}
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleEstimateMacros}
+            disabled={isEstimating || !formData.foodName}
+            className="w-full sm:w-auto"
+          >
+            {isEstimating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Estimating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Estimate Macros with AI
+              </>
+            )}
+          </Button>
         </div>
 
         {/* Nutrition */}

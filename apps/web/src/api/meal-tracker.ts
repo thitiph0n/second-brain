@@ -255,6 +255,27 @@ class MealTrackerAPI {
     const endpoint = `/foods/search?${params.toString()}`;
     return this.request(endpoint);
   }
+
+  async estimateMacros(data: {
+    foodName: string;
+    servingSize?: string;
+    servingUnit?: string;
+    notes?: string;
+  }): Promise<{
+    estimation: {
+      calories: number;
+      proteinG: number;
+      carbsG: number;
+      fatG: number;
+      confidence: 'high' | 'medium' | 'low';
+      reasoning?: string;
+    };
+  }> {
+    return this.request('/foods/estimate-macros', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 // Export singleton instance

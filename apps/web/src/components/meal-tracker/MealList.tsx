@@ -164,19 +164,19 @@ export function MealList({ meals, onEditMeal }: MealListProps) {
 											<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
 												{meal.proteinG > 0 && (
 													<div className="flex items-center gap-1">
-														<Beef className="h-3.5 w-3.5 text-red-500" />
+														<Beef className="h-3.5 w-3.5" />
 														<span>{Math.round(meal.proteinG)}g</span>
 													</div>
 												)}
 												{meal.carbsG > 0 && (
 													<div className="flex items-center gap-1">
-														<Wheat className="h-3.5 w-3.5 text-yellow-600" />
+														<Wheat className="h-3.5 w-3.5" />
 														<span>{Math.round(meal.carbsG)}g</span>
 													</div>
 												)}
 												{meal.fatG > 0 && (
 													<div className="flex items-center gap-1">
-														<Droplets className="h-3.5 w-3.5 text-amber-700" />
+														<Droplets className="h-3.5 w-3.5" />
 														<span>{Math.round(meal.fatG)}g</span>
 													</div>
 												)}

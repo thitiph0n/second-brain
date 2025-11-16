@@ -4,6 +4,7 @@ import type { AuthSession, User } from "@second-brain/types/auth";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { MealTrackerService } from "../services/meal-tracker";
+import { OpenRouterService } from "../services/openrouter";
 import {
 	createAuthErrorResponse,
 	createErrorResponse,
@@ -33,6 +34,8 @@ import {
 	validateTrendsQuery,
 	validateFoodSearchQuery,
 	validateFoodSearchResponse,
+	validateEstimateMacros,
+	validateMacroEstimationResponse,
 	validateBulkDeleteMeals,
 	validateBulkDeleteFavorites,
 	type CreateProfileRequest,
@@ -57,6 +60,8 @@ import {
 	type TrendsQuery,
 	type FoodSearchQuery,
 	type FoodSearchResponse,
+	type EstimateMacrosRequest,
+	type MacroEstimationResponse,
 	type BulkDeleteMealsRequest,
 	type BulkDeleteFavoritesRequest,
 } from "../validation/meal-tracker";
@@ -68,6 +73,7 @@ interface Env {
 	FRONTEND_URL: string;
 	GITHUB_CLIENT_ID: string;
 	GITHUB_CLIENT_SECRET: string;
+	OPENROUTER_API_KEY: string;
 }
 
 const mealTrackerRoutes = new Hono<{
@@ -936,6 +942,43 @@ mealTrackerRoutes.get("/foods/search", async (c) => {
 		}
 
 		return createErrorResponse(c, error, "Failed to search foods");
+	}
+});
+
+// POST /api/v1/meal-tracker/foods/estimate-macros - Estimate macros using AI
+mealTrackerRoutes.post("/foods/estimate-macros", async (c) => {
+	try {
+		const user = c.get("user");
+		if (!user) {
+			return createAuthErrorResponse(
+				c,
+				new Error("User context not found"),
+				"Authentication middleware did not set user context",
+			);
+		}
+
+		const body = await c.req.json();
+		const requestData = validateEstimateMacros(body);
+
+		const apiKey = c.env.OPENROUTER_API_KEY;
+		if (!apiKey) {
+			return c.json({
+				error: "OpenRouter API key not configured",
+				message: "AI macro estimation is not available. Please configure OPENROUTER_API_KEY.",
+			}, 503);
+		}
+
+		const openRouterService = new OpenRouterService(apiKey);
+		const estimation = await openRouterService.estimateMacros(requestData);
+
+		const validatedEstimation = validateMacroEstimationResponse(estimation);
+		return c.json({ estimation: validatedEstimation });
+	} catch (error) {
+		if (error instanceof Error && error.message.includes("parse")) {
+			return createValidationErrorResponse(c, error);
+		}
+
+		return createErrorResponse(c, error, "Failed to estimate macros");
 	}
 });
 

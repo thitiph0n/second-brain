@@ -340,6 +340,36 @@ export const aiImageAnalysisSchema = z.object({
 	mealId: z.string().uuid("Invalid meal ID"),
 });
 
+// AI Macro Estimation
+export const estimateMacrosSchema = z.object({
+	foodName: z
+		.string()
+		.min(1, "Food name is required")
+		.max(200, "Food name must be less than 200 characters")
+		.trim(),
+	servingSize: z
+		.string()
+		.max(50, "Serving size must be less than 50 characters")
+		.optional(),
+	servingUnit: z
+		.string()
+		.max(20, "Serving unit must be less than 20 characters")
+		.optional(),
+	notes: z
+		.string()
+		.max(500, "Notes must be less than 500 characters")
+		.optional(),
+});
+
+export const macroEstimationResponseSchema = z.object({
+	calories: z.number().min(0).max(5000),
+	proteinG: z.number().min(0).max(1000),
+	carbsG: z.number().min(0).max(1000),
+	fatG: z.number().min(0).max(300),
+	confidence: z.enum(["high", "medium", "low"]),
+	reasoning: z.string().optional(),
+});
+
 // Bulk Operations
 export const bulkDeleteMealsSchema = z.object({
 	ids: z
@@ -448,6 +478,14 @@ export function validateAiImageAnalysis(data: unknown) {
 	return aiImageAnalysisSchema.parse(data);
 }
 
+export function validateEstimateMacros(data: unknown) {
+	return estimateMacrosSchema.parse(data);
+}
+
+export function validateMacroEstimationResponse(data: unknown) {
+	return macroEstimationResponseSchema.parse(data);
+}
+
 export function validateBulkDeleteMeals(data: unknown) {
 	return bulkDeleteMealsSchema.parse(data);
 }
@@ -480,5 +518,7 @@ export type TrendsQuery = z.infer<typeof trendsQuerySchema>;
 export type FoodSearchQuery = z.infer<typeof foodSearchQuerySchema>;
 export type FoodSearchResponse = z.infer<typeof foodSearchResponseSchema>;
 export type AiImageAnalysisResponse = z.infer<typeof aiImageAnalysisSchema>;
+export type EstimateMacrosRequest = z.infer<typeof estimateMacrosSchema>;
+export type MacroEstimationResponse = z.infer<typeof macroEstimationResponseSchema>;
 export type BulkDeleteMealsRequest = z.infer<typeof bulkDeleteMealsSchema>;
 export type BulkDeleteFavoritesRequest = z.infer<typeof bulkDeleteFavoritesSchema>;
