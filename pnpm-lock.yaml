@@ -132,6 +132,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      heic2any:
+        specifier: ^0.0.4
+        version: 0.0.4
       lucide-react:
         specifier: ^0.476.0
         version: 0.476.0(react@19.2.0)
@@ -3858,6 +3861,9 @@ packages:
 
   heap@0.2.7:
     resolution: {integrity: sha512-2bsegYkkHO+h/9MGbn6KWcE45cHZgPANo5LXF7EvWdT0yT2EguSVO1nDgU5c8+ZOPwp2vMNa7YFsJhVcDR9Sdg==}
+
+  heic2any@0.0.4:
+    resolution: {integrity: sha512-3lLnZiDELfabVH87htnRolZ2iehX9zwpRyGNz22GKXIu0fznlblf0/ftppXKNqS26dqFSeqfIBhAmAj/uSp0cA==}
 
   hono@4.10.4:
     resolution: {integrity: sha512-YG/fo7zlU3KwrBL5vDpWKisLYiM+nVstBQqfr7gCPbSYURnNEP9BDxEMz8KfsDR9JX0lJWDRNc6nXX31v7ZEyg==}
@@ -8534,6 +8540,8 @@ snapshots:
       sisteransi: 1.0.5
 
   heap@0.2.7: {}
+
+  heic2any@0.0.4: {}
 
   hono@4.10.4: {}
 
