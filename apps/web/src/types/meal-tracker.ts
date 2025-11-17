@@ -114,3 +114,41 @@ export interface NutritionSuggestion {
   fatG: number;
   confidence: number;
 }
+
+export interface TrendsAnalytics {
+  nutrition: {
+    dailyBreakdown: DailySummary[];
+    totalCalories: number;
+    totalProtein: number;
+    totalCarbs: number;
+    totalFat: number;
+    averageCalories: number;
+    goalAchievementRate: number;
+    averageProteinRatio: number;
+    averageCarbsRatio: number;
+    averageFatRatio: number;
+  };
+  macroDistribution: {
+    idealDistribution: { protein: number; carbs: number; fat: number };
+    actualDistribution: { protein: number; carbs: number; fat: number };
+    deviation: { protein: number; carbs: number; fat: number };
+  };
+  weeklyTrends: {
+    weekSummaries: Array<{
+      weekStart: string;
+      weekEnd: string;
+      totalCalories: number;
+      averageDailyCalories: number;
+      totalProtein: number;
+      totalCarbs: number;
+      totalFat: number;
+      mealCount: number;
+    }>;
+    trends: {
+      calorieTrend: 'increasing' | 'decreasing' | 'stable';
+      proteinTrend: 'increasing' | 'decreasing' | 'stable';
+      consistencyScore: number;
+    };
+  };
+  period: '7d' | '14d' | '30d' | '90d';
+}

@@ -273,7 +273,7 @@ export const useMonthlyAnalytics = (year?: number, month?: number) => {
   });
 };
 
-export const useTrendsAnalytics = (period?: '7d' | '30d' | '90d', includeWeight?: boolean) => {
+export const useTrendsAnalytics = (period?: '7d' | '14d' | '30d' | '90d', includeWeight?: boolean) => {
   return useQuery({
     queryKey: ['meal-tracker', 'analytics', 'trends', period, includeWeight],
     queryFn: () => mealTrackerAPI.getTrendsAnalytics(period, includeWeight),

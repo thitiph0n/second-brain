@@ -10,7 +10,8 @@ import type {
   Gender,
   ActivityLevel,
   Goal,
-  MealType
+  MealType,
+  TrendsAnalytics
 } from '@/types/meal-tracker';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://2b.thitiphon.me' : 'http://localhost:8787');
@@ -237,7 +238,7 @@ class MealTrackerAPI {
     return this.request(endpoint);
   }
 
-  async getTrendsAnalytics(period?: '7d' | '30d' | '90d', includeWeight?: boolean): Promise<{ trends: any }> {
+  async getTrendsAnalytics(period?: '7d' | '14d' | '30d' | '90d', includeWeight?: boolean): Promise<{ trends: TrendsAnalytics }> {
     const params = new URLSearchParams();
     if (period) params.append('period', period);
     if (includeWeight) params.append('include_weight', 'true');

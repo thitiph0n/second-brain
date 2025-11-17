@@ -291,7 +291,7 @@ export const monthlyAnalyticsSchema = analyticsQuerySchema.extend({
 });
 
 export const trendsQuerySchema = z.object({
-	period: z.enum(["7d", "30d", "90d"]).default("30d"),
+	period: z.enum(["7d", "14d", "30d", "90d"]).default("30d"),
 	includeWeight: z.boolean().default(false),
 });
 

@@ -1,24 +1,16 @@
 import { useMemo, useState } from "react";
-import { useUserProfile, useMeals, useDailySummary } from "@/hooks/meal-tracker";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { MealList } from "./MealList";
-import { FavoritesList } from "./FavoritesList";
-import {
-	Plus,
-	Flame,
-	ChevronLeft,
-	ChevronRight,
-	Calendar,
-	Beef,
-	Wheat,
-	Droplets,
-} from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { MealType } from "@/types/meal-tracker";
 import { useNavigate } from "@tanstack/react-router";
+import { Beef, Calendar, ChevronLeft, ChevronRight, Droplets, Flame, Plus, Wheat } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDailySummary, useMeals, useUserProfile } from "@/hooks/meal-tracker";
 import { cn } from "@/lib/utils";
+import type { MealType } from "@/types/meal-tracker";
+import { FavoritesList } from "./FavoritesList";
+import { MealList } from "./MealList";
+import { TrendChart } from "./TrendChart";
 
 export function DailyDashboard() {
 	const navigate = useNavigate();
@@ -252,7 +244,7 @@ export function DailyDashboard() {
 				{/* Calorie Progress */}
 				<Card className="p-4">
 					<CardHeader className="pb-2 px-2">
-						<CardTitle className="text-sm font-medium">Calories</CardTitle>
+						<CardTitle className="text-base sm:text-lg">Calories</CardTitle>
 					</CardHeader>
 					<CardContent className="px-2 py-2">
 						<div className="flex items-center justify-center mb-2">
@@ -285,7 +277,7 @@ export function DailyDashboard() {
 								</svg>
 								<div className="absolute inset-0 flex flex-col items-center justify-center">
 									<Flame className="h-5 w-5 sm:h-6 sm:w-6 mb-1 text-orange-500" />
-									<div className="text-xl sm:text-2xl font-bold">
+									<div className="text-xl font-bold">
 										{Math.round(calculatedDailySummary.totalCalories)}
 									</div>
 									<div className="text-xs text-muted-foreground">of {profile.targetCalories}</div>
@@ -293,12 +285,12 @@ export function DailyDashboard() {
 							</div>
 						</div>
 						<div className="text-center">
-							<div className="text-2xl sm:text-3xl font-bold mb-1">
+							<div className="text-xl font-bold mb-1">
 								{profile.targetCalories - calculatedDailySummary.totalCalories > 0
 									? Math.round(profile.targetCalories - calculatedDailySummary.totalCalories)
 									: Math.round(calculatedDailySummary.totalCalories - profile.targetCalories)}
 							</div>
-							<div className="text-xs sm:text-sm text-muted-foreground">
+							<div className="text-xs text-muted-foreground">
 								{profile.targetCalories - calculatedDailySummary.totalCalories > 0
 									? "kcal remaining"
 									: "kcal over"}
@@ -310,7 +302,7 @@ export function DailyDashboard() {
 				{/* Macros Card */}
 				<Card className="p-4">
 					<CardHeader className="pb-2">
-						<CardTitle className="text-sm font-medium">Macros</CardTitle>
+						<CardTitle className="text-base sm:text-lg">Macros</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<div className="grid grid-cols-1 gap-6">
@@ -418,6 +410,9 @@ export function DailyDashboard() {
 					</CardContent>
 				</Card>
 			</div>
+
+			{/* Nutrition Trends Chart */}
+			<TrendChart />
 
 			{/* Favorites List */}
 			<FavoritesList />

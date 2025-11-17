@@ -873,6 +873,9 @@ mealTrackerRoutes.get("/analytics/trends", async (c) => {
 			case "7d":
 				days = 7;
 				break;
+			case "14d":
+				days = 14;
+				break;
 			case "30d":
 				days = 30;
 				break;
