@@ -31,6 +31,7 @@ const bottomNavItems: NavigationItem[] = [
 		title: "Notes",
 		href: "/notes",
 		icon: StickyNote,
+		disabled: true, // Hidden on mobile bottom nav
 	},
 ];
 

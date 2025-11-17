@@ -9,6 +9,7 @@ import { ApiError, couponApi } from "@/services/couponApi";
 import { RequireAuth } from "../auth/components/AuthGuard";
 import { useAuth } from "../auth/hooks";
 import { DrawingsPanelCard } from "@/components/dashboard/DrawingsPanelCard";
+import { CaloriesRingCard } from "@/components/dashboard/CaloriesRingCard";
 
 export const Route = createFileRoute("/dashboard")({
 	component: DashboardPage,
@@ -92,6 +93,8 @@ function DashboardContent() {
 							</Link>
 						</CardContent>
 					</Card>
+
+					<CaloriesRingCard />
 
 					<Card>
 						<CardHeader>
