@@ -18,7 +18,6 @@ export function DailyDashboard() {
 	const { data: profile, isLoading: profileLoading } = useUserProfile();
 
 	const [selectedDate, setSelectedDate] = useState(getLocalDateString());
-	const [datePickerOpen, setDatePickerOpen] = useState(false);
 	const today = getLocalDateString();
 	const isToday = selectedDate === today;
 
@@ -137,7 +136,6 @@ export function DailyDashboard() {
 			const newDateString = getLocalDateString(newDate);
 			if (newDateString <= today) {
 				setSelectedDate(newDateString);
-				setDatePickerOpen(false);
 			}
 		}
 	};
@@ -177,7 +175,7 @@ export function DailyDashboard() {
 					<CardContent className="p-4">
 						{/* Mobile Layout - Stacked */}
 						<div className="flex flex-col sm:hidden gap-4">
-							<div className="flex items-center justify-between">
+							<div className="flex items-center justify-between gap-2">
 								<Button
 									variant="outline"
 									size="icon"
@@ -186,28 +184,28 @@ export function DailyDashboard() {
 								>
 									<ChevronLeft className="h-4 w-4" />
 								</Button>
-								<Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+								<Popover>
 									<PopoverTrigger asChild>
 										<Button
 											variant="ghost"
 											size="sm"
-											className="h-auto px-3 py-2 w-full justify-start min-w-0"
+											className="h-auto px-3 py-2 flex-1 justify-center min-w-0"
 										>
-											<div className="flex items-center gap-2 w-full">
-												<CalendarIcon className="h-4 w-4 flex-shrink-0" />
+											<div className="flex items-center gap-2 min-w-0">
+												<CalendarIcon className="h-4 w-4 shrink-0" />
 												<span className="text-sm font-medium truncate">
 													{formatDisplayDate(selectedDate)}
 												</span>
 											</div>
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent className="w-full p-0" align="center" side="bottom">
+									<PopoverContent className="w-auto p-0" align="center" side="bottom">
 										<Calendar
 											mode="single"
-											selected={new Date(selectedDate)}
+											selected={new Date(`${selectedDate}T00:00:00`)}
 											onSelect={handleDateSelect}
-											disabled={(date) => date > new Date(today)}
-																					/>
+											disabled={(date) => date > new Date(`${today}T23:59:59`)}
+										/>
 									</PopoverContent>
 								</Popover>
 								<Button
@@ -229,7 +227,7 @@ export function DailyDashboard() {
 							</Button>
 
 							<div className="flex items-center gap-3 flex-1 justify-center min-w-0">
-								<Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+								<Popover>
 									<PopoverTrigger asChild>
 										<Button
 											variant="ghost"
@@ -237,7 +235,7 @@ export function DailyDashboard() {
 											className="h-auto px-3 py-2 min-w-0"
 										>
 											<div className="flex items-center gap-2">
-												<CalendarIcon className="h-4 w-4 flex-shrink-0" />
+												<CalendarIcon className="h-4 w-4 shrink-0" />
 												<span className="text-sm font-semibold truncate">
 													{formatDisplayDate(selectedDate)}
 												</span>
@@ -247,10 +245,10 @@ export function DailyDashboard() {
 									<PopoverContent className="w-auto p-0" align="center" side="bottom">
 										<Calendar
 											mode="single"
-											selected={new Date(selectedDate)}
+											selected={new Date(`${selectedDate}T00:00:00`)}
 											onSelect={handleDateSelect}
-											disabled={(date) => date > new Date(today)}
-																					/>
+											disabled={(date) => date > new Date(`${today}T23:59:59`)}
+										/>
 									</PopoverContent>
 								</Popover>
 							</div>

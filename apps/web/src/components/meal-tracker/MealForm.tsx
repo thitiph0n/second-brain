@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { useMeals, useCreateMeal, useUpdateMeal, useCreateFavorite } from "@/hooks/meal-tracker";
 import { mealTrackerOptimistic } from "@/hooks/meal-tracker";
 import { getMealTypeByTime } from "@/lib/utils";
@@ -7,11 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Star, Sparkles, Upload, X, Camera } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Save, Star, Sparkles, Upload, X, Camera, Calendar as CalendarIcon } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import type { MealType, MealFormData, FavoriteFood } from "@/types/meal-tracker";
 import { toast } from "sonner";
 import { mealTrackerAPI } from "@/api/meal-tracker";
+import { cn } from "@/lib/utils";
 import libheif from "libheif-js";
 
 interface MealFormProps {
@@ -434,20 +438,39 @@ export function MealForm({
 
 			{/* Date */}
 			<div className="space-y-2">
-				<Label htmlFor="loggedAt">Date</Label>
-				<Input
-					id="loggedAt"
-					type="date"
-					value={formData.loggedAt}
-					onChange={(e) => handleChange("loggedAt", e.target.value)}
-					max={
-						new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000)
-							.toISOString()
-							.split("T")[0]
-					}
-					required
-					className="w-full"
-				/>
+				<Label>Date</Label>
+				<Popover>
+					<PopoverTrigger asChild>
+						<Button
+							variant="outline"
+							className={cn(
+								"w-full justify-start text-left font-normal",
+								!formData.loggedAt && "text-muted-foreground",
+							)}
+						>
+							<CalendarIcon className="mr-2 h-4 w-4" />
+							{formData.loggedAt ? (
+								format(new Date(`${formData.loggedAt}T00:00:00`), "PPP")
+							) : (
+								<span>Pick a date</span>
+							)}
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent className="w-auto p-0" align="start">
+						<Calendar
+							mode="single"
+							selected={formData.loggedAt ? new Date(`${formData.loggedAt}T00:00:00`) : undefined}
+							onSelect={(date) => {
+								if (date) {
+									const dateString = getLocalDateString(date);
+									handleChange("loggedAt", dateString);
+								}
+							}}
+							disabled={(date) => date > new Date() || date < new Date("2020-01-01")}
+							initialFocus
+						/>
+					</PopoverContent>
+				</Popover>
 			</div>
 
 			{/* Food Name */}
