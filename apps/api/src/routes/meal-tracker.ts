@@ -1016,7 +1016,16 @@ mealTrackerRoutes.post("/foods/analyze-image", async (c) => {
 		}
 
 		const imageBuffer = await (imageFile as File).arrayBuffer();
-		const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+		const uint8Array = new Uint8Array(imageBuffer);
+
+		let binaryString = '';
+		const chunkSize = 8192;
+		for (let i = 0; i < uint8Array.length; i += chunkSize) {
+			const chunk = uint8Array.slice(i, i + chunkSize);
+			binaryString += String.fromCharCode(...chunk);
+		}
+
+		const base64Image = btoa(binaryString);
 		const dataUrl = `data:image/jpeg;base64,${base64Image}`;
 
 		const prompt = `Analyze this food image and provide detailed nutritional information.
@@ -1104,7 +1113,7 @@ Return ONLY a valid JSON object (no markdown, no explanations) with this EXACT s
 			description: nutritionInfo.description || "Food detected from image",
 		});
 	} catch (error) {
-		console.error("Food image analysis error:", error);
+		console.error("Food image analysis error:", error instanceof Error ? error.message : String(error));
 		return createErrorResponse(c, error, "Failed to analyze food image");
 	}
 });
