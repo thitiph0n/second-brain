@@ -13,6 +13,7 @@ import type {
   MealType,
   TrendsAnalytics
 } from '@/types/meal-tracker';
+import { getLocalDateString } from '@/lib/utils';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://2b.thitiphon.me' : 'http://localhost:8787');
 
@@ -392,14 +393,14 @@ export const mealTrackerUtils = {
     };
   },
 
-  // Format date for API requests
+  // Format date for API requests (use local date)
   formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    return getLocalDateString(date);
   },
 
   // Calculate daily summary from meals
   calculateDailySummary(meals: Meal[], targetCalories: number = 0): DailySummary {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const todayMeals = meals.filter(meal => meal.loggedAt.split('T')[0] === today);
 
     return {
@@ -437,7 +438,7 @@ export const mealTrackerUtils = {
     let currentStreak = 0;
     let checkDate = new Date();
     while (true) {
-      const dateStr = checkDate.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(checkDate);
       if (loggedDates.has(dateStr)) {
         currentStreak++;
         checkDate.setDate(checkDate.getDate() - 1);
@@ -458,7 +459,7 @@ export const mealTrackerUtils = {
       while (true) {
         const nextDate = new Date(checkDate);
         nextDate.setDate(nextDate.getDate() + 1);
-        const nextDateStr = nextDate.toISOString().split('T')[0];
+        const nextDateStr = getLocalDateString(nextDate);
 
         if (loggedDates.has(nextDateStr)) {
           streak++;

@@ -19,10 +19,9 @@ const queryClient = new QueryClient({
 	},
 });
 
-// Debug: expose queryClient on window for debugging
+// Expose queryClient on window for debugging
 if (typeof window !== "undefined") {
 	(window as any).__queryClient = queryClient;
-	console.log("✅ QueryClient created and set on window.__queryClient");
 }
 
 // Create a new router instance

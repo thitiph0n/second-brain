@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Beef, Calendar, ChevronLeft, ChevronRight, Droplets, Flame, Plus, Wheat } from "lucide-react";
+import { Beef, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Droplets, Flame, Plus, Wheat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDailySummary, useMeals, useUserProfile } from "@/hooks/meal-tracker";
-import { cn } from "@/lib/utils";
+import { cn, getLocalDateString, getMealTypeByTime } from "@/lib/utils";
 import type { MealType } from "@/types/meal-tracker";
 import { FavoritesList } from "./FavoritesList";
 import { MealList } from "./MealList";
@@ -16,14 +17,8 @@ export function DailyDashboard() {
 	const navigate = useNavigate();
 	const { data: profile, isLoading: profileLoading } = useUserProfile();
 
-	// Get local date in YYYY-MM-DD format
-	const getLocalDateString = (date: Date = new Date()) => {
-		const offset = date.getTimezoneOffset() * 60000;
-		const localDate = new Date(date.getTime() - offset);
-		return localDate.toISOString().split("T")[0];
-	};
-
 	const [selectedDate, setSelectedDate] = useState(getLocalDateString());
+	const [datePickerOpen, setDatePickerOpen] = useState(false);
 	const today = getLocalDateString();
 	const isToday = selectedDate === today;
 
@@ -106,10 +101,11 @@ export function DailyDashboard() {
 		return "bg-red-500";
 	};
 
-	const handleAddMeal = (mealType: MealType) => {
+	const handleAddMeal = (mealType?: MealType) => {
+		const mealTypeToUse = mealType || getMealTypeByTime();
 		navigate({
 			to: "/meal-tracker/add",
-			search: { mealType },
+			search: { mealType: mealTypeToUse, date: selectedDate },
 		});
 	};
 
@@ -123,7 +119,8 @@ export function DailyDashboard() {
 	const handlePreviousDay = () => {
 		const date = new Date(selectedDate);
 		date.setDate(date.getDate() - 1);
-		setSelectedDate(getLocalDateString(date));
+		const newDate = getLocalDateString(date);
+		setSelectedDate(newDate);
 	};
 
 	const handleNextDay = () => {
@@ -135,10 +132,13 @@ export function DailyDashboard() {
 		}
 	};
 
-	const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const newDate = e.target.value;
-		if (newDate <= today) {
-			setSelectedDate(newDate);
+	const handleDateSelect = (newDate: Date | undefined) => {
+		if (newDate) {
+			const newDateString = getLocalDateString(newDate);
+			if (newDateString <= today) {
+				setSelectedDate(newDateString);
+				setDatePickerOpen(false);
+			}
 		}
 	};
 
@@ -152,7 +152,7 @@ export function DailyDashboard() {
 	};
 
 	return (
-		<div className="space-y-6">
+		<div className="container mx-auto px-4 py-6 space-y-6 max-w-6xl">
 			{/* Header with Hero Section */}
 			<div className="space-y-6">
 				<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -163,7 +163,7 @@ export function DailyDashboard() {
 						</p>
 					</div>
 					<Button
-						onClick={() => handleAddMeal("breakfast")}
+						onClick={() => handleAddMeal()}
 						size="lg"
 						className="w-full sm:w-auto shrink-0"
 					>
@@ -186,9 +186,30 @@ export function DailyDashboard() {
 								>
 									<ChevronLeft className="h-4 w-4" />
 								</Button>
-								<span className="text-sm font-medium text-center min-w-0 truncate">
-									{formatDisplayDate(selectedDate)}
-								</span>
+								<Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+									<PopoverTrigger asChild>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-auto px-3 py-2 w-full justify-start min-w-0"
+										>
+											<div className="flex items-center gap-2 w-full">
+												<CalendarIcon className="h-4 w-4 flex-shrink-0" />
+												<span className="text-sm font-medium truncate">
+													{formatDisplayDate(selectedDate)}
+												</span>
+											</div>
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="w-full p-0" align="center" side="bottom">
+										<Calendar
+											mode="single"
+											selected={new Date(selectedDate)}
+											onSelect={handleDateSelect}
+											disabled={(date) => date > new Date(today)}
+																					/>
+									</PopoverContent>
+								</Popover>
 								<Button
 									variant="outline"
 									size="icon"
@@ -199,16 +220,6 @@ export function DailyDashboard() {
 									<ChevronRight className="h-4 w-4" />
 								</Button>
 							</div>
-							<div className="flex items-center justify-center gap-2">
-								<Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-								<Input
-									type="date"
-									value={selectedDate}
-									onChange={handleDateChange}
-									max={today}
-									className="w-full max-w-[200px] text-center font-medium text-sm"
-								/>
-							</div>
 						</div>
 
 						{/* Desktop Layout - Horizontal */}
@@ -218,17 +229,30 @@ export function DailyDashboard() {
 							</Button>
 
 							<div className="flex items-center gap-3 flex-1 justify-center min-w-0">
-								<Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
-								<Input
-									type="date"
-									value={selectedDate}
-									onChange={handleDateChange}
-									max={today}
-									className="w-auto max-w-[180px] text-center font-semibold"
-								/>
-								<span className="text-sm text-muted-foreground min-w-[100px] text-center truncate">
-									{formatDisplayDate(selectedDate)}
-								</span>
+								<Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+									<PopoverTrigger asChild>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-auto px-3 py-2 min-w-0"
+										>
+											<div className="flex items-center gap-2">
+												<CalendarIcon className="h-4 w-4 flex-shrink-0" />
+												<span className="text-sm font-semibold truncate">
+													{formatDisplayDate(selectedDate)}
+												</span>
+											</div>
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="w-auto p-0" align="center" side="bottom">
+										<Calendar
+											mode="single"
+											selected={new Date(selectedDate)}
+											onSelect={handleDateSelect}
+											disabled={(date) => date > new Date(today)}
+																					/>
+									</PopoverContent>
+								</Popover>
 							</div>
 
 							<Button variant="outline" size="icon" onClick={handleNextDay} disabled={isToday}>

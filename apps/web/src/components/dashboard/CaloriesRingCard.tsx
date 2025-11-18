@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { mealTrackerAPI } from "../../api/meal-tracker";
+import { getLocalDateString } from "@/lib/utils";
 
 export function CaloriesRingCard() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   const { data: profileData, isLoading: profileLoading } = useQuery({
     queryKey: ["meal-tracker-profile"],

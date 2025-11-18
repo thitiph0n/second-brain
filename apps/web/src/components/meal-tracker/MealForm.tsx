@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMeals, useCreateMeal, useUpdateMeal, useCreateFavorite } from "@/hooks/meal-tracker";
 import { mealTrackerOptimistic } from "@/hooks/meal-tracker";
+import { getMealTypeByTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,17 +16,21 @@ import libheif from "libheif-js";
 
 interface MealFormProps {
 	mealType?: MealType;
+	date?: string; // Selected date from URL parameter
 	editingMealId?: string | null;
 	onClose: () => void;
 	isStandalone?: boolean; // New prop to indicate standalone page usage
 }
 
 export function MealForm({
-	mealType = "breakfast",
+	mealType,
+	date,
 	editingMealId,
 	onClose,
 	isStandalone = false,
 }: MealFormProps) {
+	// Use provided mealType or determine based on time if not specified
+	const resolvedMealType = mealType || getMealTypeByTime();
 	const queryClient = useQueryClient();
 	const { data: mealsData } = useMeals();
 	const createMeal = useCreateMeal();
@@ -43,7 +48,7 @@ export function MealForm({
 	};
 
 	const [formData, setFormData] = useState<MealFormData>({
-		mealType: editingMeal?.mealType || mealType,
+		mealType: editingMeal?.mealType || resolvedMealType,
 		foodName: editingMeal?.foodName || "",
 		calories: editingMeal?.calories || 0,
 		proteinG: editingMeal?.proteinG || 0,
@@ -52,7 +57,7 @@ export function MealForm({
 		servingSize: editingMeal?.servingSize || "",
 		servingUnit: editingMeal?.servingUnit || "",
 		notes: editingMeal?.notes || "",
-		loggedAt: editingMeal?.loggedAt ? editingMeal.loggedAt.split("T")[0] : getLocalDateString(),
+		loggedAt: editingMeal?.loggedAt ? editingMeal.loggedAt.split("T")[0] : (date || getLocalDateString()),
 	});
 
 	const [isEstimating, setIsEstimating] = useState(false);
@@ -399,11 +404,11 @@ export function MealForm({
 	};
 
 	return (
-		<form onSubmit={handleSubmit} className="space-y-6 w-full min-w-0">
+		<form onSubmit={handleSubmit} className="space-y-6 w-full max-w-full overflow-x-hidden">
 			{/* Meal Type */}
 			<div className="space-y-2">
 				<Label>Meal Type</Label>
-				<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+				<div className="flex flex-wrap gap-2">
 					{[
 						{ value: "breakfast", label: "Breakfast", icon: "🌅" },
 						{ value: "lunch", label: "Lunch", icon: "☀️" },
@@ -414,14 +419,14 @@ export function MealForm({
 							key={value}
 							type="button"
 							onClick={() => handleChange("mealType", value as MealType)}
-							className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+							className={`flex-1 min-w-[100px] p-3 rounded-lg border text-sm font-medium transition-colors ${
 								formData.mealType === value
 									? "border-primary bg-primary/5"
 									: "border-input hover:bg-accent"
 							}`}
 						>
 							<div className="text-xl mb-1">{icon}</div>
-							{label}
+							<div className="truncate">{label}</div>
 						</button>
 					))}
 				</div>
@@ -441,11 +446,12 @@ export function MealForm({
 							.split("T")[0]
 					}
 					required
+					className="w-full"
 				/>
 			</div>
 
 			{/* Food Name */}
-			<div className="space-y-2">
+			<div className="space-y-2 min-w-0">
 				<Label htmlFor="foodName">Food Name *</Label>
 				<Input
 					id="foodName"
@@ -453,17 +459,16 @@ export function MealForm({
 					onChange={(e) => handleChange("foodName", e.target.value)}
 					placeholder="e.g., Grilled chicken breast"
 					required
+					className="w-full"
 				/>
 			</div>
 
 			{/* Image Upload Section */}
-			<div className="space-y-4 p-4 border rounded-lg bg-accent/50">
-				<div className="flex items-center justify-between">
-					<Label className="text-base font-semibold flex items-center gap-2">
-						<Camera className="h-5 w-5" />
-						Analyze from Photo
-					</Label>
-				</div>
+			<div className="space-y-3 p-3 border rounded-lg bg-accent/30 overflow-hidden">
+				<Label className="text-sm font-medium flex items-center gap-2">
+					<Camera className="h-4 w-4" />
+					Analyze from Photo
+				</Label>
 
 				<input
 					ref={fileInputRef}
@@ -479,22 +484,23 @@ export function MealForm({
 						variant="outline"
 						onClick={() => fileInputRef.current?.click()}
 						className="w-full"
+						size="sm"
 					>
 						<Upload className="mr-2 h-4 w-4" />
 						Upload Food Image
 					</Button>
 				) : (
-					<div className="space-y-3">
-						<div className="relative rounded-lg overflow-hidden bg-muted">
-							<img src={imagePreview} alt="Food preview" className="w-full h-48 object-cover" />
+					<div className="space-y-2">
+						<div className="relative rounded-lg overflow-hidden bg-muted max-w-full">
+							<img src={imagePreview} alt="Food preview" className="w-full h-32 sm:h-48 object-cover" />
 							<Button
 								type="button"
 								variant="destructive"
 								size="icon"
 								onClick={handleClearImage}
-								className="absolute top-2 right-2"
+								className="absolute top-2 right-2 h-8 w-8"
 							>
-								<X className="h-4 w-4" />
+								<X className="h-3 w-3" />
 							</Button>
 						</div>
 
@@ -504,16 +510,17 @@ export function MealForm({
 							onClick={handleAnalyzeImage}
 							disabled={isAnalyzingImage}
 							className="w-full"
+							size="sm"
 						>
 							{isAnalyzingImage ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Analyzing Image...
+									Analyzing...
 								</>
 							) : (
 								<>
 									<Sparkles className="mr-2 h-4 w-4" />
-									Analyze Image with AI
+									Analyze Image
 								</>
 							)}
 						</Button>
@@ -521,12 +528,12 @@ export function MealForm({
 				)}
 
 				<p className="text-xs text-muted-foreground">
-					Upload a photo to automatically detect and fill nutrition information.
+					Upload a photo to auto-detect nutrition info.
 				</p>
 			</div>
 
 			{/* Serving Size */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+			<div className="space-y-4">
 				<div className="space-y-2">
 					<Label htmlFor="servingSize">Serving Size</Label>
 					<Input
@@ -536,6 +543,7 @@ export function MealForm({
 						placeholder="e.g., 150"
 						inputMode="numeric"
 						pattern="[0-9]*"
+						className="w-full"
 					/>
 				</div>
 				<div className="space-y-2">
@@ -545,6 +553,7 @@ export function MealForm({
 						value={formData.servingUnit || ""}
 						onChange={(e) => handleChange("servingUnit", e.target.value)}
 						placeholder="e.g., g, ml, piece"
+						className="w-full"
 					/>
 				</div>
 			</div>
@@ -575,7 +584,7 @@ export function MealForm({
 			{/* Nutrition */}
 			<div className="space-y-4">
 				<h3 className="font-semibold">Nutrition Information</h3>
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+				<div className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="calories">Calories * (kcal)</Label>
 						<Input
@@ -588,6 +597,7 @@ export function MealForm({
 							inputMode="numeric"
 							pattern="[0-9]*"
 							required
+							className="w-full"
 						/>
 					</div>
 					<div className="space-y-2">
@@ -601,6 +611,7 @@ export function MealForm({
 							onChange={(e) => handleChange("proteinG", parseFloat(e.target.value) || 0)}
 							inputMode="decimal"
 							pattern="[0-9]*\.?[0-9]*"
+							className="w-full"
 						/>
 					</div>
 					<div className="space-y-2">
@@ -614,6 +625,7 @@ export function MealForm({
 							onChange={(e) => handleChange("carbsG", parseFloat(e.target.value) || 0)}
 							inputMode="decimal"
 							pattern="[0-9]*\.?[0-9]*"
+							className="w-full"
 						/>
 					</div>
 					<div className="space-y-2">
@@ -627,13 +639,14 @@ export function MealForm({
 							onChange={(e) => handleChange("fatG", parseFloat(e.target.value) || 0)}
 							inputMode="decimal"
 							pattern="[0-9]*\.?[0-9]*"
+							className="w-full"
 						/>
 					</div>
 				</div>
 			</div>
 
 			{/* Notes */}
-			<div className="space-y-2">
+			<div className="space-y-2 min-w-0">
 				<Label htmlFor="notes">Notes (optional)</Label>
 				<Textarea
 					id="notes"
@@ -641,14 +654,13 @@ export function MealForm({
 					onChange={(e) => handleChange("notes", e.target.value)}
 					placeholder="Add any additional notes about this meal..."
 					rows={3}
+					className="w-full resize-none"
 				/>
 			</div>
 
 			{/* Action Buttons */}
-			<div
-				className={`flex gap-3 pt-4 ${isStandalone ? "flex-col sm:flex-row" : "flex-col sm:flex-row"}`}
-			>
-				<Button type="submit" className="flex-1 w-full sm:w-auto" disabled={isSubmitting}>
+			<div className="flex flex-col gap-3 pt-4 sm:flex-row">
+				<Button type="submit" className="w-full" disabled={isSubmitting}>
 					{isSubmitting ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -663,7 +675,7 @@ export function MealForm({
 				</Button>
 
 				{isStandalone && (
-					<Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+					<Button type="button" variant="outline" onClick={onClose} className="w-full">
 						Cancel
 					</Button>
 				)}
@@ -674,7 +686,7 @@ export function MealForm({
 						variant="outline"
 						onClick={handleSaveAsFavorite}
 						disabled={createFavorite.isPending}
-						className="w-full sm:w-auto"
+						className="w-full"
 					>
 						{createFavorite.isPending ? (
 							<>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star, Plus, Trash2, Coffee, Sun, Moon, Apple, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getLocalDateString } from '@/lib/utils';
 import type { MealType } from '@/types/meal-tracker';
 import {
   Dialog,
@@ -30,11 +31,7 @@ export function FavoritesList() {
   const handleQuickAdd = (favoriteId: string, mealType: MealType) => {
     const favorite = favorites.find(f => f.id === favoriteId);
     if (favorite) {
-      // Get local date in YYYY-MM-DD format
-      const now = new Date();
-      const offset = now.getTimezoneOffset() * 60000;
-      const localDate = new Date(now.getTime() - offset);
-      const localDateStr = localDate.toISOString().split('T')[0];
+      const localDateStr = getLocalDateString();
 
       // Use noon UTC for the local date to avoid timezone issues
       const loggedAtISO = new Date(localDateStr + 'T12:00:00.000Z').toISOString();

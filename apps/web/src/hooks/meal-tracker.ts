@@ -98,6 +98,8 @@ export const useCreateMeal = () => {
       queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'daily-summary'] });
       queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'streak'] });
       queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'favorites'] });
+      // Invalidate nutrition trends analytics
+      queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'analytics', 'trends'] });
     },
     onError: (error) => {
       toast.error(`Failed to log meal: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -116,6 +118,8 @@ export const useUpdateMeal = () => {
       // Invalidate meals and daily summary queries
       queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'meals'] });
       queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'daily-summary'] });
+      // Invalidate nutrition trends analytics
+      queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'analytics', 'trends'] });
     },
     onError: (error) => {
       toast.error(`Failed to update meal: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -134,6 +138,8 @@ export const useDeleteMeal = () => {
       queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'meals'] });
       queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'daily-summary'] });
       queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'streak'] });
+      // Invalidate nutrition trends analytics
+      queryClient.invalidateQueries({ queryKey: ['meal-tracker', 'analytics', 'trends'] });
     },
     onError: (error) => {
       toast.error(`Failed to delete meal: ${error instanceof Error ? error.message : 'Unknown error'}`);
