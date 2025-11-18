@@ -61,7 +61,9 @@ export function MealForm({
 		servingSize: editingMeal?.servingSize || "",
 		servingUnit: editingMeal?.servingUnit || "",
 		notes: editingMeal?.notes || "",
-		loggedAt: editingMeal?.loggedAt ? editingMeal.loggedAt.split("T")[0] : (date || getLocalDateString()),
+		loggedAt: editingMeal?.loggedAt
+			? editingMeal.loggedAt.split("T")[0]
+			: date || getLocalDateString(),
 	});
 
 	const [isEstimating, setIsEstimating] = useState(false);
@@ -473,21 +475,8 @@ export function MealForm({
 				</Popover>
 			</div>
 
-			{/* Food Name */}
-			<div className="space-y-2 min-w-0">
-				<Label htmlFor="foodName">Food Name *</Label>
-				<Input
-					id="foodName"
-					value={formData.foodName}
-					onChange={(e) => handleChange("foodName", e.target.value)}
-					placeholder="e.g., Grilled chicken breast"
-					required
-					className="w-full"
-				/>
-			</div>
-
 			{/* Image Upload Section */}
-			<div className="space-y-3 p-3 border rounded-lg bg-accent/30 overflow-hidden">
+			<div className="space-y-4 p-3 border rounded-lg bg-accent/30 overflow-hidden">
 				<Label className="text-sm font-medium flex items-center gap-2">
 					<Camera className="h-4 w-4" />
 					Analyze from Photo
@@ -515,7 +504,11 @@ export function MealForm({
 				) : (
 					<div className="space-y-2">
 						<div className="relative rounded-lg overflow-hidden bg-muted max-w-full">
-							<img src={imagePreview} alt="Food preview" className="w-full h-32 sm:h-48 object-cover" />
+							<img
+								src={imagePreview}
+								alt="Food preview"
+								className="w-full h-32 sm:h-48 object-cover"
+							/>
 							<Button
 								type="button"
 								variant="destructive"
@@ -553,6 +546,19 @@ export function MealForm({
 				<p className="text-xs text-muted-foreground">
 					Upload a photo to auto-detect nutrition info.
 				</p>
+			</div>
+
+			{/* Food Name */}
+			<div className="space-y-2 min-w-0 mt-6">
+				<Label htmlFor="foodName">Food Name *</Label>
+				<Input
+					id="foodName"
+					value={formData.foodName}
+					onChange={(e) => handleChange("foodName", e.target.value)}
+					placeholder="e.g., Grilled chicken breast"
+					required
+					className="w-full"
+				/>
 			</div>
 
 			{/* Serving Size */}
