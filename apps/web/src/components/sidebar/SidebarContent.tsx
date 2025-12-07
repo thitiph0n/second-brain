@@ -7,6 +7,7 @@ import {
 	Ticket,
 	User,
 	Utensils,
+	Plane,
 } from "lucide-react";
 import { useAuth } from "@/auth/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,6 +43,11 @@ const navigationItems: NavigationSection[] = [
 				title: "Coupons",
 				href: "/coupons",
 				icon: Ticket,
+			},
+			{
+				title: "Trip Planner",
+				href: "/trip-planner",
+				icon: Plane,
 			},
 			{
 				title: "Meal Tracker",

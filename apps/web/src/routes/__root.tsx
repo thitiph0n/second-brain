@@ -9,6 +9,7 @@ import { Sidebar } from "../components/sidebar/Sidebar";
 import { SidebarProvider, useSidebar } from "../components/sidebar/SidebarProvider";
 import { ThemeProvider } from "../components/theme-provider";
 import { Toaster } from "../components/ui/sonner";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 function AppLayout() {
 	return (
@@ -87,13 +88,21 @@ function RootComponent() {
 		);
 	}
 
-	// If authenticated, show app layout
+	// Wrap authenticated layouts with ErrorBoundary
 	if (isAuthenticated) {
-		return <AppLayout />;
+		return (
+			<ErrorBoundary>
+				<AppLayout />
+			</ErrorBoundary>
+		);
 	}
 
-	// If not authenticated, show landing layout
-	return <LandingLayout />;
+	// Wrap landing layout with ErrorBoundary
+	return (
+		<ErrorBoundary>
+			<LandingLayout />
+		</ErrorBoundary>
+	);
 }
 
 export const Route = createRootRoute({

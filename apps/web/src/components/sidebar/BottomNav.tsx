@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, StickyNote, Ticket, User, Utensils } from "lucide-react";
+import { LayoutDashboard, StickyNote, Ticket, User, Utensils, Plane } from "lucide-react";
 import { useAuth } from "@/auth/hooks";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 type NavigationItem = {
 	title: string;
-	href: string;
+	href:	string;
 	icon: any;
 	disabled?: boolean;
 };
@@ -21,6 +21,11 @@ const bottomNavItems: NavigationItem[] = [
 		title: "Coupons",
 		href: "/coupons",
 		icon: Ticket,
+	},
+	{
+		title: "Trips",
+		href: "/trip-planner",
+		icon: Plane,
 	},
 	{
 		title: "Meals",

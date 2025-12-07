@@ -22,6 +22,13 @@
       "when": 1763231303513,
       "tag": "0002_sticky_random",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1765095091286,
+      "tag": "0003_abnormal_vindicator",
+      "breakpoints": true
     }
   ]
 }

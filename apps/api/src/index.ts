@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth";
 import couponRoutes from "./routes/coupon";
 import drawingsRoutes from "./routes/drawings";
 import mealTrackerRoutes from "./routes/meal-tracker";
+import tripPlannerRoutes from "./routes/trip-planner";
 import { createErrorResponse } from "./utils/errorHandler";
 
 interface Env {
@@ -59,6 +60,7 @@ app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1/coupons", couponRoutes);
 app.route("/api/v1/drawings", drawingsRoutes);
 app.route("/api/v1/meal-tracker", mealTrackerRoutes);
+app.route("/api/v1/trip-planner", tripPlannerRoutes);
 app.route("/api/v1/assets", assetsRoutes);
 
 // 404 handler for API routes

@@ -20,6 +20,11 @@ id = "eec49951f2ce43f199d2f019ac06aea4"
 binding = "DRAWING_ASSETS"
 bucket_name = "second-brain-drawing-assets"
 
+# R2 Bucket for trip planner images
+[[r2_buckets]]
+binding = "TRIP_IMAGES"
+bucket_name = "second-brain-trip-images"
+
 # Environment variables
 [vars]
 ENVIRONMENT = "production"

@@ -250,3 +250,56 @@ export function getContentTypeFromFilename(filename: string): string {
 
 	return mimeTypes[extension] || "application/octet-stream";
 }
+
+/**
+ * R2 Manager for Trip Planner Images
+ */
+export class TripImagesR2 extends DrawingAssetsR2 {
+	// Reusing the base class methods but with specific Trip Planner context if needed
+	// For now, the base methods are sufficient, but we create a separate class for semantic clarity
+	// and future extensibility (e.g., different path structures or metadata)
+}
+
+/**
+ * Create TripImagesR2 instance from environment context
+ */
+export function createTripImagesR2(c: Context): TripImagesR2 {
+	const bucket = c.env.TRIP_IMAGES;
+	// Fallback to DRAWING_ASSETS if TRIP_IMAGES is not set (for development/testing flexibility)
+	// But in production, it should be set
+	const targetBucket = bucket || c.env.DRAWING_ASSETS;
+
+	if (!targetBucket) {
+		throw new Error("R2 bucket for trip images not configured in environment");
+	}
+	return new TripImagesR2(targetBucket);
+}
+
+/**
+ * Generate unique file key for trip planner image
+ */
+export function generateTripImageKey(tripId: string, itemId: string, filename: string): string {
+    const timestamp = Date.now();
+    // Sanitize filename to remove special characters
+	const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
+	// Structure: trips/<tripId>/items/<itemId>/<timestamp>-<filename>
+	return `trips/${tripId}/items/${itemId}/${timestamp}-${sanitizedFilename}`;
+}
+
+/**
+ * Validate file extension for trip images
+ */
+export function isValidTripImageExtension(filename: string): boolean {
+	const allowedExtensions = [
+		".png",
+		".jpg",
+		".jpeg",
+		".webp",
+        ".heic", // Common on mobile
+        ".heif"
+	];
+
+	const extension = filename.toLowerCase().slice(filename.lastIndexOf("."));
+	return allowedExtensions.includes(extension);
+}
+

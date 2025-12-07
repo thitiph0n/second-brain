@@ -1,6 +1,8 @@
 {
-	"short_name": "Second Brain",
-	"name": "Second Brain - Personal Productivity Suite",
+	"id": "/",
+	"scope": "/",
+	"description": "Your second brain for personal productivity, trip planning, and more.",
+	"categories": ["productivity", "travel", "utilities"],
 	"icons": [
 		{
 			"src": "/icon-192x192.png",
@@ -13,8 +15,9 @@
 			"type": "image/png"
 		}
 	],
-	"start_url": ".",
+	"start_url": "/",
 	"display": "standalone",
+	"orientation": "portrait",
 	"theme_color": "#000000",
 	"background_color": "#ffffff"
 }

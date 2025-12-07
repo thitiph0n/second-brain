@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TripPlannerRouteImport } from './routes/trip-planner'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotesRouteImport } from './routes/notes'
 import { Route as MealTrackerRouteImport } from './routes/meal-tracker'
@@ -16,8 +17,11 @@ import { Route as DrawingsRouteImport } from './routes/drawings'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CouponsRouteImport } from './routes/coupons'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TripPlannerIndexRouteImport } from './routes/trip-planner.index'
 import { Route as MealTrackerIndexRouteImport } from './routes/meal-tracker.index'
 import { Route as DrawingsIndexRouteImport } from './routes/drawings.index'
+import { Route as TripPlannerAddRouteImport } from './routes/trip-planner.add'
+import { Route as TripPlannerIdRouteImport } from './routes/trip-planner.$id'
 import { Route as MealTrackerAddRouteImport } from './routes/meal-tracker.add'
 import { Route as DrawingsNewRouteImport } from './routes/drawings.new'
 import { Route as DrawingsIdRouteImport } from './routes/drawings.$id'
@@ -25,8 +29,17 @@ import { Route as DemoCouponsRouteImport } from './routes/demo/coupons'
 import { Route as AuthSuccessRouteImport } from './routes/auth.success'
 import { Route as AuthErrorRouteImport } from './routes/auth.error'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as TripPlannerIdEditRouteImport } from './routes/trip-planner.$id.edit'
+import { Route as SharedTripsShareTokenRouteImport } from './routes/shared.trips.$shareToken'
 import { Route as MealTrackerEditIdRouteImport } from './routes/meal-tracker.edit.$id'
+import { Route as TripPlannerIdItineraryAddRouteImport } from './routes/trip-planner.$id.itinerary.add'
+import { Route as TripPlannerIdItineraryItemIdEditRouteImport } from './routes/trip-planner.$id.itinerary.$itemId.edit'
 
+const TripPlannerRoute = TripPlannerRouteImport.update({
+  id: '/trip-planner',
+  path: '/trip-planner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -62,6 +75,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TripPlannerIndexRoute = TripPlannerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TripPlannerRoute,
+} as any)
 const MealTrackerIndexRoute = MealTrackerIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -71,6 +89,16 @@ const DrawingsIndexRoute = DrawingsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DrawingsRoute,
+} as any)
+const TripPlannerAddRoute = TripPlannerAddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => TripPlannerRoute,
+} as any)
+const TripPlannerIdRoute = TripPlannerIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => TripPlannerRoute,
 } as any)
 const MealTrackerAddRoute = MealTrackerAddRouteImport.update({
   id: '/add',
@@ -107,11 +135,33 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TripPlannerIdEditRoute = TripPlannerIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => TripPlannerIdRoute,
+} as any)
+const SharedTripsShareTokenRoute = SharedTripsShareTokenRouteImport.update({
+  id: '/shared/trips/$shareToken',
+  path: '/shared/trips/$shareToken',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MealTrackerEditIdRoute = MealTrackerEditIdRouteImport.update({
   id: '/edit/$id',
   path: '/edit/$id',
   getParentRoute: () => MealTrackerRoute,
 } as any)
+const TripPlannerIdItineraryAddRoute =
+  TripPlannerIdItineraryAddRouteImport.update({
+    id: '/itinerary/add',
+    path: '/itinerary/add',
+    getParentRoute: () => TripPlannerIdRoute,
+  } as any)
+const TripPlannerIdItineraryItemIdEditRoute =
+  TripPlannerIdItineraryItemIdEditRouteImport.update({
+    id: '/itinerary/$itemId/edit',
+    path: '/itinerary/$itemId/edit',
+    getParentRoute: () => TripPlannerIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -121,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/meal-tracker': typeof MealTrackerRouteWithChildren
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRoute
+  '/trip-planner': typeof TripPlannerRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/error': typeof AuthErrorRoute
   '/auth/success': typeof AuthSuccessRoute
@@ -128,9 +179,16 @@ export interface FileRoutesByFullPath {
   '/drawings/$id': typeof DrawingsIdRoute
   '/drawings/new': typeof DrawingsNewRoute
   '/meal-tracker/add': typeof MealTrackerAddRoute
+  '/trip-planner/$id': typeof TripPlannerIdRouteWithChildren
+  '/trip-planner/add': typeof TripPlannerAddRoute
   '/drawings/': typeof DrawingsIndexRoute
   '/meal-tracker/': typeof MealTrackerIndexRoute
+  '/trip-planner/': typeof TripPlannerIndexRoute
   '/meal-tracker/edit/$id': typeof MealTrackerEditIdRoute
+  '/shared/trips/$shareToken': typeof SharedTripsShareTokenRoute
+  '/trip-planner/$id/edit': typeof TripPlannerIdEditRoute
+  '/trip-planner/$id/itinerary/add': typeof TripPlannerIdItineraryAddRoute
+  '/trip-planner/$id/itinerary/$itemId/edit': typeof TripPlannerIdItineraryItemIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -145,9 +203,16 @@ export interface FileRoutesByTo {
   '/drawings/$id': typeof DrawingsIdRoute
   '/drawings/new': typeof DrawingsNewRoute
   '/meal-tracker/add': typeof MealTrackerAddRoute
+  '/trip-planner/$id': typeof TripPlannerIdRouteWithChildren
+  '/trip-planner/add': typeof TripPlannerAddRoute
   '/drawings': typeof DrawingsIndexRoute
   '/meal-tracker': typeof MealTrackerIndexRoute
+  '/trip-planner': typeof TripPlannerIndexRoute
   '/meal-tracker/edit/$id': typeof MealTrackerEditIdRoute
+  '/shared/trips/$shareToken': typeof SharedTripsShareTokenRoute
+  '/trip-planner/$id/edit': typeof TripPlannerIdEditRoute
+  '/trip-planner/$id/itinerary/add': typeof TripPlannerIdItineraryAddRoute
+  '/trip-planner/$id/itinerary/$itemId/edit': typeof TripPlannerIdItineraryItemIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -158,6 +223,7 @@ export interface FileRoutesById {
   '/meal-tracker': typeof MealTrackerRouteWithChildren
   '/notes': typeof NotesRoute
   '/profile': typeof ProfileRoute
+  '/trip-planner': typeof TripPlannerRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/error': typeof AuthErrorRoute
   '/auth/success': typeof AuthSuccessRoute
@@ -165,9 +231,16 @@ export interface FileRoutesById {
   '/drawings/$id': typeof DrawingsIdRoute
   '/drawings/new': typeof DrawingsNewRoute
   '/meal-tracker/add': typeof MealTrackerAddRoute
+  '/trip-planner/$id': typeof TripPlannerIdRouteWithChildren
+  '/trip-planner/add': typeof TripPlannerAddRoute
   '/drawings/': typeof DrawingsIndexRoute
   '/meal-tracker/': typeof MealTrackerIndexRoute
+  '/trip-planner/': typeof TripPlannerIndexRoute
   '/meal-tracker/edit/$id': typeof MealTrackerEditIdRoute
+  '/shared/trips/$shareToken': typeof SharedTripsShareTokenRoute
+  '/trip-planner/$id/edit': typeof TripPlannerIdEditRoute
+  '/trip-planner/$id/itinerary/add': typeof TripPlannerIdItineraryAddRoute
+  '/trip-planner/$id/itinerary/$itemId/edit': typeof TripPlannerIdItineraryItemIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -179,6 +252,7 @@ export interface FileRouteTypes {
     | '/meal-tracker'
     | '/notes'
     | '/profile'
+    | '/trip-planner'
     | '/auth/callback'
     | '/auth/error'
     | '/auth/success'
@@ -186,9 +260,16 @@ export interface FileRouteTypes {
     | '/drawings/$id'
     | '/drawings/new'
     | '/meal-tracker/add'
+    | '/trip-planner/$id'
+    | '/trip-planner/add'
     | '/drawings/'
     | '/meal-tracker/'
+    | '/trip-planner/'
     | '/meal-tracker/edit/$id'
+    | '/shared/trips/$shareToken'
+    | '/trip-planner/$id/edit'
+    | '/trip-planner/$id/itinerary/add'
+    | '/trip-planner/$id/itinerary/$itemId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -203,9 +284,16 @@ export interface FileRouteTypes {
     | '/drawings/$id'
     | '/drawings/new'
     | '/meal-tracker/add'
+    | '/trip-planner/$id'
+    | '/trip-planner/add'
     | '/drawings'
     | '/meal-tracker'
+    | '/trip-planner'
     | '/meal-tracker/edit/$id'
+    | '/shared/trips/$shareToken'
+    | '/trip-planner/$id/edit'
+    | '/trip-planner/$id/itinerary/add'
+    | '/trip-planner/$id/itinerary/$itemId/edit'
   id:
     | '__root__'
     | '/'
@@ -215,6 +303,7 @@ export interface FileRouteTypes {
     | '/meal-tracker'
     | '/notes'
     | '/profile'
+    | '/trip-planner'
     | '/auth/callback'
     | '/auth/error'
     | '/auth/success'
@@ -222,9 +311,16 @@ export interface FileRouteTypes {
     | '/drawings/$id'
     | '/drawings/new'
     | '/meal-tracker/add'
+    | '/trip-planner/$id'
+    | '/trip-planner/add'
     | '/drawings/'
     | '/meal-tracker/'
+    | '/trip-planner/'
     | '/meal-tracker/edit/$id'
+    | '/shared/trips/$shareToken'
+    | '/trip-planner/$id/edit'
+    | '/trip-planner/$id/itinerary/add'
+    | '/trip-planner/$id/itinerary/$itemId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,14 +331,23 @@ export interface RootRouteChildren {
   MealTrackerRoute: typeof MealTrackerRouteWithChildren
   NotesRoute: typeof NotesRoute
   ProfileRoute: typeof ProfileRoute
+  TripPlannerRoute: typeof TripPlannerRouteWithChildren
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthErrorRoute: typeof AuthErrorRoute
   AuthSuccessRoute: typeof AuthSuccessRoute
   DemoCouponsRoute: typeof DemoCouponsRoute
+  SharedTripsShareTokenRoute: typeof SharedTripsShareTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trip-planner': {
+      id: '/trip-planner'
+      path: '/trip-planner'
+      fullPath: '/trip-planner'
+      preLoaderRoute: typeof TripPlannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -292,6 +397,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trip-planner/': {
+      id: '/trip-planner/'
+      path: '/'
+      fullPath: '/trip-planner/'
+      preLoaderRoute: typeof TripPlannerIndexRouteImport
+      parentRoute: typeof TripPlannerRoute
+    }
     '/meal-tracker/': {
       id: '/meal-tracker/'
       path: '/'
@@ -305,6 +417,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/drawings/'
       preLoaderRoute: typeof DrawingsIndexRouteImport
       parentRoute: typeof DrawingsRoute
+    }
+    '/trip-planner/add': {
+      id: '/trip-planner/add'
+      path: '/add'
+      fullPath: '/trip-planner/add'
+      preLoaderRoute: typeof TripPlannerAddRouteImport
+      parentRoute: typeof TripPlannerRoute
+    }
+    '/trip-planner/$id': {
+      id: '/trip-planner/$id'
+      path: '/$id'
+      fullPath: '/trip-planner/$id'
+      preLoaderRoute: typeof TripPlannerIdRouteImport
+      parentRoute: typeof TripPlannerRoute
     }
     '/meal-tracker/add': {
       id: '/meal-tracker/add'
@@ -355,12 +481,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trip-planner/$id/edit': {
+      id: '/trip-planner/$id/edit'
+      path: '/edit'
+      fullPath: '/trip-planner/$id/edit'
+      preLoaderRoute: typeof TripPlannerIdEditRouteImport
+      parentRoute: typeof TripPlannerIdRoute
+    }
+    '/shared/trips/$shareToken': {
+      id: '/shared/trips/$shareToken'
+      path: '/shared/trips/$shareToken'
+      fullPath: '/shared/trips/$shareToken'
+      preLoaderRoute: typeof SharedTripsShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/meal-tracker/edit/$id': {
       id: '/meal-tracker/edit/$id'
       path: '/edit/$id'
       fullPath: '/meal-tracker/edit/$id'
       preLoaderRoute: typeof MealTrackerEditIdRouteImport
       parentRoute: typeof MealTrackerRoute
+    }
+    '/trip-planner/$id/itinerary/add': {
+      id: '/trip-planner/$id/itinerary/add'
+      path: '/itinerary/add'
+      fullPath: '/trip-planner/$id/itinerary/add'
+      preLoaderRoute: typeof TripPlannerIdItineraryAddRouteImport
+      parentRoute: typeof TripPlannerIdRoute
+    }
+    '/trip-planner/$id/itinerary/$itemId/edit': {
+      id: '/trip-planner/$id/itinerary/$itemId/edit'
+      path: '/itinerary/$itemId/edit'
+      fullPath: '/trip-planner/$id/itinerary/$itemId/edit'
+      preLoaderRoute: typeof TripPlannerIdItineraryItemIdEditRouteImport
+      parentRoute: typeof TripPlannerIdRoute
     }
   }
 }
@@ -397,6 +551,38 @@ const MealTrackerRouteWithChildren = MealTrackerRoute._addFileChildren(
   MealTrackerRouteChildren,
 )
 
+interface TripPlannerIdRouteChildren {
+  TripPlannerIdEditRoute: typeof TripPlannerIdEditRoute
+  TripPlannerIdItineraryAddRoute: typeof TripPlannerIdItineraryAddRoute
+  TripPlannerIdItineraryItemIdEditRoute: typeof TripPlannerIdItineraryItemIdEditRoute
+}
+
+const TripPlannerIdRouteChildren: TripPlannerIdRouteChildren = {
+  TripPlannerIdEditRoute: TripPlannerIdEditRoute,
+  TripPlannerIdItineraryAddRoute: TripPlannerIdItineraryAddRoute,
+  TripPlannerIdItineraryItemIdEditRoute: TripPlannerIdItineraryItemIdEditRoute,
+}
+
+const TripPlannerIdRouteWithChildren = TripPlannerIdRoute._addFileChildren(
+  TripPlannerIdRouteChildren,
+)
+
+interface TripPlannerRouteChildren {
+  TripPlannerIdRoute: typeof TripPlannerIdRouteWithChildren
+  TripPlannerAddRoute: typeof TripPlannerAddRoute
+  TripPlannerIndexRoute: typeof TripPlannerIndexRoute
+}
+
+const TripPlannerRouteChildren: TripPlannerRouteChildren = {
+  TripPlannerIdRoute: TripPlannerIdRouteWithChildren,
+  TripPlannerAddRoute: TripPlannerAddRoute,
+  TripPlannerIndexRoute: TripPlannerIndexRoute,
+}
+
+const TripPlannerRouteWithChildren = TripPlannerRoute._addFileChildren(
+  TripPlannerRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CouponsRoute: CouponsRoute,
@@ -405,10 +591,12 @@ const rootRouteChildren: RootRouteChildren = {
   MealTrackerRoute: MealTrackerRouteWithChildren,
   NotesRoute: NotesRoute,
   ProfileRoute: ProfileRoute,
+  TripPlannerRoute: TripPlannerRouteWithChildren,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthErrorRoute: AuthErrorRoute,
   AuthSuccessRoute: AuthSuccessRoute,
   DemoCouponsRoute: DemoCouponsRoute,
+  SharedTripsShareTokenRoute: SharedTripsShareTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

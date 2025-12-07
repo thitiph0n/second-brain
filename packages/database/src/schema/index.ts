@@ -3,6 +3,7 @@ import { users, oauthProviders, authSessions, oauthProvidersRelations, authSessi
 import { coupons, couponsRelations } from './coupons';
 import { drawings, drawingAssets, drawingsRelations, drawingAssetsRelations } from './drawings';
 import { userProfiles, meals, mealStreaks, dailySummaries, favoriteFoods, foods, userProfilesRelations, mealsRelations, mealStreaksRelations, dailySummariesRelations, favoriteFoodsRelations } from './meal-tracker';
+import { trips, itineraryItems, itineraryImages, tripsRelations, itineraryItemsRelations, itineraryImagesRelations } from './trip-planner';
 
 // Complete relations for users table
 export const usersRelations = relations(users, ({ many }) => ({
@@ -16,6 +17,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   mealStreaks: many(mealStreaks),
   dailySummaries: many(dailySummaries),
   favoriteFoods: many(favoriteFoods),
+  trips: many(trips),
 }));
 
 // Export all tables
@@ -32,6 +34,9 @@ export {
   dailySummaries,
   favoriteFoods,
   foods,
+  trips,
+  itineraryItems,
+  itineraryImages,
 };
 
 // Export all relations
@@ -46,4 +51,7 @@ export {
   mealStreaksRelations,
   dailySummariesRelations,
   favoriteFoodsRelations,
+  tripsRelations,
+  itineraryItemsRelations,
+  itineraryImagesRelations,
 };
