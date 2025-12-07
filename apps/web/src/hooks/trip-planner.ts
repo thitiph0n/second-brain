@@ -1,155 +1,283 @@
-// Placeholder hooks for trip planner functionality
+// React Query hooks for trip planner data fetching
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { tripPlannerAPI } from "@/api/trip-planner";
+import type {
+	CreateTripRequest,
+	UpdateTripRequest,
+	TripsQuery,
+	CreateItineraryItemRequest,
+	UpdateItineraryItemRequest,
+	ItineraryReorderItem,
+	SharingToggleRequest,
+} from "@/types/trip-planner";
+
+// Trip Management Hooks
+
+export function useTrips(query?: TripsQuery) {
+	return useQuery({
+		queryKey: ["trip-planner", "trips", query],
+		queryFn: () => tripPlannerAPI.getTrips(query),
+		staleTime: 2 * 60 * 1000, // 2 minutes
+	});
+}
+
+export function useTrip(tripId: string) {
+	return useQuery({
+		queryKey: ["trip-planner", "trip", tripId],
+		queryFn: () => tripPlannerAPI.getTrip(tripId),
+		staleTime: 1 * 60 * 1000, // 1 minute
+		enabled: !!tripId,
+	});
+}
+
 export function useCreateTrip() {
-	return {
-		mutateAsync: async (data: any) => {
-			console.log("Creating trip:", data);
-			return { id: "trip-123", ...data };
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (data: CreateTripRequest) => tripPlannerAPI.createTrip(data),
+		onSuccess: (newTrip) => {
+			toast.success("Trip created successfully!");
+			// Invalidate trips list
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trips"] });
+			// Set the new trip in cache
+			queryClient.setQueryData(["trip-planner", "trip", newTrip.id], newTrip);
 		},
-		isPending: false,
-	};
+		onError: (error) => {
+			toast.error(
+				`Failed to create trip: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
 export function useUpdateTrip() {
-	return {
-		mutateAsync: async ({ id, data }: { id: string; data: any }) => {
-			console.log("Updating trip:", id, data);
-			return { id, ...data };
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ id, data }: { id: string; data: UpdateTripRequest }) =>
+			tripPlannerAPI.updateTrip(id, data),
+		onSuccess: (updatedTrip) => {
+			toast.success("Trip updated successfully!");
+			// Update the trip in cache
+			queryClient.setQueryData(["trip-planner", "trip", updatedTrip.id], updatedTrip);
+			// Invalidate trips list to reflect changes
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trips"] });
 		},
-		isPending: false,
-	};
+		onError: (error) => {
+			toast.error(
+				`Failed to update trip: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
 export function useDeleteTrip() {
-	return {
-		mutateAsync: async (id: string) => {
-			console.log("Deleting trip:", id);
-			return { success: true };
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (tripId: string) => tripPlannerAPI.deleteTrip(tripId),
+		onSuccess: (_, tripId) => {
+			toast.success("Trip deleted successfully!");
+			// Remove from cache
+			queryClient.removeQueries({ queryKey: ["trip-planner", "trip", tripId] });
+			// Invalidate trips list
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trips"] });
 		},
-		isPending: false,
-	};
+		onError: (error) => {
+			toast.error(
+				`Failed to delete trip: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
-export function useTrips() {
-	return {
-		data: {
-			trips: [
-				{
-					id: "trip-123",
-					name: "Summer Vacation",
-					description: "A trip to the beach",
-					startDate: "2024-07-01",
-					endDate: "2024-07-07",
-					isPublic: false,
-					itinerary: [],
-				},
-			],
+export function useToggleSharing() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ tripId, data }: { tripId: string; data: SharingToggleRequest }) =>
+			tripPlannerAPI.toggleSharing(tripId, data),
+		onSuccess: (_, { tripId }) => {
+			toast.success("Sharing settings updated!");
+			// Invalidate the trip to refresh sharing status
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trip", tripId] });
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trips"] });
 		},
-		isLoading: false,
-		isError: false,
-	};
+		onError: (error) => {
+			toast.error(
+				`Failed to update sharing: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
-export function useTrip() {
-	return {
-		data: {
-			id: "trip-123",
-			name: "Summer Vacation",
-			description: "A trip to the beach",
-			startDate: "2024-07-01",
-			endDate: "2024-07-07",
-			isPublic: true, // Make it public to test public sharing badge too
-			itinerary: [
-				{
-					id: "item-1",
-					dayNumber: 1,
-					order: 0,
-					title: "Arrival",
-					location: { city: "Miami" },
-					isCompleted: false,
-				}
-			],
-		},
-		isLoading: false,
-		isError: false,
-	};
+// Itinerary Management Hooks
+
+export function useItineraryItems(tripId: string) {
+	return useQuery({
+		queryKey: ["trip-planner", "itinerary", tripId],
+		queryFn: () => tripPlannerAPI.getItineraryItems(tripId),
+		staleTime: 1 * 60 * 1000, // 1 minute
+		enabled: !!tripId,
+	});
 }
 
 export function useCreateItineraryItem() {
-	return {
-		mutateAsync: async (data: any) => {
-			console.log("Creating itinerary item:", data);
-			return { id: "item-123", ...data };
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ tripId, data }: { tripId: string; data: CreateItineraryItemRequest }) =>
+			tripPlannerAPI.createItineraryItem(tripId, data),
+		onSuccess: (_, { tripId }) => {
+			toast.success("Itinerary item added!");
+			// Invalidate itinerary items
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "itinerary", tripId] });
+			// Invalidate the trip to refresh itinerary count
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trip", tripId] });
 		},
-		isPending: false,
-	};
+		onError: (error) => {
+			toast.error(
+				`Failed to add itinerary item: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
 export function useUpdateItineraryItem() {
-	return {
-		mutateAsync: async ({ id, data }: { id: string; data: any }) => {
-			console.log("Updating itinerary item:", id, data);
-			return { id, ...data };
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({
+			tripId,
+			itemId,
+			data,
+		}: {
+			tripId: string;
+			itemId: string;
+			data: UpdateItineraryItemRequest;
+		}) => tripPlannerAPI.updateItineraryItem(tripId, itemId, data),
+		onSuccess: (_, { tripId }) => {
+			toast.success("Itinerary item updated!");
+			// Invalidate itinerary items
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "itinerary", tripId] });
+			// Invalidate the trip to reflect changes
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trip", tripId] });
 		},
-		isPending: false,
-	};
+		onError: (error) => {
+			toast.error(
+				`Failed to update itinerary item: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
 export function useDeleteItineraryItem() {
-	return {
-		mutateAsync: async (id: string) => {
-			console.log("Deleting itinerary item:", id);
-			return { success: true };
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ tripId, itemId }: { tripId: string; itemId: string }) =>
+			tripPlannerAPI.deleteItineraryItem(tripId, itemId),
+		onSuccess: (_, { tripId }) => {
+			toast.success("Itinerary item deleted!");
+			// Invalidate itinerary items
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "itinerary", tripId] });
+			// Invalidate the trip to refresh itinerary count
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trip", tripId] });
 		},
-		isPending: false,
-	};
+		onError: (error) => {
+			toast.error(
+				`Failed to delete itinerary item: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
 export function useReorderItineraryItems() {
-	return {
-		mutateAsync: async ({ tripId, itemIds }: { tripId: string; itemIds: string[] }) => {
-            const { tripPlannerAPI } = await import("../api/trip-planner");
-            return tripPlannerAPI.reorderItineraryItems(tripId, itemIds);
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ tripId, items }: { tripId: string; items: ItineraryReorderItem[] }) =>
+			tripPlannerAPI.reorderItineraryItems(tripId, items),
+		onSuccess: (_, { tripId }) => {
+			// Invalidate to refetch with new order
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "itinerary", tripId] });
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trip", tripId] });
 		},
-		isPending: false,
-	};
+		onError: (error) => {
+			toast.error(
+				`Failed to reorder items: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
-export function useToggleItineraryItem() {
-	return {
-		mutateAsync: async ({ id, isCompleted }: { id: string; isCompleted: boolean }) => {
-			console.log("Toggling itinerary item:", id, isCompleted);
-			return { id, isCompleted };
-		},
-		isPending: false,
-	};
-}
+// Image Management Hooks
 
 export function useUploadItineraryImage() {
-    return {
-        mutateAsync: async ({ tripId, itemId, file, caption }: { tripId: string; itemId: string; file: File; caption?: string }) => {
-            const { tripPlannerAPI } = await import("../api/trip-planner");
-            return tripPlannerAPI.uploadItineraryImage(tripId, itemId, file, caption);
-        },
-        isPending: false,
-    };
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({
+			tripId,
+			itemId,
+			file,
+			caption,
+		}: {
+			tripId: string;
+			itemId: string;
+			file: File;
+			caption?: string;
+		}) => tripPlannerAPI.uploadItineraryImage(tripId, itemId, file, caption),
+		onSuccess: (_, { tripId }) => {
+			toast.success("Image uploaded successfully!");
+			// Invalidate itinerary items to show new image
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "itinerary", tripId] });
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trip", tripId] });
+		},
+		onError: (error) => {
+			toast.error(
+				`Failed to upload image: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
 export function useDeleteItineraryImage() {
-    return {
-        mutateAsync: async ({ tripId, itemId, imageId }: { tripId: string; itemId: string; imageId: string }) => {
-            const { tripPlannerAPI } = await import("../api/trip-planner");
-            return tripPlannerAPI.deleteItineraryImage(tripId, itemId, imageId);
-        },
-        isPending: false,
-    };
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({
+			tripId,
+			itemId,
+			imageId,
+		}: {
+			tripId: string;
+			itemId: string;
+			imageId: string;
+		}) => tripPlannerAPI.deleteItineraryImage(tripId, itemId, imageId),
+		onSuccess: (_, { tripId }) => {
+			toast.success("Image deleted successfully!");
+			// Invalidate itinerary items to remove image
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "itinerary", tripId] });
+			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trip", tripId] });
+		},
+		onError: (error) => {
+			toast.error(
+				`Failed to delete image: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		},
+	});
 }
 
-export function useItineraryItems() {
-	return {
-		data: {
-			items: [] as any[],
-		},
-		isLoading: false,
-		isError: false,
-	};
+// Public Sharing Hook (no auth required)
+
+export function usePublicTrip(shareToken: string) {
+	return useQuery({
+		queryKey: ["trip-planner", "public", shareToken],
+		queryFn: () => tripPlannerAPI.getPublicTrip(shareToken),
+		staleTime: 5 * 60 * 1000, // 5 minutes
+		enabled: !!shareToken,
+		retry: false, // Don't retry on 404
+	});
 }

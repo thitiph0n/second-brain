@@ -7,120 +7,165 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RequireAuth } from "../auth/components/AuthGuard";
 import { useNavigate } from "@tanstack/react-router";
+import { useForm } from "react-hook-form";
+import { useCreateTrip } from "@/hooks/trip-planner";
+import type { CreateTripRequest } from "@/types/trip-planner";
 
 export const Route = createFileRoute("/trip-planner/add")({
-  component: AddTripPage,
+	component: AddTripPage,
 });
 
 function AddTripPage() {
-  return (
-    <RequireAuth>
-      <AddTripPageContent />
-    </RequireAuth>
-  );
+	return (
+		<RequireAuth>
+			<AddTripPageContent />
+		</RequireAuth>
+	);
 }
 
 function AddTripPageContent() {
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const { mutateAsync: createTrip, isPending } = useCreateTrip();
+	
+	const {
+		register,
+		handleSubmit,
+		formState: { errors },
+	} = useForm<CreateTripRequest>();
 
-  const handleSave = () => {
-    // TODO: Implement trip creation
-    navigate({ to: "/trip-planner", search: { status: "upcoming" } });
-  };
+	const onSubmit = async (data: CreateTripRequest) => {
+		try {
+			// Clean up the data - convert empty strings to null for optional fields
+			const cleanedData: CreateTripRequest = {
+				...data,
+				description: data.description?.trim() || null,
+				coverImage: data.coverImage?.trim() || null,
+			};
+			
+			const newTrip = await createTrip(cleanedData);
+			// Navigate to the newly created trip
+			navigate({ to: `/trip-planner/${newTrip.id}` });
+		} catch (error) {
+			// Error is already shown via toast in the hook
+			console.error("Failed to create trip:", error);
+		}
+	};
 
-  const handleCancel = () => {
-    navigate({ to: "/trip-planner", search: { status: "upcoming" } });
-  };
+	const handleCancel = () => {
+		navigate({ to: "/trip-planner", search: { status: "upcoming" } });
+	};
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={handleCancel}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold">Plan New Trip</h1>
-          <p className="text-muted-foreground">Create your next adventure</p>
-        </div>
-      </div>
+	return (
+		<form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+			{/* Header */}
+			<div className="flex items-center gap-4">
+				<Button type="button" variant="ghost" size="icon" onClick={handleCancel}>
+					<ArrowLeft className="h-5 w-5" />
+				</Button>
+				<div className="min-w-0 flex-1">
+					<h1 className="text-2xl font-bold">Plan New Trip</h1>
+					<p className="text-muted-foreground">Create your next adventure</p>
+				</div>
+			</div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="tripName">Trip Name</Label>
-              <Input id="tripName" placeholder="Paris Adventure" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="destination">Destination</Label>
-              <Input id="destination" placeholder="Paris, France" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" placeholder="Describe your trip..." />
-            </div>
-          </CardContent>
-        </Card>
+			<div className="grid gap-6 lg:grid-cols-2">
+				{/* Basic Information */}
+				<Card className="lg:col-span-2">
+					<CardHeader>
+						<CardTitle>Basic Information</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="name">
+								Trip Name <span className="text-destructive">*</span>
+							</Label>
+							<Input
+								id="name"
+								placeholder="Paris Adventure"
+								{...register("name", { required: "Trip name is required" })}
+							/>
+							{errors.name && (
+								<p className="text-sm text-destructive">{errors.name.message}</p>
+							)}
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="description">Description</Label>
+							<Textarea
+								id="description"
+								placeholder="Describe your trip..."
+								{...register("description")}
+							/>
+						</div>
+					</CardContent>
+				</Card>
 
-        {/* Dates */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Dates</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input id="startDate" type="date" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
-              <Input id="endDate" type="date" />
-            </div>
-          </CardContent>
-        </Card>
+				{/* Dates */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Dates</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="startDate">
+								Start Date <span className="text-destructive">*</span>
+							</Label>
+							<Input
+								id="startDate"
+								type="date"
+								{...register("startDate", { required: "Start date is required" })}
+							/>
+							{errors.startDate && (
+								<p className="text-sm text-destructive">{errors.startDate.message}</p>
+							)}
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="endDate">
+								End Date <span className="text-destructive">*</span>
+							</Label>
+							<Input
+								id="endDate"
+								type="date"
+								{...register("endDate", { required: "End date is required" })}
+							/>
+							{errors.endDate && (
+								<p className="text-sm text-destructive">{errors.endDate.message}</p>
+							)}
+						</div>
+					</CardContent>
+				</Card>
 
-        {/* Travelers */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Travelers</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="travelers">Number of Travelers</Label>
-              <Input id="travelers" type="number" min="1" defaultValue="1" />
-            </div>
-          </CardContent>
-        </Card>
+				{/* Cover Image (Optional) */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Cover Image (Optional)</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="coverImage">Image URL</Label>
+							<Input
+								id="coverImage"
+								type="url"
+								placeholder="https://example.com/image.jpg"
+								{...register("coverImage")}
+							/>
+							<p className="text-xs text-muted-foreground">
+								Provide a URL to an image for this trip
+							</p>
+						</div>
+					</CardContent>
+				</Card>
+			</div>
 
-        {/* Budget */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Budget</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="budget">Budget (USD)</Label>
-              <Input id="budget" type="number" placeholder="2000" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Actions */}
-      <div className="flex justify-end gap-4 pt-4">
-        <Button variant="outline" onClick={handleCancel}>
-          Cancel
-        </Button>
-        <Button onClick={handleSave}>
-          <Save className="h-4 w-4 mr-2" />
-          Create Trip
-        </Button>
-      </div>
-    </div>
-  );
+			{/* Actions */}
+			<div className="flex justify-end gap-4 pt-4">
+				<Button type="button" variant="outline" onClick={handleCancel} disabled={isPending}>
+					Cancel
+				</Button>
+				<Button type="submit" disabled={isPending}>
+					<Save className="h-4 w-4 mr-2" />
+					{isPending ? "Creating..." : "Create Trip"}
+				</Button>
+			</div>
+		</form>
+	);
 }
