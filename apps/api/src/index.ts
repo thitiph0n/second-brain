@@ -76,10 +76,17 @@ app.notFound((c) => {
 		);
 	}
 
-	// For all other routes, serve the SPA with the original URL preserved
-	// This allows client-side routing to work with query parameters
-	const originalUrl = c.req.url;
-	return c.env.ASSETS.fetch(new Request(originalUrl, c.req.raw));
+	// For all other routes, serve index.html for client-side routing
+	// Construct URL with index.html but preserve query parameters
+	const url = new URL(c.req.url);
+	url.pathname = "/index.html";
+
+	const indexRequest = new Request(url.toString(), {
+		method: c.req.method,
+		headers: c.req.header(),
+	});
+
+	return c.env.ASSETS.fetch(indexRequest);
 });
 
 app.onError((error, c) => {
