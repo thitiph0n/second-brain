@@ -31,9 +31,11 @@ function EditTripPageContent() {
 	const params = useParams({ from: "/trip-planner/$id/edit" });
 	const tripId = params.id;
 
-	const { data: trip, isLoading, isError } = useTrip(tripId);
+	const { data: tripResponse, isLoading, isError } = useTrip(tripId);
 	const { mutateAsync: updateTrip, isPending: isUpdating } = useUpdateTrip();
 	const { mutateAsync: deleteTrip, isPending: isDeleting } = useDeleteTrip();
+
+	const trip = tripResponse?.trip;
 
 	const {
 		register,
@@ -42,7 +44,6 @@ function EditTripPageContent() {
 		formState: { errors },
 	} = useForm<UpdateTripRequest>();
 
-	// Populate form with existing data
 	useEffect(() => {
 		if (trip) {
 			reset({

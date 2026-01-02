@@ -63,20 +63,19 @@ export function TripForm({ trip, onSuccess, onCancel }: TripFormProps) {
 			if (trip) {
 				await updateTrip.mutateAsync({ id: trip.id, data });
 				toast.success("Trip updated successfully");
-				onSuccess?.(trip.id); // Pass ID if needed, or just void
+				onSuccess?.(trip.id);
 			} else {
-				const result = await createTrip.mutateAsync(data);
+				const response = await createTrip.mutateAsync(data);
 				toast.success("Trip created successfully");
-				onSuccess?.(result.id);
+				onSuccess?.(response.trip.id);
 				navigate({
 					to: "/trip-planner/$id",
-					params: { id: result.id },
+					params: { id: response.trip.id },
 				});
 			}
 		} catch (error) {
 			console.error("Failed to save trip:", error);
 			toast.error("Failed to save trip. Please try again.");
-			// onError prop usage is tricky if signatures don't match, simplified here
 		} finally {
 			setIsSubmitting(false);
 		}

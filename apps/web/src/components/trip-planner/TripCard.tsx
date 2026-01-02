@@ -24,7 +24,7 @@ export function TripCard({ trip, onEdit, onDelete, className, variant = "default
 		const startDate = new Date(trip.startDate);
 		const endDate = new Date(trip.endDate);
 
-		if (isAfter(now, endDate)) return "completed";
+		if (isAfter(now, endDate)) return "past";
 		if (isBefore(now, startDate)) return "upcoming";
 		if (isToday(startDate) || isToday(endDate) || (isAfter(now, startDate) && isBefore(now, endDate))) {
 			return "ongoing";
@@ -36,8 +36,7 @@ export function TripCard({ trip, onEdit, onDelete, className, variant = "default
 		const variants = {
 			upcoming: { variant: "secondary" as const, label: "Upcoming" },
 			ongoing: { variant: "default" as const, label: "In Progress" },
-			completed: { variant: "outline" as const, label: "Completed" },
-			cancelled: { variant: "destructive" as const, label: "Cancelled" },
+			past: { variant: "outline" as const, label: "Completed" },
 		};
 
 		const { variant: badgeVariant, label } = variants[status];
@@ -48,8 +47,7 @@ export function TripCard({ trip, onEdit, onDelete, className, variant = "default
 		const colors = {
 			upcoming: "text-blue-600 bg-blue-50 border-blue-200",
 			ongoing: "text-green-600 bg-green-50 border-green-200",
-			completed: "text-gray-600 bg-gray-50 border-gray-200",
-			cancelled: "text-red-600 bg-red-50 border-red-200",
+			past: "text-gray-600 bg-gray-50 border-gray-200",
 		};
 		return colors[status];
 	};

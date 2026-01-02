@@ -2,13 +2,14 @@
 import type {
 	CreateTripRequest,
 	UpdateTripRequest,
-	TripResponse,
 	TripsQuery,
 	TripsListResponse,
+	TripDetailResponse,
 	CreateItineraryItemRequest,
 	UpdateItineraryItemRequest,
 	ItineraryItemResponse,
 	ItineraryItemsResponse,
+	ItineraryItemDetailResponse,
 	ItineraryReorderItem,
 	SharingToggleRequest,
 	ShareTokenResponse,
@@ -93,18 +94,18 @@ export const tripPlannerAPI = {
 		return fetchWithAuth(endpoint);
 	},
 
-	async getTrip(id: string): Promise<TripResponse> {
+	async getTrip(id: string): Promise<TripDetailResponse> {
 		return fetchWithAuth(`/trips/${id}`);
 	},
 
-	async createTrip(data: CreateTripRequest): Promise<TripResponse> {
+	async createTrip(data: CreateTripRequest): Promise<TripDetailResponse> {
 		return fetchWithAuth("/trips", {
 			method: "POST",
 			body: JSON.stringify(data),
 		});
 	},
 
-	async updateTrip(id: string, data: UpdateTripRequest): Promise<TripResponse> {
+	async updateTrip(id: string, data: UpdateTripRequest): Promise<TripDetailResponse> {
 		return fetchWithAuth(`/trips/${id}`, {
 			method: "PUT",
 			body: JSON.stringify(data),
@@ -132,7 +133,7 @@ export const tripPlannerAPI = {
 	async createItineraryItem(
 		tripId: string,
 		data: CreateItineraryItemRequest,
-	): Promise<ItineraryItemResponse> {
+	): Promise<ItineraryItemDetailResponse> {
 		return fetchWithAuth(`/trips/${tripId}/itinerary`, {
 			method: "POST",
 			body: JSON.stringify(data),
@@ -143,7 +144,7 @@ export const tripPlannerAPI = {
 		tripId: string,
 		itemId: string,
 		data: UpdateItineraryItemRequest,
-	): Promise<ItineraryItemResponse> {
+	): Promise<ItineraryItemDetailResponse> {
 		return fetchWithAuth(`/trips/${tripId}/itinerary/${itemId}`, {
 			method: "PUT",
 			body: JSON.stringify(data),

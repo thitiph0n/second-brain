@@ -118,11 +118,11 @@ export function ItineraryForm({ tripId, dayNumber, item, onSuccess, onCancel }: 
 					data: updateApiData
 				});
 			} else {
-				const newItem = await createItem.mutateAsync({
+				const response = await createItem.mutateAsync({
 					tripId,
 					data: apiData
 				});
-				resultItemId = newItem.id;
+				resultItemId = response.itineraryItem.id;
 			}
 			
 			// Upload pending images

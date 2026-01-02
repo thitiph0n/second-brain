@@ -13,7 +13,7 @@ export interface Trip {
 	itinerary?: ItineraryItem[];
 }
 
-export type TripStatus = "upcoming" | "ongoing" | "completed" | "cancelled";
+export type TripStatus = "upcoming" | "ongoing" | "past";
 
 export interface CreateTripData {
 	name: string;

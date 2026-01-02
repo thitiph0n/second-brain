@@ -1,5 +1,5 @@
 import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Calendar, MapPin, Users, Plus, Share2, Edit, Download, Check } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Plus, Share2, Edit, Download, Check, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,24 +9,27 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { OfflineIndicator } from "@/components/trip-planner/OfflineIndicator";
 import { ShareTripDialog } from "@/components/trip-planner/ShareTripDialog";
+import { useTrip, useItineraryItems, useToggleSharing } from "@/hooks/trip-planner";
+import { format, differenceInDays } from "date-fns";
 
 export const Route = createFileRoute("/trip-planner/$id")({
   component: TripDetailPage,
 });
 
 function TripDetailPage() {
-  return (
-      <TripDetailContent />
-  );
-}
-
-function TripDetailContent() {
-  const navigate = useNavigate();
   const params = useParams({ from: "/trip-planner/$id" });
   const tripId = params.id;
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isDownloading, setIsDownloading] = useState(false);
   const [isOfflineReady, setIsOfflineReady] = useState(false);
+
+  const { data: tripResponse, isLoading: isLoadingTrip, error: tripError } = useTrip(tripId!);
+  const { data: itineraryResponse, isLoading: isLoadingItinerary } = useItineraryItems(tripId!);
+  const toggleSharingMutation = useToggleSharing();
+
+  const trip = tripResponse?.trip;
+  const itineraryItems = itineraryResponse?.items || [];
 
   const handleBack = () => {
     navigate({ to: "/trip-planner", search: { status: "upcoming" } });
@@ -40,24 +43,17 @@ function TripDetailContent() {
     navigate({ to: `/trip-planner/${tripId}/edit` });
   };
 
-
-
   const handleSaveOffline = async () => {
     setIsDownloading(true);
     try {
-      // Prefetch trip details
       await queryClient.prefetchQuery({
-        queryKey: ["trip", tripId],
-        queryFn: () => fetch(`/api/v1/trip-planner/trips/${tripId}`).then(res => res.json())
-      });
-      
-      // Prefetch itinerary
-      await queryClient.prefetchQuery({
-        queryKey: ["trip-itinerary", tripId],
-        queryFn: () => fetch(`/api/v1/trip-planner/trips/${tripId}/itinerary`).then(res => res.json())
+        queryKey: ["trip-planner", "trip", tripId],
       });
 
-      // Simple explicit fetch to ensure SW caches it if prefetch didn't trigger fetch event in same way (it should)
+      await queryClient.prefetchQuery({
+        queryKey: ["trip-planner", "itinerary", tripId],
+      });
+
       await fetch(`/api/v1/trip-planner/trips/${tripId}`);
       await fetch(`/api/v1/trip-planner/trips/${tripId}/itinerary`);
 
@@ -72,29 +68,97 @@ function TripDetailContent() {
     }
   };
 
+  const handleShare = async (data: { isPublic: boolean }) => {
+    try {
+      await toggleSharingMutation.mutateAsync({
+        tripId: tripId!,
+        data: {
+          isPublic: data.isPublic,
+          generateShareToken: data.isPublic,
+        },
+      });
+      toast.success("Sharing settings updated!");
+    } catch (error) {
+      toast.error(
+        `Failed to update sharing: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+      throw error;
+    }
+  };
+
+  if (isLoadingTrip) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (tripError || !trip) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <h2 className="text-xl font-semibold mb-2">Trip not found</h2>
+          <p className="text-muted-foreground mb-4">
+            {tripError instanceof Error ? tripError.message : "The trip you're looking for doesn't exist."}
+          </p>
+          <Button onClick={handleBack}>Back to All Trips</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const startDate = new Date(trip.startDate);
+  const endDate = new Date(trip.endDate);
+  const totalDays = differenceInDays(endDate, startDate) + 1;
+
+  const statusVariant = {
+    upcoming: "secondary",
+    ongoing: "default",
+    past: "outline",
+  } as const;
+
+  const groupedItinerary = itineraryItems.reduce((acc, item) => {
+    if (!acc[item.dayNumber]) {
+      acc[item.dayNumber] = [];
+    }
+    acc[item.dayNumber].push(item);
+    return acc;
+  }, {} as Record<number, typeof itineraryItems>);
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Paris Adventure</h1>
+            <h1 className="text-2xl font-bold">{trip.name}</h1>
             <p className="text-muted-foreground">
               <Calendar className="h-4 w-4 inline mr-1" />
-              Jun 15 - Jun 22, 2025 • 7 days
+              {format(startDate, "MMM d, yyyy")} - {format(endDate, "MMM d, yyyy")} • {totalDays} days
             </p>
           </div>
-          <Badge variant="secondary">Upcoming</Badge>
+          <Badge variant={statusVariant[trip.status]}>{trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}</Badge>
         </div>
 
         <div className="flex items-center gap-2">
           <OfflineIndicator />
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleSaveOffline}
             disabled={isDownloading}
           >
@@ -107,26 +171,22 @@ function TripDetailContent() {
             )}
             {isDownloading ? "Saving..." : isOfflineReady ? "Saved" : "Save Offline"}
           </Button>
-          
+
           <ShareTripDialog
             trip={{
-              id: tripId!,
-              userId: "mock-user",
-              name: "Paris Adventure",
-              description: "A week in the City of Light",
-              status: "upcoming",
-              startDate: new Date("2025-06-15").toISOString(),
-              endDate: new Date("2025-06-22").toISOString(),
-              isPublic: false,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              itinerary: []
+              id: trip.id,
+              userId: "",
+              name: trip.name,
+              description: trip.description || "",
+              status: trip.status,
+              startDate: trip.startDate,
+              endDate: trip.endDate,
+              isPublic: trip.isPublic,
+              createdAt: trip.createdAt,
+              updatedAt: trip.updatedAt,
+              itinerary: [],
             }}
-            onShare={async (data) => {
-              // TODO: Implement actual API call
-              console.log("Updating share settings:", data);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }}
+            onShare={handleShare}
           >
             <Button variant="outline" size="sm">
               <Share2 className="h-4 w-4 mr-2" />
@@ -140,38 +200,36 @@ function TripDetailContent() {
         </div>
       </div>
 
-      {/* Trip Overview */}
+      {trip.description && (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground">{trip.description}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Destination</CardTitle>
+            <CardTitle className="text-sm">Duration</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Paris, France</span>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{totalDays} days</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Travelers</CardTitle>
+            <CardTitle className="text-sm">Itinerary Items</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">2 people</span>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{itineraryItems.length} items</span>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Budget</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="font-medium">$3,000</span>
           </CardContent>
         </Card>
 
@@ -180,12 +238,22 @@ function TripDetailContent() {
             <CardTitle className="text-sm">Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <Badge>Planning</Badge>
+            <Badge>{trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}</Badge>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Sharing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Badge variant={trip.isPublic ? "default" : "outline"}>
+              {trip.isPublic ? "Public" : "Private"}
+            </Badge>
           </CardContent>
         </Card>
       </div>
 
-      {/* Timeline */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Itinerary</h2>
@@ -195,87 +263,99 @@ function TripDetailContent() {
           </Button>
         </div>
 
-        <div className="space-y-4">
-          {/* Day 1 */}
-          <div className="relative">
-            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-border ml-4"></div>
-            <div className="flex gap-4">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium z-10">
-                1
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold">Day 1 - Arrival</h3>
-                <div className="mt-2 space-y-3">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Flight from JFK to CDG</CardTitle>
-                      <p className="text-sm text-muted-foreground">9:00 AM - 10:30 AM</p>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <Skeleton className="h-16 w-full rounded" />
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Check-in at Hotel</CardTitle>
-                      <p className="text-sm text-muted-foreground">11:00 AM</p>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <Skeleton className="h-16 w-full rounded" />
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </div>
+        {isLoadingItinerary ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
           </div>
+        ) : Object.keys(groupedItinerary).length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <p className="text-muted-foreground mb-4">No activities added yet</p>
+              <Button onClick={handleAddItinerary}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Activity
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {Array.from({ length: totalDays }).map((_, index) => {
+              const dayNumber = index + 1;
+              const items = groupedItinerary[dayNumber] || [];
+              const dayDate = new Date(startDate);
+              dayDate.setDate(dayDate.getDate() + index);
 
-          {/* Day 2 */}
-          <div className="relative">
-            <div className="flex gap-4">
-              <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-secondary-foreground text-sm font-medium z-10">
-                2
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold">Day 2 - City Exploration</h3>
-                <div className="mt-2 space-y-3">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Eiffel Tower Visit</CardTitle>
-                      <p className="text-sm text-muted-foreground">9:00 AM - 12:00 PM</p>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <Skeleton className="h-16 w-full rounded" />
-                    </CardContent>
-                  </Card>
+              return (
+                <div key={dayNumber} className="relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-border ml-4"></div>
+                  <div className="flex gap-4">
+                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-sm font-medium z-10 flex-shrink-0">
+                      {dayNumber}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold mb-3">
+                        Day {dayNumber} - {format(dayDate, "EEEE, MMM d")}
+                      </h3>
+
+                      {items.length === 0 ? (
+                        <Card>
+                          <CardContent className="p-6">
+                            <p className="text-sm text-muted-foreground">No activities scheduled</p>
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <div className="space-y-3">
+                          {items
+                            .sort((a, b) => a.sortOrder - b.sortOrder)
+                            .map((item) => (
+                              <Card key={item.id}>
+                                <CardHeader className="pb-2">
+                                  <div className="flex items-start justify-between">
+                                    <div>
+                                      <CardTitle className="text-base">{item.placeName}</CardTitle>
+                                      {item.time && (
+                                        <p className="text-sm text-muted-foreground">{item.time}</p>
+                                      )}
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        navigate({
+                                          to: `/trip-planner/${tripId}/itinerary/${item.id}/edit`,
+                                        })
+                                      }
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </CardHeader>
+                                {(item.locationAddress || item.notes) && (
+                                  <CardContent className="pt-0">
+                                    {item.locationAddress && (
+                                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                        <MapPin className="h-4 w-4" />
+                                        {item.locationAddress}
+                                      </div>
+                                    )}
+                                    {item.notes && (
+                                      <p className="text-sm text-muted-foreground">{item.notes}</p>
+                                    )}
+                                  </CardContent>
+                                )}
+                              </Card>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
-
-          {/* Add more days as needed */}
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index + 3} className="relative">
-              <div className="flex gap-4">
-                <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-secondary-foreground text-sm font-medium z-10">
-                  {index + 3}
-                </div>
-                <div className="flex-1">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base">Day {index + 3}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Button variant="outline" className="w-full">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Activities
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        )}
       </div>
     </div>
   );

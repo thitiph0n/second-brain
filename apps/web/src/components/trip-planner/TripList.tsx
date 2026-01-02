@@ -35,13 +35,12 @@ export function TripList({
 		{ value: "all", label: "All Trips" },
 		{ value: "upcoming", label: "Upcoming", icon: <Calendar className="h-4 w-4" /> },
 		{ value: "ongoing", label: "Current", icon: <Clock className="h-4 w-4" /> },
-		{ value: "completed", label: "Completed", icon: <MapPin className="h-4 w-4" /> },
+		{ value: "past", label: "Completed", icon: <MapPin className="h-4 w-4" /> },
 	];
 
 	const filterTrips = useCallback(
 		(trips: Trip[], searchTerm: string, statusFilter: TripStatus[] | "all") => {
 			return trips.filter((trip) => {
-				// Search filter
 				const matchesSearch = !searchTerm ||
 					trip.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 					trip.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -50,7 +49,6 @@ export function TripList({
 						item.description?.toLowerCase().includes(searchTerm.toLowerCase())
 					);
 
-				// Status filter
 				const matchesStatus = statusFilter === "all" ||
 					statusFilter.includes(getTripStatus(trip));
 
@@ -65,7 +63,7 @@ export function TripList({
 		const startDate = new Date(trip.startDate);
 		const endDate = new Date(trip.endDate);
 
-		if (endDate < now) return "completed";
+		if (endDate < now) return "past";
 		if (startDate > now) return "upcoming";
 		if (startDate <= now && endDate >= now) return "ongoing";
 		return "upcoming";
@@ -75,8 +73,7 @@ export function TripList({
 		const statusGroups: Record<TripStatus, Trip[]> = {
 			upcoming: [],
 			ongoing: [],
-			completed: [],
-			cancelled: [],
+			past: [],
 		};
 
 		trips.forEach((trip) => {
@@ -92,8 +89,7 @@ export function TripList({
 		const filtered: Record<TripStatus, Trip[]> = {
 			upcoming: [],
 			ongoing: [],
-			completed: [],
-			cancelled: [],
+			past: [],
 		};
 
 		Object.entries(statusGroups).forEach(([status, trips]) => {
@@ -115,7 +111,7 @@ export function TripList({
 			total: trips.length,
 			upcoming: tripsByStatus.upcoming.length,
 			ongoing: tripsByStatus.ongoing.length,
-			completed: tripsByStatus.completed.length,
+			past: tripsByStatus.past.length,
 		};
 	}, [tripsByStatus]);
 
@@ -195,7 +191,7 @@ export function TripList({
 							<div className="flex items-center justify-between">
 								<div>
 									<p className="text-sm text-muted-foreground">Completed</p>
-									<p className="text-2xl font-bold">{stats.completed}</p>
+									<p className="text-2xl font-bold">{stats.past}</p>
 								</div>
 								<MapPin className="h-5 w-5 text-gray-500" />
 							</div>

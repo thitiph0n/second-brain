@@ -130,7 +130,15 @@ export interface TripsListResponse {
 	total: number;
 }
 
+export interface TripDetailResponse {
+	trip: TripResponse;
+}
+
 export interface ItineraryItemsResponse {
 	items: ItineraryItemResponse[];
 	total: number;
+}
+
+export interface ItineraryItemDetailResponse {
+	itineraryItem: ItineraryItemResponse;
 }

@@ -36,12 +36,10 @@ export function useCreateTrip() {
 
 	return useMutation({
 		mutationFn: (data: CreateTripRequest) => tripPlannerAPI.createTrip(data),
-		onSuccess: (newTrip) => {
+		onSuccess: (response) => {
 			toast.success("Trip created successfully!");
-			// Invalidate trips list
 			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trips"] });
-			// Set the new trip in cache
-			queryClient.setQueryData(["trip-planner", "trip", newTrip.id], newTrip);
+			queryClient.setQueryData(["trip-planner", "trip", response.trip.id], response);
 		},
 		onError: (error) => {
 			toast.error(
@@ -57,11 +55,9 @@ export function useUpdateTrip() {
 	return useMutation({
 		mutationFn: ({ id, data }: { id: string; data: UpdateTripRequest }) =>
 			tripPlannerAPI.updateTrip(id, data),
-		onSuccess: (updatedTrip) => {
+		onSuccess: (response) => {
 			toast.success("Trip updated successfully!");
-			// Update the trip in cache
-			queryClient.setQueryData(["trip-planner", "trip", updatedTrip.id], updatedTrip);
-			// Invalidate trips list to reflect changes
+			queryClient.setQueryData(["trip-planner", "trip", response.trip.id], response);
 			queryClient.invalidateQueries({ queryKey: ["trip-planner", "trips"] });
 		},
 		onError: (error) => {

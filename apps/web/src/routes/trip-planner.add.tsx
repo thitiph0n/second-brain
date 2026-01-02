@@ -35,18 +35,15 @@ function AddTripPageContent() {
 
 	const onSubmit = async (data: CreateTripRequest) => {
 		try {
-			// Clean up the data - convert empty strings to null for optional fields
 			const cleanedData: CreateTripRequest = {
 				...data,
 				description: data.description?.trim() || null,
 				coverImage: data.coverImage?.trim() || null,
 			};
-			
-			const newTrip = await createTrip(cleanedData);
-			// Navigate to the newly created trip
-			navigate({ to: `/trip-planner/${newTrip.id}` });
+
+			const response = await createTrip(cleanedData);
+			navigate({ to: `/trip-planner/${response.trip.id}` });
 		} catch (error) {
-			// Error is already shown via toast in the hook
 			console.error("Failed to create trip:", error);
 		}
 	};
