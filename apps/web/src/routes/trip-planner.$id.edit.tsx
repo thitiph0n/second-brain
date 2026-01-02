@@ -109,7 +109,7 @@ function EditTripPageContent() {
 		return (
 			<div className="text-center py-8">
 				<p className="text-destructive">Failed to load trip. Please try again.</p>
-				<Button onClick={() => navigate({ to: "/trip-planner" })} className="mt-4">
+				<Button onClick={() => navigate({ to: "/trip-planner", search: { status: "upcoming" } })} className="mt-4">
 					Back to Trips
 				</Button>
 			</div>

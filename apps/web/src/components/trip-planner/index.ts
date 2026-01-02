@@ -1,7 +1,8 @@
 // Core Trip Components
 export { TripForm } from "./TripForm";
 export { TripCard, TripCardSkeleton } from "./TripCard";
-export { TripList, TripListSkeleton } from "./TripList";
+export { TripList } from "./TripList";
+export { TripListSkeleton } from "./TripList.skeleton";
 export { TripDetailPage } from "./TripDetailPage";
 
 // Itinerary Components
@@ -25,7 +26,6 @@ export type {
 	TripStatus,
 	CreateTripData,
 	UpdateTripData,
-	ItineraryItem,
 	ItineraryCategory,
 	Location,
 	ItineraryImage,

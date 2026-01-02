@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { NotesEditorProps } from "./types";
+import type { NotesEditorProps } from "./types";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -157,7 +157,6 @@ export function RichNotesEditor({
 		const end = textarea.selectionEnd;
 		const selectedText = value.substring(start, end);
 
-		let formattedText = selectedText;
 		let replacement = selectedText;
 
 		switch (format) {
@@ -186,6 +185,15 @@ export function RichNotesEditor({
 
 		const newValue = value.substring(0, start) + replacement + value.substring(end);
 		onChange(newValue);
+	};
+
+	const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+		if (maxLength) {
+			const newValue = e.target.value.slice(0, maxLength);
+			onChange(newValue);
+		} else {
+			onChange(e.target.value);
+		}
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -366,12 +374,12 @@ export function RichNotesEditor({
 						<span>Chars: {value.length}</span>
 					</div>
 					<div className="flex items-center gap-2">
-						{value.length >= maxLength * 0.9 && value.length < maxLength && (
+						{maxLength && value.length >= maxLength * 0.9 && value.length < maxLength && (
 							<Badge variant="secondary" className="text-xs">
 								Almost at character limit
 							</Badge>
 						)}
-						{value.length >= maxLength && (
+						{maxLength && value.length >= maxLength && (
 							<Badge variant="destructive" className="text-xs">
 								Character limit reached
 							</Badge>

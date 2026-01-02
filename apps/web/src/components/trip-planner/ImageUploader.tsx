@@ -1,16 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { X, Upload, Image as ImageIcon, Camera, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { ItineraryImage } from "./types";
-
-interface ImageUploadResult {
-	file: File;
-	url: string;
-	altText?: string;
-}
 
 interface ImageUploaderProps {
 	value?: ItineraryImage[];
@@ -165,12 +159,6 @@ export function ImageUploader({
 		const extension = fileName.toLowerCase().split(".").pop();
 		return ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"].includes(extension || "");
 	};
-
-	const previewFiles = Array.from(value).map((image, index) => {
-		const isLocal = image.url.startsWith("blob:");
-		const file = isLocal ? null : undefined;
-		return { image, file };
-	});
 
 	return (
 		<div className={cn("space-y-4", className)}>

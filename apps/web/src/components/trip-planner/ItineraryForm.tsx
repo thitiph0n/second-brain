@@ -8,13 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Plus, Clock, MapPin, Star } from "lucide-react";
+import { Loader2, Star } from "lucide-react";
 
 import { useCreateItineraryItem, useUpdateItineraryItem, useUploadItineraryImage } from "@/hooks/trip-planner";
+import type { CreateItineraryItemRequest, UpdateItineraryItemRequest } from "@/types/trip-planner";
 
 import { LocationPicker } from "./LocationPicker";
 import { ImageUploader } from "./ImageUploader";
-import type { ItineraryItem, CreateItineraryItemData, Location, ItineraryImage } from "./types";
+import type { ItineraryItem, ItineraryImage } from "./types";
 
 const itineraryItemSchema = z.object({
 	title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
@@ -41,8 +42,8 @@ const itineraryItemSchema = z.object({
 	]),
 	startTime: z.string().optional(),
 	endTime: z.string().optional(),
-	estimatedDuration: z.number().optional().min(1),
-	isRequired: z.boolean().default(false),
+	estimatedDuration: z.number().min(1).optional(),
+	isRequired: z.boolean(),
 });
 
 type ItineraryFormData = z.infer<typeof itineraryItemSchema>;
@@ -67,66 +68,60 @@ export function ItineraryForm({ tripId, dayNumber, item, onSuccess, onCancel }: 
 		defaultValues: {
 			title: item?.title || "",
 			description: item?.description || "",
-			location: item?.location || {
-				address: "",
-				city: "",
-				country: "",
-				coordinates: undefined,
-			},
+			location: item?.location || undefined,
 			notes: item?.notes || "",
 			category: item?.category || "other",
 			startTime: item?.startTime || "",
 			endTime: item?.endTime || "",
 			estimatedDuration: item?.estimatedDuration || 60,
-			isRequired: item?.isRequired || false,
+			isRequired: item?.isRequired ?? false,
 		},
 	});
 
-	const createItem = useCreateItineraryItem({
-		onSuccess: () => {
-			toast.success("Itinerary item added successfully!");
-			onSuccess?.();
-		},
-		onError: (error: Error) => {
-			toast.error(error.message || "Failed to add itinerary item");
-		},
-	});
+	const createItem = useCreateItineraryItem();
 
-	const updateItem = useUpdateItineraryItem({
-		onSuccess: () => {
-			toast.success("Itinerary item updated successfully!");
-			onSuccess?.();
-		},
-		onError: (error: Error) => {
-			toast.error(error.message || "Failed to update itinerary item");
-		},
-	});
+	const updateItem = useUpdateItineraryItem();
 
 	const handleSubmit = async (data: ItineraryFormData) => {
 		setIsSubmitting(true);
 
 		try {
-			const submissionData: CreateItineraryItemData = {
-				tripId,
+			// Map component data structure to API request structure
+			const apiData: CreateItineraryItemRequest = {
+				placeName: data.title,
 				dayNumber,
-				title: data.title,
-				description: data.description,
-				location: data.location as Location,
-				notes: data.notes,
-				category: data.category,
-				startTime: data.startTime,
-				endTime: data.endTime,
-				estimatedDuration: data.estimatedDuration,
-				isRequired: data.isRequired,
-				order: item?.order || 0,
+				time: data.startTime || null,
+				locationAddress: data.location?.address || null,
+				locationLat: data.location?.coordinates?.latitude,
+				locationLng: data.location?.coordinates?.longitude,
+				notes: data.notes || null,
+				sortOrder: item?.order || 0,
+			};
+
+			const updateApiData: UpdateItineraryItemRequest = {
+				placeName: data.title,
+				time: data.startTime || null,
+				locationAddress: data.location?.address || null,
+				locationLat: data.location?.coordinates?.latitude,
+				locationLng: data.location?.coordinates?.longitude,
+				notes: data.notes || null,
+				sortOrder: item?.order,
+				dayNumber,
 			};
 
 			let resultItemId = item?.id;
 
 			if (item) {
-				await updateItem.mutateAsync({ id: item.id, data: submissionData });
+				await updateItem.mutateAsync({
+					tripId,
+					itemId: item.id,
+					data: updateApiData
+				});
 			} else {
-				const newItem = await createItem.mutateAsync(submissionData);
+				const newItem = await createItem.mutateAsync({
+					tripId,
+					data: apiData
+				});
 				resultItemId = newItem.id;
 			}
 			
@@ -134,7 +129,7 @@ export function ItineraryForm({ tripId, dayNumber, item, onSuccess, onCancel }: 
 			if (resultItemId) {
 				const pendingImages = images.filter(img => img.file);
 				if (pendingImages.length > 0) {
-					await Promise.all(pendingImages.map(img => 
+					await Promise.all(pendingImages.map(img =>
 						uploadImage.mutateAsync({
 							tripId,
 							itemId: resultItemId!,
@@ -143,6 +138,8 @@ export function ItineraryForm({ tripId, dayNumber, item, onSuccess, onCancel }: 
 						})
 					));
 				}
+				toast.success(item ? "Itinerary item updated successfully!" : "Itinerary item added successfully!");
+				onSuccess?.();
 			}
 		} catch (error) {
 			// Error is handled by the mutation hook

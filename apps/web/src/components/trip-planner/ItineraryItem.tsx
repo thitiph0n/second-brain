@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { format, isBefore, isAfter } from "date-fns";
-import { MapPin, Clock, Calendar, Star, Edit, Trash2, CheckCircle, Circle, Image as ImageIcon, MoreVertical } from "lucide-react";
+import { format } from "date-fns";
+import { MapPin, Clock, Edit, Trash2, CheckCircle, Circle, Image as ImageIcon, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

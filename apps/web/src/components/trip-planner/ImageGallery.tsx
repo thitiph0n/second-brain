@@ -22,13 +22,13 @@ interface ImageLightboxProps {
 	initialIndex?: number;
 	onClose?: () => void;
 	onRemove?: (imageId: string) => void;
+	showControls?: boolean;
 }
 
-function ImageLightbox({ images, initialIndex = 0, onClose, onRemove }: ImageLightboxProps) {
+function ImageLightbox({ images, initialIndex = 0, onClose, onRemove, showControls = true }: ImageLightboxProps) {
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const [zoom, setZoom] = useState(1);
 	const [rotation, setRotation] = useState(0);
-	const [showControls, setShowControls] = useState(true);
 	const imgRef = useRef<HTMLImageElement>(null);
 
 	const currentImage = images[currentIndex];
@@ -302,7 +302,6 @@ export function ImageGallery({
 	variant = "grid",
 	maxColumns = 5,
 	showControls = true,
-	showAltText = true,
 }: ImageGalleryProps) {
 	const [lightboxOpen, setLightboxOpen] = useState(false);
 	const [lightboxIndex, setLightboxIndex] = useState(0);
