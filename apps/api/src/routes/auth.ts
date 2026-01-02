@@ -25,7 +25,7 @@ const authRateLimit = createRateLimiter(10, 60000); // 10 requests per minute
 // GitHub OAuth login initiation
 auth.get("/github/login", authRateLimit, async (c) => {
 	try {
-		const redirectUri = `${c.req.url.split("/auth")[0]}/auth/github/callback`;
+		const redirectUri = `${c.req.url.split("/api/v1")[0]}/api/v1/auth/github/callback`;
 
 		const oauthService = new GitHubOAuthService(
 			c.env.GITHUB_CLIENT_ID,
@@ -65,7 +65,7 @@ auth.get("/github/callback", authRateLimit, async (c) => {
 			);
 		}
 
-		const redirectUri = `${c.req.url.split("/auth")[0]}/auth/github/callback`;
+		const redirectUri = `${c.req.url.split("/api/v1")[0]}/api/v1/auth/github/callback`;
 
 		const oauthService = new GitHubOAuthService(
 			c.env.GITHUB_CLIENT_ID,

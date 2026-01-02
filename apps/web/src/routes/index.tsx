@@ -3,6 +3,7 @@ import { ArrowRight, BookOpen, Brain, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { initiateGitHubLogin } from "../auth/actions";
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
@@ -33,7 +34,7 @@ function LandingPage() {
 								size="lg"
 								className="group"
 								onClick={() => {
-									window.location.href = "/api/v1/auth/github/login";
+									initiateGitHubLogin();
 								}}
 							>
 								Get Started
