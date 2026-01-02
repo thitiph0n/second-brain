@@ -14,9 +14,6 @@ function AuthSuccess() {
 
 	useEffect(() => {
 		const handleAuthSuccess = () => {
-			// Clear any loading flags
-			sessionStorage.removeItem("auth_loading");
-
 			const urlParams = new URLSearchParams(window.location.search);
 			const token = urlParams.get("token");
 			const refreshToken = urlParams.get("refresh_token");
@@ -26,7 +23,6 @@ function AuthSuccess() {
 				try {
 					const user = JSON.parse(userParam);
 
-					// Use the login method from auth store
 					login(
 						{
 							id: user.id,
@@ -38,10 +34,8 @@ function AuthSuccess() {
 						refreshToken,
 					);
 
-					// Clear URL parameters
 					window.history.replaceState({}, "", window.location.pathname);
 
-					// Redirect to intended destination or dashboard
 					const redirectTo = sessionStorage.getItem("auth_redirect") || "/dashboard";
 					sessionStorage.removeItem("auth_redirect");
 
@@ -51,7 +45,6 @@ function AuthSuccess() {
 					window.location.href = "/auth/error?error=Invalid+user+data";
 				}
 			} else {
-				console.error("Missing authentication parameters");
 				window.location.href = "/auth/error?error=Missing+authentication+parameters";
 			}
 		};

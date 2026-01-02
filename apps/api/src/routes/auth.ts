@@ -35,7 +35,6 @@ auth.get("/github/login", authRateLimit, async (c) => {
 
 		const { url, state } = oauthService.generateAuthUrl();
 
-		// Store OAuth state in KV
 		await oauthService.storeOAuthState(c.env.CACHE, state, c.env.FRONTEND_URL);
 
 		return c.json({ url, state });
@@ -54,6 +53,7 @@ auth.get("/github/callback", authRateLimit, async (c) => {
 
 		if (error) {
 			const errorDescription = c.req.query("error_description") || "OAuth authorization failed";
+			console.error("GitHub OAuth error:", error, errorDescription);
 			return c.redirect(
 				`${c.env.FRONTEND_URL}/auth/error?error=${encodeURIComponent(errorDescription)}`,
 			);
@@ -107,7 +107,8 @@ auth.get("/github/callback", authRateLimit, async (c) => {
 		return c.redirect(`${c.env.FRONTEND_URL}/auth/success?${params.toString()}`);
 	} catch (error) {
 		console.error("OAuth callback error:", error);
-		return c.redirect(`${c.env.FRONTEND_URL}/auth/error?error=Authentication+failed`);
+		const errorMessage = error instanceof Error ? error.message : "Authentication+failed";
+		return c.redirect(`${c.env.FRONTEND_URL}/auth/error?error=${encodeURIComponent(errorMessage)}`);
 	}
 });
 

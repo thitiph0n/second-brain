@@ -76,7 +76,10 @@ app.notFound((c) => {
 		);
 	}
 
-	return c.env.ASSETS.fetch(new Request("http://localhost/index.html"));
+	// For all other routes, serve the SPA with the original URL preserved
+	// This allows client-side routing to work with query parameters
+	const originalUrl = c.req.url;
+	return c.env.ASSETS.fetch(new Request(originalUrl, c.req.raw));
 });
 
 app.onError((error, c) => {
