@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useMeals, useCreateMeal, useUpdateMeal, useCreateFavorite } from "@/hooks/meal-tracker";
@@ -10,9 +10,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Save, Star, Sparkles, Upload, X, Camera, Calendar as CalendarIcon } from "lucide-react";
+import {
+	Save,
+	Star,
+	Sparkles,
+	X,
+	Camera,
+	Calendar as CalendarIcon,
+	ChevronDown,
+	ChevronUp,
+	Wand2,
+	ImagePlus,
+} from "lucide-react";
 import { Loader2 } from "lucide-react";
-import type { MealType, MealFormData, FavoriteFood } from "@/types/meal-tracker";
+import type { MealType, MealFormData, FavoriteFood, ConfidenceLevel } from "@/types/meal-tracker";
+import { MEAL_TYPES } from "@/types/meal-tracker";
 import { toast } from "sonner";
 import { mealTrackerAPI } from "@/api/meal-tracker";
 import { cn } from "@/lib/utils";
@@ -20,11 +32,19 @@ import libheif from "libheif-js";
 
 interface MealFormProps {
 	mealType?: MealType;
-	date?: string; // Selected date from URL parameter
+	date?: string;
 	editingMealId?: string | null;
 	onClose: () => void;
-	isStandalone?: boolean; // New prop to indicate standalone page usage
+	isStandalone?: boolean;
 }
+
+// Nutrition fields configuration (moved outside component to avoid recreation on each render)
+const NUTRITION_FIELDS = [
+	{ id: "calories", label: "Calories (kcal) *", field: "calories" as const, step: "1", required: true },
+	{ id: "protein", label: "Protein (g)", field: "proteinG" as const, step: "0.1", required: false },
+	{ id: "carbs", label: "Carbs (g)", field: "carbsG" as const, step: "0.1", required: false },
+	{ id: "fat", label: "Fat (g)", field: "fatG" as const, step: "0.1", required: false },
+] as const;
 
 export function MealForm({
 	mealType,
@@ -33,7 +53,6 @@ export function MealForm({
 	onClose,
 	isStandalone = false,
 }: MealFormProps) {
-	// Use provided mealType or determine based on time if not specified
 	const resolvedMealType = mealType || getMealTypeByTime();
 	const queryClient = useQueryClient();
 	const { data: mealsData } = useMeals();
@@ -44,7 +63,6 @@ export function MealForm({
 	const editingMeal =
 		editingMealId && mealsData?.meals ? mealsData.meals.find((m) => m.id === editingMealId) : null;
 
-	// Get local date in YYYY-MM-DD format
 	const getLocalDateString = (date: Date = new Date()) => {
 		const offset = date.getTimezoneOffset() * 60000;
 		const localDate = new Date(date.getTime() - offset);
@@ -66,22 +84,45 @@ export function MealForm({
 			: date || getLocalDateString(),
 	});
 
-	const [isEstimating, setIsEstimating] = useState(false);
-	const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+	// AI input state
+	const [aiText, setAiText] = useState("");
 	const [selectedImage, setSelectedImage] = useState<File | null>(null);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
+	const [isParsing, setIsParsing] = useState(false);
+
+	// Consolidated AI result state
+	const [aiState, setAiState] = useState<{
+		confidence: ConfidenceLevel | null;
+		reasoning: string | null;
+		showDetails: boolean;
+		hasResult: boolean;
+	}>({
+		confidence: null,
+		reasoning: null,
+		showDetails: !!editingMealId,
+		hasResult: false,
+	});
+
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const fileReaderRef = useRef<FileReader | null>(null);
+
+	// Cleanup FileReader on unmount to prevent memory leaks
+	useEffect(() => {
+		return () => {
+			if (fileReaderRef.current) {
+				fileReaderRef.current.abort();
+			}
+		};
+	}, []);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
 		try {
-			// Convert date to ISO datetime format
 			const now = new Date();
 			const selectedDate = formData.loggedAt || now.toISOString().split("T")[0];
 			const todayDate = now.toISOString().split("T")[0];
 
-			// If selected date is today, use current time. Otherwise use noon.
 			let loggedAtISO: string;
 			if (selectedDate === todayDate) {
 				loggedAtISO = now.toISOString();
@@ -89,10 +130,7 @@ export function MealForm({
 				loggedAtISO = new Date(selectedDate + "T12:00:00.000Z").toISOString();
 			}
 
-			const submissionData = {
-				...formData,
-				loggedAt: loggedAtISO,
-			};
+			const submissionData = { ...formData, loggedAt: loggedAtISO };
 
 			if (editingMealId) {
 				await updateMeal.mutateAsync({ id: editingMealId, data: submissionData });
@@ -102,7 +140,7 @@ export function MealForm({
 				toast.success("Meal logged successfully!");
 			}
 			onClose();
-		} catch (error) {
+		} catch (_error) {
 			// Error is handled by the mutation hook
 		}
 	};
@@ -134,12 +172,10 @@ export function MealForm({
 				updatedAt: new Date().toISOString(),
 			};
 
-			// Optimistically add to favorites
 			mealTrackerOptimistic.optimisticAddFavorite(queryClient, newFavorite);
-
 			await createFavorite.mutateAsync(favoriteData);
 			toast.success("Added to favorites!");
-		} catch (error) {
+		} catch (_error) {
 			// Error is handled by the mutation hook
 		}
 	};
@@ -147,53 +183,10 @@ export function MealForm({
 	const isSubmitting = createMeal.isPending || updateMeal.isPending;
 
 	const handleChange = (field: keyof MealFormData, value: string | number) => {
-		setFormData((prev) => ({
-			...prev,
-			[field]: value,
-		}));
+		setFormData((prev) => ({ ...prev, [field]: value }));
 	};
 
-	const handleEstimateMacros = async () => {
-		if (!formData.foodName) {
-			toast.error("Please enter a food name first");
-			return;
-		}
-
-		setIsEstimating(true);
-		try {
-			const response = await mealTrackerAPI.estimateMacros({
-				foodName: formData.foodName,
-				servingSize: formData.servingSize ? String(formData.servingSize) : undefined,
-				servingUnit: formData.servingUnit ? String(formData.servingUnit) : undefined,
-				notes: formData.notes,
-			});
-
-			const { estimation } = response;
-
-			setFormData((prev) => ({
-				...prev,
-				calories: estimation.calories,
-				proteinG: estimation.proteinG,
-				carbsG: estimation.carbsG,
-				fatG: estimation.fatG,
-			}));
-
-			const confidenceEmoji =
-				estimation.confidence === "high" ? "✓" : estimation.confidence === "medium" ? "~" : "?";
-			toast.success(
-				`Macros estimated with ${estimation.confidence} confidence ${confidenceEmoji}`,
-				{
-					description: estimation.reasoning,
-				},
-			);
-		} catch (error) {
-			console.error("Failed to estimate macros:", error);
-			toast.error("Failed to estimate macros. Please try again or enter manually.");
-		} finally {
-			setIsEstimating(false);
-		}
-	};
-
+	// ─── Image handling ──────────────────────────────────────────────────────────
 	const compressImage = async (file: File): Promise<File> => {
 		return new Promise((resolve, reject) => {
 			const reader = new FileReader();
@@ -203,39 +196,23 @@ export function MealForm({
 				img.src = event.target?.result as string;
 				img.onload = () => {
 					const canvas = document.createElement("canvas");
-					let width = img.width;
-					let height = img.height;
-
-					const MAX_WIDTH = 1024;
-					const MAX_HEIGHT = 1024;
-
+					let { width, height } = img;
+					const MAX = 1024;
 					if (width > height) {
-						if (width > MAX_WIDTH) {
-							height *= MAX_WIDTH / width;
-							width = MAX_WIDTH;
-						}
+						if (width > MAX) { height *= MAX / width; width = MAX; }
 					} else {
-						if (height > MAX_HEIGHT) {
-							width *= MAX_HEIGHT / height;
-							height = MAX_HEIGHT;
-						}
+						if (height > MAX) { width *= MAX / height; height = MAX; }
 					}
-
 					canvas.width = width;
 					canvas.height = height;
 					const ctx = canvas.getContext("2d");
 					ctx?.drawImage(img, 0, 0, width, height);
-
 					canvas.toBlob(
 						(blob) => {
 							if (blob) {
-								const compressedFile = new File([blob], file.name, {
-									type: "image/jpeg",
-									lastModified: Date.now(),
-								});
-								resolve(compressedFile);
+								resolve(new File([blob], file.name, { type: "image/jpeg", lastModified: Date.now() }));
 							} else {
-								reject(new Error("Canvas to Blob conversion failed"));
+								reject(new Error("Compression failed"));
 							}
 						},
 						"image/jpeg",
@@ -264,8 +241,7 @@ export function MealForm({
 			return;
 		}
 
-		const maxSize = 10 * 1024 * 1024;
-		if (file.size > maxSize) {
+		if (file.size > 10 * 1024 * 1024) {
 			toast.error("Image too large. Please use an image smaller than 10MB.");
 			return;
 		}
@@ -274,69 +250,39 @@ export function MealForm({
 			let processedFile = file;
 
 			if (isHeic) {
-				toast.info("Converting HEIC to JPEG...", { duration: 2000 });
-
+				toast.info("Converting HEIC to JPEG…", { duration: 2000 });
 				try {
 					const arrayBuffer = await file.arrayBuffer();
 					const decoder = new libheif.HeifDecoder();
 					const data = decoder.decode(arrayBuffer);
-
-					if (!data || data.length === 0) {
-						throw new Error("No image data decoded");
-					}
-
+					if (!data || data.length === 0) throw new Error("No image data decoded");
 					const image = data[0];
 					const width = image.get_width();
 					const height = image.get_height();
-
 					const canvas = document.createElement("canvas");
 					canvas.width = width;
 					canvas.height = height;
 					const ctx = canvas.getContext("2d");
-
-					if (!ctx) {
-						throw new Error("Failed to get canvas context");
-					}
-
+					if (!ctx) throw new Error("Failed to get canvas context");
 					const imageData = ctx.createImageData(width, height);
-
 					await new Promise<void>((resolve, reject) => {
 						image.display(imageData, (displayData: ImageData | null) => {
-							if (!displayData) {
-								reject(new Error("Failed to decode image data"));
-								return;
-							}
+							if (!displayData) { reject(new Error("Failed to decode")); return; }
 							resolve();
 						});
 					});
-
 					ctx.putImageData(imageData, 0, 0);
-
 					const blob = await new Promise<Blob>((resolve, reject) => {
-						canvas.toBlob(
-							(blob) => {
-								if (blob) {
-									resolve(blob);
-								} else {
-									reject(new Error("Canvas to Blob conversion failed"));
-								}
-							},
-							"image/jpeg",
-							0.9,
-						);
+						canvas.toBlob((b) => b ? resolve(b) : reject(new Error("Blob failed")), "image/jpeg", 0.9);
 					});
-
 					processedFile = new File([blob], file.name.replace(/\.heic$/i, ".jpg"), {
 						type: "image/jpeg",
 						lastModified: Date.now(),
 					});
-
-					toast.success("HEIC converted to JPEG!");
-				} catch (heicError) {
-					console.error("HEIC conversion failed:", heicError);
+					toast.success("HEIC converted!");
+				} catch {
 					toast.error("Cannot convert this HEIC format", {
-						description:
-							"Please: 1) Take a new photo in JPEG format, or 2) Use Settings > Camera > Formats > Most Compatible",
+						description: "Use Settings > Camera > Formats > Most Compatible",
 						duration: 8000,
 					});
 					return;
@@ -345,366 +291,401 @@ export function MealForm({
 
 			const compressed = await compressImage(processedFile);
 			setSelectedImage(compressed);
-
 			const reader = new FileReader();
-			reader.onload = () => {
-				setImagePreview(reader.result as string);
-			};
+			fileReaderRef.current = reader;
+			reader.onload = () => setImagePreview(reader.result as string);
 			reader.readAsDataURL(compressed);
-
-			if (!isHeic) {
-				toast.success('Image loaded! Click "Analyze Image" to detect food.');
-			}
-		} catch (error) {
-			console.error("Failed to process image:", error);
-			toast.error("Failed to process image. Try a different photo or format.");
-		}
-	};
-
-	const handleAnalyzeImage = async () => {
-		if (!selectedImage) {
-			toast.error("Please select an image first");
-			return;
-		}
-
-		setIsAnalyzingImage(true);
-		try {
-			const response = await mealTrackerAPI.analyzeImage(selectedImage);
-
-			setFormData((prev) => ({
-				...prev,
-				foodName: response.foodName,
-				calories: response.calories,
-				proteinG: response.proteinG,
-				carbsG: response.carbsG,
-				fatG: response.fatG,
-				servingSize: response.servingSize || prev.servingSize,
-				servingUnit: response.servingUnit || prev.servingUnit,
-			}));
-
-			const confidenceEmoji =
-				response.confidence === "high" ? "✓" : response.confidence === "medium" ? "~" : "?";
-			toast.success(`Food detected with ${response.confidence} confidence ${confidenceEmoji}`, {
-				description: response.description,
-			});
-		} catch (error) {
-			console.error("Failed to analyze image:", error);
-			const errorMessage =
-				error instanceof Error
-					? error.message
-					: "Failed to analyze image. Please try again or enter manually.";
-			toast.error("Image Analysis Failed", {
-				description: errorMessage,
-			});
-		} finally {
-			setIsAnalyzingImage(false);
+		} catch {
+			toast.error("Failed to process image.");
 		}
 	};
 
 	const handleClearImage = () => {
 		setSelectedImage(null);
 		setImagePreview(null);
-		if (fileInputRef.current) {
-			fileInputRef.current.value = "";
+		if (fileInputRef.current) fileInputRef.current.value = "";
+	};
+
+	// ─── AI Parse ────────────────────────────────────────────────────────────────
+	const handleParseWithAI = async () => {
+		if (!aiText.trim()) {
+			toast.error("Please describe your meal first");
+			return;
+		}
+
+		setIsParsing(true);
+		try {
+			const result = await mealTrackerAPI.parseMeal(aiText.trim(), selectedImage ?? undefined);
+
+			setFormData((prev) => ({
+				...prev,
+				foodName: result.foodName,
+				calories: result.calories,
+				proteinG: result.proteinG,
+				carbsG: result.carbsG,
+				fatG: result.fatG,
+				servingSize: result.servingSize || prev.servingSize,
+				servingUnit: result.servingUnit || prev.servingUnit,
+				mealType: result.mealType || prev.mealType,
+				notes: result.notes || prev.notes,
+			}));
+
+			setAiState({
+				confidence: result.confidence,
+				reasoning: result.reasoning ?? null,
+				showDetails: true,
+				hasResult: true,
+			});
+
+			const emoji = result.confidence === "high" ? "✓" : result.confidence === "medium" ? "~" : "?";
+			toast.success(`Meal parsed with ${result.confidence} confidence ${emoji}`, {
+				description: result.reasoning,
+			});
+		} catch {
+			toast.error("Failed to parse meal. Please try again or fill in the details manually.");
+		} finally {
+			setIsParsing(false);
 		}
 	};
 
+	// ─── Render ───────────────────────────────────────────────────────────────────
 	return (
-		<form onSubmit={handleSubmit} className="space-y-6 w-full max-w-full overflow-x-hidden">
-			{/* Meal Type */}
-			<div className="space-y-2">
-				<Label>Meal Type</Label>
-				<div className="flex flex-wrap gap-2">
-					{[
-						{ value: "breakfast", label: "Breakfast", icon: "🌅" },
-						{ value: "lunch", label: "Lunch", icon: "☀️" },
-						{ value: "dinner", label: "Dinner", icon: "🌙" },
-						{ value: "snack", label: "Snack", icon: "🍎" },
-					].map(({ value, label, icon }) => (
-						<button
-							key={value}
-							type="button"
-							onClick={() => handleChange("mealType", value as MealType)}
-							className={`flex-1 min-w-[100px] p-3 rounded-lg border text-sm font-medium transition-colors ${
-								formData.mealType === value
-									? "border-primary bg-primary/5"
-									: "border-input hover:bg-accent"
-							}`}
-						>
-							<div className="text-xl mb-1">{icon}</div>
-							<div className="truncate">{label}</div>
-						</button>
-					))}
-				</div>
-			</div>
+		<form onSubmit={handleSubmit} className="space-y-5 w-full max-w-full overflow-x-hidden">
 
-			{/* Date */}
-			<div className="space-y-2">
-				<Label>Date</Label>
-				<Popover>
-					<PopoverTrigger asChild>
-						<Button
-							variant="outline"
-							className={cn(
-								"w-full justify-start text-left font-normal",
-								!formData.loggedAt && "text-muted-foreground",
-							)}
-						>
-							<CalendarIcon className="mr-2 h-4 w-4" />
-							{formData.loggedAt ? (
-								format(new Date(`${formData.loggedAt}T00:00:00`), "PPP")
-							) : (
-								<span>Pick a date</span>
-							)}
-						</Button>
-					</PopoverTrigger>
-					<PopoverContent className="w-auto p-0" align="start">
-						<Calendar
-							mode="single"
-							selected={formData.loggedAt ? new Date(`${formData.loggedAt}T00:00:00`) : undefined}
-							onSelect={(date) => {
-								if (date) {
-									const dateString = getLocalDateString(date);
-									handleChange("loggedAt", dateString);
+			{/* ── AI Input Panel ── */}
+			{!editingMealId && (
+				<div className="rounded-2xl border border-border/60 bg-gradient-to-br from-accent/40 to-background overflow-hidden">
+					{/* Header */}
+					<div className="px-4 pt-4 pb-3 flex items-center gap-2">
+						<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+							<Wand2 className="h-4 w-4 text-primary" />
+						</div>
+						<div>
+							<p className="text-sm font-semibold leading-none">Describe your meal</p>
+							<p className="text-xs text-muted-foreground mt-0.5">Type naturally or attach a photo</p>
+						</div>
+					</div>
+
+					{/* Textarea */}
+					<div className="px-4">
+						<Textarea
+							id="ai-meal-input"
+							value={aiText}
+							onChange={(e) => setAiText(e.target.value)}
+							placeholder={"e.g. \"I had a bowl of khao pad moo with a fried egg on top around lunch\" or just \"grilled salmon 200g\""}
+							rows={3}
+							className="resize-none border-border/50 bg-background/70 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-primary/40"
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+									e.preventDefault();
+									handleParseWithAI();
 								}
 							}}
-							disabled={(date) => date > new Date() || date < new Date("2020-01-01")}
-							initialFocus
 						/>
-					</PopoverContent>
-				</Popover>
-			</div>
+					</div>
 
-			{/* Image Upload Section */}
-			<div className="space-y-4 p-3 border rounded-lg bg-accent/30 overflow-hidden">
-				<Label className="text-sm font-medium flex items-center gap-2">
-					<Camera className="h-4 w-4" />
-					Analyze from Photo
-				</Label>
+					{/* Image strip */}
+					<div className="px-4 pt-2 pb-3">
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+							onChange={handleImageSelect}
+							className="hidden"
+						/>
 
-				<input
-					ref={fileInputRef}
-					type="file"
-					accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-					onChange={handleImageSelect}
-					className="hidden"
-				/>
-
-				{!imagePreview ? (
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => fileInputRef.current?.click()}
-						className="w-full"
-						size="sm"
-					>
-						<Upload className="mr-2 h-4 w-4" />
-						Upload Food Image
-					</Button>
-				) : (
-					<div className="space-y-2">
-						<div className="relative rounded-lg overflow-hidden bg-muted max-w-full">
-							<img
-								src={imagePreview}
-								alt="Food preview"
-								className="w-full h-32 sm:h-48 object-cover"
-							/>
-							<Button
+						{imagePreview ? (
+							<div className="relative inline-block">
+								<img
+									src={imagePreview}
+									alt="Food preview"
+									className="h-20 w-20 rounded-xl object-cover border border-border/50"
+								/>
+								<button
+									type="button"
+									onClick={handleClearImage}
+									className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"
+								>
+									<X className="h-3 w-3" />
+								</button>
+							</div>
+						) : (
+							<button
 								type="button"
-								variant="destructive"
-								size="icon"
-								onClick={handleClearImage}
-								className="absolute top-2 right-2 h-8 w-8"
+								onClick={() => fileInputRef.current?.click()}
+								className="flex items-center gap-2 rounded-xl border border-dashed border-border/60 px-3 py-2 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
 							>
-								<X className="h-3 w-3" />
-							</Button>
-						</div>
+								<ImagePlus className="h-4 w-4" />
+								Attach photo (optional)
+							</button>
+						)}
+					</div>
 
+					{/* Parse button */}
+					<div className="border-t border-border/40 px-4 py-3 flex items-center justify-between gap-3 bg-background/30">
+						<span className="text-xs text-muted-foreground hidden sm:block">
+							⌘ Enter to analyse
+						</span>
 						<Button
 							type="button"
-							variant="default"
-							onClick={handleAnalyzeImage}
-							disabled={isAnalyzingImage}
-							className="w-full"
+							onClick={handleParseWithAI}
+							disabled={isParsing || !aiText.trim()}
+							className="ml-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-5"
 							size="sm"
 						>
-							{isAnalyzingImage ? (
+							{isParsing ? (
 								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Analyzing...
+									<Loader2 className="h-4 w-4 animate-spin" />
+									Analysing…
 								</>
 							) : (
 								<>
-									<Sparkles className="mr-2 h-4 w-4" />
-									Analyze Image
+									<Sparkles className="h-4 w-4" />
+									Analyse with AI
 								</>
 							)}
 						</Button>
 					</div>
-				)}
-
-				<p className="text-xs text-muted-foreground">
-					Upload a photo to auto-detect nutrition info.
-				</p>
-			</div>
-
-			{/* Food Name */}
-			<div className="space-y-2 min-w-0 mt-6">
-				<Label htmlFor="foodName">Food Name *</Label>
-				<Input
-					id="foodName"
-					value={formData.foodName}
-					onChange={(e) => handleChange("foodName", e.target.value)}
-					placeholder="e.g., Grilled chicken breast"
-					required
-					className="w-full"
-				/>
-			</div>
-
-			{/* Serving Size */}
-			<div className="space-y-4">
-				<div className="space-y-2">
-					<Label htmlFor="servingSize">Serving Size</Label>
-					<Input
-						id="servingSize"
-						value={formData.servingSize || ""}
-						onChange={(e) => handleChange("servingSize", e.target.value)}
-						placeholder="e.g., 150"
-						inputMode="numeric"
-						pattern="[0-9]*"
-						className="w-full"
-					/>
 				</div>
-				<div className="space-y-2">
-					<Label htmlFor="servingUnit">Unit</Label>
-					<Input
-						id="servingUnit"
-						value={formData.servingUnit || ""}
-						onChange={(e) => handleChange("servingUnit", e.target.value)}
-						placeholder="e.g., g, ml, piece"
-						className="w-full"
-					/>
-				</div>
-			</div>
+			)}
 
-			{/* AI Estimation Button */}
-			<div className="flex justify-center">
-				<Button
-					type="button"
-					variant="outline"
-					onClick={handleEstimateMacros}
-					disabled={isEstimating || !formData.foodName}
-					className="w-full sm:w-auto"
-				>
-					{isEstimating ? (
-						<>
-							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-							Estimating...
-						</>
-					) : (
-						<>
-							<Sparkles className="mr-2 h-4 w-4" />
-							Estimate Macros with AI
-						</>
+			{/* ── AI Confidence badge ── */}
+			{aiState.hasResult && aiState.confidence && (
+				<div
+					className={cn(
+						"flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs",
+						aiState.confidence === "high"
+							? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+							: aiState.confidence === "medium"
+								? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+								: "bg-rose-500/10 text-rose-700 dark:text-rose-400",
 					)}
-				</Button>
-			</div>
-
-			{/* Nutrition */}
-			<div className="space-y-4">
-				<h3 className="font-semibold">Nutrition Information</h3>
-				<div className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor="calories">Calories * (kcal)</Label>
-						<Input
-							id="calories"
-							type="number"
-							min="0"
-							step="1"
-							value={formData.calories}
-							onChange={(e) => handleChange("calories", parseFloat(e.target.value) || 0)}
-							inputMode="numeric"
-							pattern="[0-9]*"
-							required
-							className="w-full"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="protein">Protein (g)</Label>
-						<Input
-							id="protein"
-							type="number"
-							min="0"
-							step="0.1"
-							value={formData.proteinG || ""}
-							onChange={(e) => handleChange("proteinG", parseFloat(e.target.value) || 0)}
-							inputMode="decimal"
-							pattern="[0-9]*\.?[0-9]*"
-							className="w-full"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="carbs">Carbs (g)</Label>
-						<Input
-							id="carbs"
-							type="number"
-							min="0"
-							step="0.1"
-							value={formData.carbsG || ""}
-							onChange={(e) => handleChange("carbsG", parseFloat(e.target.value) || 0)}
-							inputMode="decimal"
-							pattern="[0-9]*\.?[0-9]*"
-							className="w-full"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="fat">Fat (g)</Label>
-						<Input
-							id="fat"
-							type="number"
-							min="0"
-							step="0.1"
-							value={formData.fatG || ""}
-							onChange={(e) => handleChange("fatG", parseFloat(e.target.value) || 0)}
-							inputMode="decimal"
-							pattern="[0-9]*\.?[0-9]*"
-							className="w-full"
-						/>
+				>
+					<span className="text-base leading-none mt-px">
+						{aiState.confidence === "high" ? "✓" : aiState.confidence === "medium" ? "~" : "?"}
+					</span>
+					<div>
+						<span className="font-semibold capitalize">{aiState.confidence} confidence</span>
+						{aiState.reasoning && <p className="mt-0.5 opacity-80">{aiState.reasoning}</p>}
 					</div>
 				</div>
+			)}
+
+			{/* ── Review & Edit toggle ── */}
+			<div>
+				<button
+					type="button"
+					onClick={() => setAiState((prev) => ({ ...prev, showDetails: !prev.showDetails }))}
+					className="flex w-full items-center justify-between rounded-xl border border-border/50 px-4 py-3 text-sm font-medium hover:bg-accent/50 transition-colors"
+				>
+					<span className="flex items-center gap-2">
+						{aiState.hasResult ? (
+							<>
+								<span className="text-base">{formData.foodName ? "🍽️" : "📋"}</span>
+								{formData.foodName || "Review & Edit"}
+							</>
+						) : (
+							<>
+								<span className="text-base">📋</span>
+								{editingMealId ? "Edit Details" : "Fill in manually"}
+							</>
+						)}
+					</span>
+					{aiState.showDetails ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+				</button>
+
+				{aiState.showDetails && (
+					<div className="mt-3 space-y-4 rounded-xl border border-border/40 bg-accent/10 p-4">
+
+						{/* Meal Type */}
+						<div className="space-y-2">
+							<Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Meal Type</Label>
+							<div className="flex flex-wrap gap-2">
+								{MEAL_TYPES.map(({ value, label, icon }) => (
+									<button
+										key={value}
+										type="button"
+										onClick={() => handleChange("mealType", value as MealType)}
+										className={cn(
+											"flex-1 min-w-[80px] p-2.5 rounded-xl border text-sm font-medium transition-all",
+											formData.mealType === value
+												? "border-primary bg-primary/8 text-primary shadow-sm"
+												: "border-input hover:bg-accent",
+										)}
+									>
+										<div className="text-lg mb-0.5">{icon}</div>
+										<div className="truncate text-xs">{label}</div>
+									</button>
+								))}
+							</div>
+						</div>
+
+						{/* Date */}
+						<div className="space-y-2">
+							<Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Date</Label>
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button
+										variant="outline"
+										className={cn(
+											"w-full justify-start text-left font-normal text-sm",
+											!formData.loggedAt && "text-muted-foreground",
+										)}
+									>
+										<CalendarIcon className="mr-2 h-4 w-4" />
+										{formData.loggedAt
+											? format(new Date(`${formData.loggedAt}T00:00:00`), "PPP")
+											: <span>Pick a date</span>}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent className="w-auto p-0" align="start">
+									<Calendar
+										mode="single"
+										selected={formData.loggedAt ? new Date(`${formData.loggedAt}T00:00:00`) : undefined}
+										onSelect={(date) => {
+											if (date) handleChange("loggedAt", getLocalDateString(date));
+										}}
+										disabled={(date) => date > new Date() || date < new Date("2020-01-01")}
+										initialFocus
+									/>
+								</PopoverContent>
+							</Popover>
+						</div>
+
+						{/* Food Name */}
+						<div className="space-y-1.5">
+							<Label htmlFor="foodName" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+								Food Name *
+							</Label>
+							<Input
+								id="foodName"
+								value={formData.foodName}
+								onChange={(e) => handleChange("foodName", e.target.value)}
+								placeholder="e.g., Grilled chicken breast"
+								required
+								className="text-sm"
+							/>
+						</div>
+
+						{/* Serving */}
+						<div className="grid grid-cols-2 gap-3">
+							<div className="space-y-1.5">
+								<Label htmlFor="servingSize" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+									Serving Size
+								</Label>
+								<Input
+									id="servingSize"
+									value={formData.servingSize || ""}
+									onChange={(e) => handleChange("servingSize", e.target.value)}
+									placeholder="e.g., 150"
+									inputMode="numeric"
+									className="text-sm"
+								/>
+							</div>
+							<div className="space-y-1.5">
+								<Label htmlFor="servingUnit" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+									Unit
+								</Label>
+								<Input
+									id="servingUnit"
+									value={formData.servingUnit || ""}
+									onChange={(e) => handleChange("servingUnit", e.target.value)}
+									placeholder="g, ml, piece…"
+									className="text-sm"
+								/>
+							</div>
+						</div>
+
+						{/* Nutrition */}
+						<div className="space-y-2">
+							<Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+								Nutrition
+							</Label>
+							<div className="grid grid-cols-2 gap-3">
+								{NUTRITION_FIELDS.map(({ id, label, field, step, required }) => (
+									<div key={id} className="space-y-1">
+										<Label htmlFor={id} className="text-[11px] font-medium text-muted-foreground">{label}</Label>
+										<Input
+											id={id}
+											type="number"
+											min="0"
+											step={step}
+											value={formData[field] || ""}
+											onChange={(e) => handleChange(field, parseFloat(e.target.value) || 0)}
+											inputMode={step === "1" ? "numeric" : "decimal"}
+											required={required}
+											className="text-sm"
+										/>
+									</div>
+								))}
+							</div>
+						</div>
+
+						{/* Notes */}
+						<div className="space-y-1.5">
+							<Label htmlFor="notes" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+								Notes (optional)
+							</Label>
+							<Textarea
+								id="notes"
+								value={formData.notes || ""}
+								onChange={(e) => handleChange("notes", e.target.value)}
+								placeholder="Add any additional notes…"
+								rows={2}
+								className="resize-none text-sm"
+							/>
+						</div>
+
+					</div>
+				)}
 			</div>
 
-			{/* Notes */}
-			<div className="space-y-2 min-w-0">
-				<Label htmlFor="notes">Notes (optional)</Label>
-				<Textarea
-					id="notes"
-					value={formData.notes || ""}
-					onChange={(e) => handleChange("notes", e.target.value)}
-					placeholder="Add any additional notes about this meal..."
-					rows={3}
-					className="w-full resize-none"
-				/>
-			</div>
+			{/* ── Camera quick-attach (only show when form is shown while editing) ── */}
+			{editingMealId && (
+				<div className="flex items-center gap-3 rounded-xl border border-border/40 bg-accent/20 px-4 py-3">
+					<Camera className="h-4 w-4 text-muted-foreground shrink-0" />
+					<div className="flex-1 min-w-0">
+						{imagePreview ? (
+							<div className="flex items-center gap-2">
+								<img src={imagePreview} alt="Food" className="h-8 w-8 rounded-lg object-cover" />
+								<button type="button" onClick={handleClearImage} className="text-xs text-muted-foreground hover:text-foreground">Remove</button>
+							</div>
+						) : (
+							<button
+								type="button"
+								onClick={() => fileInputRef.current?.click()}
+								className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+							>
+								Attach photo to re-analyze
+							</button>
+						)}
+					</div>
+					<input
+						ref={editingMealId ? fileInputRef : undefined}
+						type="file"
+						accept="image/*,.heic,.heif"
+						onChange={handleImageSelect}
+						className="hidden"
+					/>
+				</div>
+			)}
 
-			{/* Action Buttons */}
-			<div className="flex flex-col gap-3 pt-4 sm:flex-row">
-				<Button type="submit" className="w-full" disabled={isSubmitting}>
+			{/* ── Action Buttons ── */}
+			<div className="flex flex-col gap-2.5 pt-1 sm:flex-row">
+				<Button
+					type="submit"
+					className="w-full rounded-xl gap-2"
+					disabled={isSubmitting || (!formData.foodName && !aiState.hasResult)}
+				>
 					{isSubmitting ? (
-						<>
-							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-							{editingMealId ? "Updating..." : "Logging..."}
-						</>
+						<><Loader2 className="h-4 w-4 animate-spin" />{editingMealId ? "Updating…" : "Logging…"}</>
 					) : (
-						<>
-							<Save className="mr-2 h-4 w-4" />
-							{editingMealId ? "Update Meal" : "Log Meal"}
-						</>
+						<><Save className="h-4 w-4" />{editingMealId ? "Update Meal" : "Log Meal"}</>
 					)}
 				</Button>
 
 				{isStandalone && (
-					<Button type="button" variant="outline" onClick={onClose} className="w-full">
+					<Button type="button" variant="outline" onClick={onClose} className="w-full rounded-xl">
 						Cancel
 					</Button>
 				)}
@@ -714,23 +695,18 @@ export function MealForm({
 						type="button"
 						variant="outline"
 						onClick={handleSaveAsFavorite}
-						disabled={createFavorite.isPending}
-						className="w-full"
+						disabled={createFavorite.isPending || !formData.foodName}
+						className="w-full rounded-xl gap-2"
 					>
 						{createFavorite.isPending ? (
-							<>
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Saving...
-							</>
+							<><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
 						) : (
-							<>
-								<Star className="mr-2 h-4 w-4" />
-								Save as Favorite
-							</>
+							<><Star className="h-4 w-4" />Save as Favourite</>
 						)}
 					</Button>
 				)}
 			</div>
+
 		</form>
 	);
 }

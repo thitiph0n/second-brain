@@ -4,6 +4,15 @@ export type Gender = 'male' | 'female' | 'other';
 export type ActivityLevel = 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active';
 export type Goal = 'lose_weight' | 'maintain_weight' | 'gain_weight';
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
+
+// Shared constants for meal types
+export const MEAL_TYPES = [
+	{ value: "breakfast" as const, label: "Breakfast", icon: "🌅" },
+	{ value: "lunch" as const, label: "Lunch", icon: "☀️" },
+	{ value: "dinner" as const, label: "Dinner", icon: "🌙" },
+	{ value: "snack" as const, label: "Snack", icon: "🍎" },
+] as const;
 
 export interface UserProfile {
   userId: string;

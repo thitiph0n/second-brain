@@ -1,9 +1,34 @@
+// Shared type constants
+export const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
+export type MealType = typeof MEAL_TYPES[number];
+export const CONFIDENCE_LEVELS = ["high", "medium", "low"] as const;
+export type ConfidenceLevel = typeof CONFIDENCE_LEVELS[number];
+
+export interface ParseMealResult {
+	foodName: string;
+	calories: number;
+	proteinG: number;
+	carbsG: number;
+	fatG: number;
+	servingSize?: string;
+	servingUnit?: string;
+	mealType?: MealType;
+	notes?: string;
+	confidence: ConfidenceLevel;
+	reasoning?: string;
+}
+
+export interface ParseMealRequest {
+	text: string;
+	imageDataUrl?: string; // base64 data URL
+}
+
 export interface MacroEstimation {
 	calories: number;
 	proteinG: number;
 	carbsG: number;
 	fatG: number;
-	confidence: "high" | "medium" | "low";
+	confidence: ConfidenceLevel;
 	reasoning?: string;
 }
 
@@ -17,7 +42,7 @@ export interface EstimateMacrosRequest {
 export class OpenRouterService {
 	private apiKey: string;
 	private baseUrl = "https://openrouter.ai/api/v1";
-	private model = "google/gemini-2.5-flash";
+	private model = "google/gemini-flash-3-preview";
 
 	constructor(apiKey: string) {
 		this.apiKey = apiKey;
@@ -75,17 +100,7 @@ export class OpenRouterService {
 			}
 
 			const content = data.choices[0].message.content.trim();
-
-			let parsed: MacroEstimation;
-			try {
-				const jsonMatch = content.match(/\{[\s\S]*\}/);
-				const jsonStr = jsonMatch ? jsonMatch[0] : content;
-				parsed = JSON.parse(jsonStr);
-			} catch (parseError) {
-				throw new Error(
-					`Failed to parse AI response as JSON: ${content}. Parse error: ${parseError instanceof Error ? parseError.message : "Unknown error"}`,
-				);
-			}
+			const parsed = this.extractJSON(content) as MacroEstimation;
 
 			return this.validateAndNormalize(parsed);
 		} catch (error) {
@@ -120,6 +135,105 @@ export class OpenRouterService {
 		return prompt;
 	}
 
+	async parseMeal(request: ParseMealRequest): Promise<ParseMealResult> {
+		const systemPrompt =
+			"You are a nutrition expert and AI meal logger. The user will describe a meal in natural language (and may provide a photo). Extract all meal details and return ONLY valid JSON with no additional text or markdown.";
+
+		const userPrompt = `From the following meal description${request.imageDataUrl ? " and attached photo" : ""}, extract the meal details and estimate nutritional information.
+
+Meal description: "${request.text}"
+
+Return ONLY a valid JSON object with exactly these fields:
+{
+  "foodName": "name of the food (Thai if Thai food, English otherwise)",
+  "calories": <number>,
+  "proteinG": <number>,
+  "carbsG": <number>,
+  "fatG": <number>,
+  "servingSize": "<optional: quantity string, e.g. '200', '1'>",
+  "servingUnit": "<optional: unit string, e.g. 'g', 'ml', 'plate', 'piece'>",
+  "mealType": "<breakfast|lunch|dinner|snack — guess from context/time if unclear, default to 'snack'>",
+  "notes": "<optional: any extra info from the description>",
+  "confidence": "<high|medium|low>",
+  "reasoning": "<brief explanation of your estimates>"
+}`;
+
+		const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+			{ type: "text", text: userPrompt },
+		];
+
+		if (request.imageDataUrl) {
+			content.push({
+				type: "image_url",
+				image_url: { url: request.imageDataUrl },
+			});
+		}
+
+		const response = await fetch(`${this.baseUrl}/chat/completions`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${this.apiKey}`,
+				"Content-Type": "application/json",
+				"HTTP-Referer": "https://2b.thitiphon.me",
+				"X-Title": "Second Brain - Meal Tracker",
+			},
+			body: JSON.stringify({
+				model: this.model,
+				messages: [
+					{ role: "system", content: systemPrompt },
+					{ role: "user", content },
+				],
+				temperature: 0.3,
+				max_tokens: 600,
+			}),
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+		}
+
+		const data = (await response.json()) as {
+			choices?: Array<{ message?: { content?: string } }>;
+		};
+
+		if (!data.choices?.[0]?.message?.content) {
+			throw new Error("Invalid response from OpenRouter API");
+		}
+
+		const parsed = this.extractJSON(data.choices[0].message.content) as ParseMealResult;
+		return this.validateAndNormalizeParseMealResult(parsed);
+	}
+
+	/**
+	 * Extract JSON from AI response, handling markdown code blocks
+	 */
+	private extractJSON(content: string): unknown {
+		const trimmedContent = content.trim();
+		const jsonMatch = trimmedContent.match(/\{[\s\S]*\}/);
+		const jsonStr = jsonMatch ? jsonMatch[0] : trimmedContent;
+		return JSON.parse(jsonStr);
+	}
+
+	/**
+	 * Validate and normalize ParseMealResult from AI
+	 */
+	private validateAndNormalizeParseMealResult(data: ParseMealResult): ParseMealResult {
+		return {
+			foodName: String(data.foodName || "Unknown Food"),
+			calories: Math.round(Number(data.calories) || 0),
+			proteinG: Math.round((Number(data.proteinG) || 0) * 10) / 10,
+			carbsG: Math.round((Number(data.carbsG) || 0) * 10) / 10,
+			fatG: Math.round((Number(data.fatG) || 0) * 10) / 10,
+			servingSize: data.servingSize ? String(data.servingSize) : undefined,
+			servingUnit: data.servingUnit ? String(data.servingUnit) : undefined,
+			mealType: MEAL_TYPES.includes(data.mealType as MealType) ? (data.mealType as MealType) : "snack",
+			notes: data.notes ? String(data.notes) : undefined,
+			confidence: CONFIDENCE_LEVELS.includes(data.confidence) ? data.confidence : "medium",
+			reasoning: data.reasoning ? String(data.reasoning) : undefined,
+		};
+	}
+
 	private validateAndNormalize(data: MacroEstimation): MacroEstimation {
 		if (typeof data.calories !== "number" || data.calories < 0) {
 			throw new Error("Invalid calories value in AI response");
@@ -133,7 +247,7 @@ export class OpenRouterService {
 		if (typeof data.fatG !== "number" || data.fatG < 0) {
 			throw new Error("Invalid fat value in AI response");
 		}
-		if (!["high", "medium", "low"].includes(data.confidence)) {
+		if (!CONFIDENCE_LEVELS.includes(data.confidence)) {
 			data.confidence = "medium";
 		}
 

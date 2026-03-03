@@ -1058,7 +1058,7 @@ Return ONLY a valid JSON object (no markdown, no explanations) with this EXACT s
 				"X-Title": "Second Brain - Meal Tracker"
 			},
 			body: JSON.stringify({
-				model: "google/gemini-2.5-flash",
+				model: "google/gemini-flash-3-preview",
 				messages: [
 					{
 						role: "user",
@@ -1115,6 +1115,47 @@ Return ONLY a valid JSON object (no markdown, no explanations) with this EXACT s
 	} catch (error) {
 		console.error("Food image analysis error:", error instanceof Error ? error.message : String(error));
 		return createErrorResponse(c, error, "Failed to analyze food image");
+	}
+});
+
+// POST /api/v1/meal-tracker/foods/parse-meal - Parse natural language meal description with optional image
+mealTrackerRoutes.post("/foods/parse-meal", async (c) => {
+	try {
+		const user = c.get("user");
+		if (!user) {
+			return createAuthErrorResponse(
+				c,
+				new Error("User context not found"),
+				"Authentication middleware did not set user context",
+			);
+		}
+
+		const body = await c.req.json() as { text?: string; imageDataUrl?: string };
+
+		if (!body.text || typeof body.text !== "string" || body.text.trim().length === 0) {
+			return c.json({
+				error: "Missing required field: text",
+				message: "Please provide a meal description",
+			}, 400);
+		}
+
+		const apiKey = c.env.OPENROUTER_API_KEY;
+		if (!apiKey) {
+			return c.json({
+				error: "OpenRouter API key not configured",
+				message: "AI meal parsing is not available. Please configure OPENROUTER_API_KEY.",
+			}, 503);
+		}
+
+		const openRouterService = new OpenRouterService(apiKey);
+		const result = await openRouterService.parseMeal({
+			text: body.text.trim(),
+			imageDataUrl: body.imageDataUrl,
+		});
+
+		return c.json({ meal: result });
+	} catch (error) {
+		return createErrorResponse(c, error, "Failed to parse meal description");
 	}
 });
 

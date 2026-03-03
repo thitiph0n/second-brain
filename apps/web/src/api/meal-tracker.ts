@@ -11,9 +11,10 @@ import type {
   ActivityLevel,
   Goal,
   MealType,
-  TrendsAnalytics
+  TrendsAnalytics,
+  ConfidenceLevel
 } from '@/types/meal-tracker';
-import { getLocalDateString } from '@/lib/utils';
+import { getLocalDateString, fileToDataUrl } from '@/lib/utils';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://2b.thitiphon.me' : 'http://localhost:8787');
 
@@ -269,7 +270,7 @@ class MealTrackerAPI {
       proteinG: number;
       carbsG: number;
       fatG: number;
-      confidence: 'high' | 'medium' | 'low';
+      confidence: ConfidenceLevel;
       reasoning?: string;
     };
   }> {
@@ -294,7 +295,7 @@ class MealTrackerAPI {
     fatG: number;
     servingSize?: string;
     servingUnit?: string;
-    confidence: 'high' | 'medium' | 'low';
+    confidence: ConfidenceLevel;
     description?: string;
   }> {
     const url = `${API_BASE_URL}/api/v1/meal-tracker/foods/analyze-image`;
@@ -337,6 +338,38 @@ class MealTrackerAPI {
       console.error('API request failed for image analysis:', error);
       throw error;
     }
+  }
+
+  async parseMeal(
+    text: string,
+    imageFile?: File,
+  ): Promise<{
+    foodName: string;
+    calories: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    servingSize?: string;
+    servingUnit?: string;
+    mealType?: MealType;
+    notes?: string;
+    confidence: ConfidenceLevel;
+    reasoning?: string;
+  }> {
+    let imageDataUrl: string | undefined;
+
+    if (imageFile) {
+      imageDataUrl = await fileToDataUrl(imageFile);
+    }
+
+    const response = await this.request<{ meal: ReturnType<MealTrackerAPI['parseMeal']> extends Promise<infer T> ? T : never }>(
+      '/foods/parse-meal',
+      {
+        method: 'POST',
+        body: JSON.stringify({ text, imageDataUrl }),
+      },
+    );
+    return response.meal;
   }
 }
 
