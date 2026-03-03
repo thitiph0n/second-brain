@@ -1058,7 +1058,7 @@ Return ONLY a valid JSON object (no markdown, no explanations) with this EXACT s
 				"X-Title": "Second Brain - Meal Tracker"
 			},
 			body: JSON.stringify({
-				model: "google/gemini-flash-3-preview",
+				model: "google/gemini-3-flash-preview",
 				messages: [
 					{
 						role: "user",

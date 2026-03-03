@@ -42,7 +42,7 @@ export interface EstimateMacrosRequest {
 export class OpenRouterService {
 	private apiKey: string;
 	private baseUrl = "https://openrouter.ai/api/v1";
-	private model = "google/gemini-flash-3-preview";
+	private model = "google/gemini-3-flash-preview";
 
 	constructor(apiKey: string) {
 		this.apiKey = apiKey;
